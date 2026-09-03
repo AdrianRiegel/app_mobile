@@ -1,3 +1,4 @@
+import 'package:app_mobile/Screens/classes_screen.dart';
 import 'package:app_mobile/Screens/login_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -127,6 +128,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         Expanded(
                           child: _buildDashCard(
+                            onPress: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ClassesScreen(),
+                                ),
+                              );
+                            },
                             icon: Icons.people_outline,
                             label: 'Turmas',
                             value: '5 ativas',
@@ -138,6 +147,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             icon: Icons.insert_chart_outlined,
                             label: 'Relatórios',
                             value: 'Gerar PDF',
+                            onPress: () {
+                              // Ação ao pressionar o card de Relatórios
+                            },
                           ),
                         ),
                       ],
@@ -150,6 +162,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             icon: Icons.bar_chart,
                             label: 'Estatísticas',
                             value: 'Ver desempenho',
+                            onPress: () {
+                              // Ação ao pressionar o card de Estatísticas
+                            },
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -158,6 +173,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             icon: Icons.assignment_turned_in_outlined,
                             label: 'Provas',
                             value: '3 pendentes',
+                            onPress: () {
+                              // Ação ao pressionar o card de Provas
+                            },
                           ),
                         ),
                       ],
@@ -256,30 +274,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required IconData icon,
     required String label,
     required String value,
+    required VoidCallback onPress,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cardColor,
-        border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: accentColor, size: 22),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: textColor,
-            ),
+    return Material(
+      color: cardColor,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onPress, // Ação de clique
+        borderRadius: BorderRadius.circular(
+          12,
+        ), // Mantém o efeito visual arredondado
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: borderColor),
+            borderRadius: BorderRadius.circular(12),
           ),
-          const SizedBox(height: 2),
-          Text(value, style: TextStyle(fontSize: 10, color: mutedColor)),
-        ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: accentColor, size: 22),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(value, style: TextStyle(fontSize: 10, color: mutedColor)),
+            ],
+          ),
+        ),
       ),
     );
   }
