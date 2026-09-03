@@ -1,3 +1,4 @@
+import 'package:app_mobile/Screens/login_screen.dart';
 import 'package:flutter/material.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -61,37 +62,104 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         Text(
                           'Professora',
-                          style: TextStyle(
-                            fontSize: 11,
+                          style: TextStyle(fontSize: 11, color: mutedColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 60,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: accentLightColor,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.centerRight,
+
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Icon(
+                          Icons.notifications_none,
+                          color: mutedColor,
+                          size: 22,
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LoginScreen(),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            elevation: 0,
+                            padding: EdgeInsets.zero,
+                            shadowColor: Colors.transparent,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Icon(
+                            Icons.logout,
                             color: mutedColor,
+                            size: 20,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Icon(Icons.notifications_none, color: mutedColor, size: 22),
+                  const SizedBox(width: 10),
                 ],
               ),
             ),
 
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 child: Column(
                   children: [
                     Row(
                       children: [
-                        Expanded(child: _buildDashCard(icon: Icons.people_outline, label: 'Turmas', value: '5 ativas')),
+                        Expanded(
+                          child: _buildDashCard(
+                            icon: Icons.people_outline,
+                            label: 'Turmas',
+                            value: '5 ativas',
+                          ),
+                        ),
                         const SizedBox(width: 10),
-                        Expanded(child: _buildDashCard(icon: Icons.insert_chart_outlined, label: 'Relatórios', value: 'Gerar PDF')),
+                        Expanded(
+                          child: _buildDashCard(
+                            icon: Icons.insert_chart_outlined,
+                            label: 'Relatórios',
+                            value: 'Gerar PDF',
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Expanded(child: _buildDashCard(icon: Icons.bar_chart, label: 'Estatísticas', value: 'Ver desempenho')),
+                        Expanded(
+                          child: _buildDashCard(
+                            icon: Icons.bar_chart,
+                            label: 'Estatísticas',
+                            value: 'Ver desempenho',
+                          ),
+                        ),
                         const SizedBox(width: 10),
-                        Expanded(child: _buildDashCard(icon: Icons.assignment_turned_in_outlined, label: 'Provas', value: '3 pendentes')),
+                        Expanded(
+                          child: _buildDashCard(
+                            icon: Icons.assignment_turned_in_outlined,
+                            label: 'Provas',
+                            value: '3 pendentes',
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -107,12 +175,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Ler QR Code', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                              const Text(
+                                'Ler QR Code',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                               const SizedBox(height: 4),
-                              Text('Corrigir prova rápido', style: TextStyle(color: const Color(0xFFE6E6FF), fontSize: 10)),
+                              Text(
+                                'Corrigir prova rápido',
+                                style: TextStyle(
+                                  color: const Color(0xFFE6E6FF),
+                                  fontSize: 10,
+                                ),
+                              ),
                             ],
                           ),
-                          const Icon(Icons.qr_code_scanner, color: Colors.white, size: 26),
+                          const Icon(
+                            Icons.qr_code_scanner,
+                            color: Colors.white,
+                            size: 26,
+                          ),
                         ],
                       ),
                     ),
@@ -129,7 +214,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: Colors.white,
           border: Border(top: BorderSide(color: borderColor, width: 1)),
         ),
-        child: SafeArea( // Protege contra a barra de baixo do iPhone/Android
+        child: SafeArea(
+          // Protege contra a barra de baixo do iPhone/Android
           child: BottomNavigationBar(
             currentIndex: _selectedIndex,
             onTap: (index) => setState(() => _selectedIndex = index),
@@ -143,10 +229,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
             unselectedFontSize: 10,
             iconSize: 22,
             items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Início'),
-              BottomNavigationBarItem(icon: Icon(Icons.people_outline), label: 'Turmas'),
-              BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Estatísticas'),
-              BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Perfil'),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                label: 'Início',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.people_outline),
+                label: 'Turmas',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.bar_chart),
+                label: 'Estatísticas',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline),
+                label: 'Perfil',
+              ),
             ],
           ),
         ),
@@ -154,7 +252,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildDashCard({required IconData icon, required String label, required String value}) {
+  Widget _buildDashCard({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -167,7 +269,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Icon(icon, color: accentColor, size: 22),
           const SizedBox(height: 8),
-          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textColor)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
+          ),
           const SizedBox(height: 2),
           Text(value, style: TextStyle(fontSize: 10, color: mutedColor)),
         ],
