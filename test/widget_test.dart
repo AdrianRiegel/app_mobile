@@ -6,6 +6,7 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:app_mobile/main.dart';
+import 'package:app_mobile/Screens/class_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -34,5 +35,31 @@ void main() {
 
     expect(find.text('Configurar gabarito'), findsOneWidget);
     expect(find.text('Salvar gabarito'), findsOneWidget);
+  });
+
+  testWidgets('abre o modal para cadastrar aluno e adiciona na lista', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ClassDetailScreen(titulo: '3º Ano A - Matemática'),
+      ),
+    );
+
+    await tester.tap(find.text('Adicionar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Novo aluno'), findsOneWidget);
+
+    final textFields = find.byType(TextField);
+    expect(textFields, findsNWidgets(2));
+
+    await tester.enterText(textFields.at(0), 'João da Silva');
+    await tester.enterText(textFields.at(1), '2026044');
+    await tester.tap(find.text('Adicionar aluno'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('João da Silva'), findsOneWidget);
+    expect(find.text('Matrícula 2026044'), findsOneWidget);
   });
 }
