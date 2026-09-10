@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'assessments_screen.dart';
 import 'class_detail_screen.dart';
 
 class ClassesScreen extends StatefulWidget {
@@ -144,6 +145,25 @@ class _ClassesScreenState extends State<ClassesScreen> {
                 Navigator.pop(context);
                 return;
               }
+              if (index == 2) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AssessmentsScreen(),
+                  ),
+                );
+                return;
+              }
+              if (index == 3) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Perfil estará disponível em uma próxima entrega',
+                    ),
+                  ),
+                );
+                return;
+              }
               setState(() => _selectedIndex = index);
             },
             selectedItemColor: accentColor,
@@ -165,8 +185,8 @@ class _ClassesScreenState extends State<ClassesScreen> {
                 label: 'Turmas',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.bar_chart),
-                label: 'Estatísticas',
+                icon: Icon(Icons.assignment_outlined),
+                label: 'Avaliações',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person_outline),

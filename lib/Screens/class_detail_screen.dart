@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../data/mock_assessments.dart';
+import '../models/assessment.dart';
+import 'assessment_detail_screen.dart';
+import 'new_assessment_screen.dart';
+
 class ClassDetailScreen extends StatefulWidget {
   const ClassDetailScreen({super.key, required this.titulo});
 
@@ -27,11 +32,18 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     _Aluno('Elisa Ferreira', 'Matrícula 2026043'),
   ];
 
-  final List<_Prova> _provas = const [
-    _Prova('Avaliação bimestral - Cap. 4', '10 questões · 22/08/2026', 'Aplicada'),
-    _Prova('Prova mensal - Cap. 3', '8 questões · 15/07/2026', 'Aplicada'),
-    _Prova('Recuperação - Cap. 2', '5 questões', 'Rascunho'),
-  ];
+  final List<_Prova> _provas = mockAssessments
+      .map(
+        (assessment) => _Prova(
+          assessment.title,
+          '${assessment.totalQuestions} questões · ${assessment.dateLabel}',
+          assessment.status == AssessmentStatus.completed
+              ? 'Aplicada'
+              : assessment.statusLabel,
+          assessment: assessment,
+        ),
+      )
+      .toList();
 
   @override
   Widget build(BuildContext context) {
@@ -183,7 +195,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           right: 16,
           bottom: 16,
           child: FloatingActionButton(
-            onPressed: () {},
+            onPressed: _createAssessment,
             backgroundColor: accentColor,
             elevation: 4,
             child: const Icon(Icons.add, color: Colors.white),
@@ -233,64 +245,118 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
 
   Widget _buildProvaItem(_Prova prova) {
     final aplicada = prova.status == 'Aplicada';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-      decoration: BoxDecoration(
-        color: cardColor,
-        border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: accentLightColor,
-              borderRadius: BorderRadius.circular(9),
+    return Material(
+      color: cardColor,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: () {
+          final assessment = prova.assessment ??
+              Assessment(
+                  title: prova.titulo,
+                  subject: 'Matemática',
+                  className: widget.titulo.split(' - ').first,
+                  dateLabel: 'Sem data',
+                  status: AssessmentStatus.draft,
+                  totalQuestions: 10,
+                  correctedStudents: 0,
+                  totalStudents: _alunos.length,
+                );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AssessmentDetailScreen(assessment: assessment),
             ),
-            child: Icon(Icons.description_outlined, size: 18, color: accentColor),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            border: Border.all(color: borderColor),
+            borderRadius: BorderRadius.circular(12),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  prova.titulo,
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: accentLightColor,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(
+                  Icons.description_outlined,
+                  size: 18,
+                  color: accentColor,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      prova.titulo,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      prova.info,
+                      style: TextStyle(fontSize: 11, color: mutedColor),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: aplicada
+                      ? const Color(0xFFE4F6ED)
+                      : const Color(0xFFEEF0F3),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  prova.status,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 9,
                     fontWeight: FontWeight.w600,
-                    color: textColor,
+                    color: aplicada ? const Color(0xFF1F9D6E) : mutedColor,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  prova.info,
-                  style: TextStyle(fontSize: 11, color: mutedColor),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-            decoration: BoxDecoration(
-              color: aplicada
-                  ? const Color(0xFFE4F6ED)
-                  : const Color(0xFFEEF0F3),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              prova.status,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                color: aplicada ? const Color(0xFF1F9D6E) : mutedColor,
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Future<void> _createAssessment() async {
+    final assessment = await Navigator.push<Assessment>(
+      context,
+      MaterialPageRoute(builder: (_) => const NewAssessmentScreen()),
+    );
+    if (assessment == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _provas.insert(
+        0,
+        _Prova(
+          assessment.title,
+          '${assessment.totalQuestions} questões',
+          'Rascunho',
+          assessment: assessment,
+        ),
+      );
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Avaliação criada como rascunho')),
     );
   }
 
@@ -354,5 +420,12 @@ class _Prova {
   final String titulo;
   final String info;
   final String status;
-  const _Prova(this.titulo, this.info, this.status);
+  final Assessment? assessment;
+
+  const _Prova(
+    this.titulo,
+    this.info,
+    this.status, {
+    this.assessment,
+  });
 }

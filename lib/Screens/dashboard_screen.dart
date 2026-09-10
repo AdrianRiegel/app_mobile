@@ -2,6 +2,10 @@ import 'package:app_mobile/Screens/classes_screen.dart';
 import 'package:app_mobile/Screens/login_screen.dart';
 import 'package:flutter/material.dart';
 
+import '../data/mock_assessments.dart';
+import 'assessments_screen.dart';
+import 'correction_start_screen.dart';
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -87,11 +91,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            Navigator.push(
+                            Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => const LoginScreen(),
                               ),
+                              (route) => false,
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -148,7 +153,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             label: 'Relatórios',
                             value: 'Gerar PDF',
                             onPress: () {
-                              // Ação ao pressionar o card de Relatórios
+                              _showComingSoon('Relatórios');
                             },
                           ),
                         ),
@@ -163,7 +168,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             label: 'Estatísticas',
                             value: 'Ver desempenho',
                             onPress: () {
-                              // Ação ao pressionar o card de Estatísticas
+                              _showComingSoon('Estatísticas');
                             },
                           ),
                         ),
@@ -171,52 +176,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Expanded(
                           child: _buildDashCard(
                             icon: Icons.assignment_turned_in_outlined,
-                            label: 'Provas',
-                            value: '3 pendentes',
+                            label: 'Avaliações',
+                            value: '3 recentes',
                             onPress: () {
-                              // Ação ao pressionar o card de Provas
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AssessmentsScreen(),
+                                ),
+                              );
                             },
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: accentColor,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Ler QR Code',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                    Material(
+                      color: accentColor,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CorrectionStartScreen(
+                                assessment: mockAssessments.first,
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Corrigir prova rápido',
-                                style: TextStyle(
-                                  color: const Color(0xFFE6E6FF),
-                                  fontSize: 10,
-                                ),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Ler QR Code',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Corrigir prova rápido',
+                                    style: TextStyle(
+                                      color: Color(0xFFE6E6FF),
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.qr_code_scanner,
+                                    color: Colors.white,
+                                    size: 26,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Icon(
+                                    Icons.chevron_right,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                          const Icon(
-                            Icons.qr_code_scanner,
-                            color: Colors.white,
-                            size: 26,
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ],
@@ -246,6 +279,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 );
                 return;
               }
+              if (index == 2) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AssessmentsScreen(),
+                  ),
+                );
+                return;
+              }
+              if (index == 3) {
+                _showComingSoon('Perfil');
+                return;
+              }
               setState(() => _selectedIndex = index);
             },
             selectedItemColor: accentColor,
@@ -267,8 +313,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 label: 'Turmas',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.bar_chart),
-                label: 'Estatísticas',
+                icon: Icon(Icons.assignment_outlined),
+                label: 'Avaliações',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person_outline),
@@ -320,6 +366,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$feature estará disponível em uma próxima entrega')),
     );
   }
 }

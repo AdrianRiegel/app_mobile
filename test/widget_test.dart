@@ -5,27 +5,34 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
+import 'package:app_mobile/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:app_mobile/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('navega do login até o gabarito de uma avaliação', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const EduTurmasApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('EduTurmas'), findsOneWidget);
+    await tester.tap(find.text('Entrar'));
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(find.text('Olá, Maria'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.assignment_turned_in_outlined));
+    await tester.pumpAndSettle();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Avaliações'), findsOneWidget);
+    expect(find.text('Avaliações recentes'), findsOneWidget);
+    await tester.tap(find.text('Avaliação bimestral — Cap. 4'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Detalhes da avaliação'), findsOneWidget);
+    await tester.tap(find.text('Configurar gabarito'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Configurar gabarito'), findsOneWidget);
+    expect(find.text('Salvar gabarito'), findsOneWidget);
   });
 }
-

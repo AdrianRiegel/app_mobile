@@ -69,7 +69,17 @@ class RegisterScreen extends StatelessWidget {
 
               // Botão Cadastrar
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  final messenger = ScaffoldMessenger.of(context);
+                  Navigator.pop(context);
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Cadastro concluído. Entre com sua nova conta.',
+                      ),
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryAccent,
                   foregroundColor: Colors.white,
