@@ -51,7 +51,15 @@ class ResetPasswordScreen extends StatelessWidget {
               _buildTextField(hintText: 'nome@escola.com', keyboardType: TextInputType.emailAddress),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Link de redefinição enviado para o e-mail informado',
+                      ),
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryAccent,
                   foregroundColor: Colors.white,
