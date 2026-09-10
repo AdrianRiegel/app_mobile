@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'class_detail_screen.dart';
 
 class ClassesScreen extends StatefulWidget {
@@ -32,6 +33,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgColor,
+      floatingActionButtonLocation: const CustomMiniEndFloatLocation(),
       body: SafeArea(
         child: Column(
           children: [
@@ -128,7 +130,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _openNovaTurmaSheet,
         backgroundColor: accentColor,
-        elevation: 4,
+        elevation: 6,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: Container(
@@ -270,11 +272,29 @@ class _ClassesScreenState extends State<ClassesScreen> {
         inputBgColor: inputBgColor,
         onCreate: (descricao) {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Turma "$descricao" criada')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Turma "$descricao" criada')));
         },
       ),
+    );
+  }
+}
+
+class CustomMiniEndFloatLocation extends FloatingActionButtonLocation {
+  const CustomMiniEndFloatLocation();
+
+  @override
+  Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
+    final Offset standardOffset = FloatingActionButtonLocation.miniEndFloat
+        .getOffset(scaffoldGeometry);
+
+    double dxAdjustment = -10.0;
+    double dyAdjustment = -30.0;
+
+    return Offset(
+      standardOffset.dx + dxAdjustment,
+      standardOffset.dy + dyAdjustment,
     );
   }
 }
@@ -408,16 +428,16 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
   }
 
   Widget _label(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: widget.mutedColor,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: widget.mutedColor,
+      ),
+    ),
+  );
 
   Widget _field(
     TextEditingController controller, {
@@ -437,8 +457,10 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
         filled: true,
         fillColor: widget.inputBgColor,
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 12,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: widget.borderColor),
