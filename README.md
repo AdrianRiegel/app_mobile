@@ -13,7 +13,11 @@ uso de dados simulados.
 - Criação de uma nova avaliação como rascunho.
 - Detalhes da avaliação e configuração visual do gabarito.
 - Acesso direto à correção e simulação da leitura de QR Code.
-- Demonstração dos estados vazio e de erro no menu da tela de avaliações.
+- Estatísticas gerais por turma e estatísticas detalhadas de cada prova
+  (acerto médio, questão mais errada e acertos por questão).
+- Geração de relatório de desempenho com prévia simulada em PDF.
+- Demonstração dos estados vazio e de erro nas telas de avaliações e de
+  estatísticas.
 
 ## Como executar
 
