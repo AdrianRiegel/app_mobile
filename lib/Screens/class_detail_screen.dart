@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../data/mock_assessments.dart';
 import '../models/assessment.dart';
 import 'assessment_detail_screen.dart';
-import 'new_assessment_screen.dart';
+import 'new_proof_screen.dart';
+import 'proof_grades_screen.dart';
 
 class ClassDetailScreen extends StatefulWidget {
   const ClassDetailScreen({super.key, required this.titulo});
@@ -72,7 +73,9 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      widget.titulo,
+                      _tabIndex == 1
+                          ? 'Provas · ${widget.titulo.split(' - ').first}'
+                          : widget.titulo,
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -309,21 +312,33 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           final assessment =
               prova.assessment ??
               Assessment(
-                title: prova.titulo,
-                subject: 'Matemática',
-                className: widget.titulo.split(' - ').first,
-                dateLabel: 'Sem data',
-                status: AssessmentStatus.draft,
-                totalQuestions: 10,
-                correctedStudents: 0,
-                totalStudents: _alunos.length,
-              );
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AssessmentDetailScreen(assessment: assessment),
-            ),
-          );
+                  title: prova.titulo,
+                  subject: 'Matemática',
+                  className: widget.titulo.split(' - ').first,
+                  dateLabel: 'Sem data',
+                  status: AssessmentStatus.draft,
+                  totalQuestions: 10,
+                  correctedStudents: 0,
+                  totalStudents: _alunos.length,
+                );
+          if (aplicada) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProofGradesScreen(
+                  proofTitle: assessment.title,
+                  className: widget.titulo.split(' - ').first,
+                ),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AssessmentDetailScreen(assessment: assessment),
+              ),
+            );
+          }
         },
         borderRadius: BorderRadius.circular(12),
         child: Container(
@@ -395,7 +410,11 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   Future<void> _createAssessment() async {
     final assessment = await Navigator.push<Assessment>(
       context,
-      MaterialPageRoute(builder: (_) => const NewAssessmentScreen()),
+      MaterialPageRoute(
+        builder: (_) => NewProofScreen(
+          className: widget.titulo.split(' - ').first,
+        ),
+      ),
     );
     if (assessment == null || !mounted) {
       return;
