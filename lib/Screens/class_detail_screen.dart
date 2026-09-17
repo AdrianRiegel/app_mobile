@@ -24,10 +24,11 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   final Color accentColor = const Color(0xFF4F5BD5);
   final Color accentLightColor = const Color(0xFFECEEFB);
   final Color backIconBg = const Color(0xFFF2F3F5);
+  final Color inputBgColor = const Color(0xFFF8F8F9);
 
   int _tabIndex = 0;
 
-  final List<_Aluno> _alunos = const [
+  final List<_Aluno> _alunos = [
     _Aluno('Ana Beatriz', 'Matrícula 2026041'),
     _Aluno('Carlos Dias', 'Matrícula 2026042'),
     _Aluno('Elisa Ferreira', 'Matrícula 2026043'),
@@ -137,6 +138,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   }
 
   Widget _buildAlunosTab() {
+    final Color accentColor = const Color(0xFF4F5BD5);
     return Column(
       children: [
         Expanded(
@@ -150,7 +152,61 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                     '${_alunos.length} alunos',
                     style: TextStyle(fontSize: 11, color: mutedColor),
                   ),
-                  _pill(Icons.upload_outlined, 'Importar'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    spacing: 8,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _openNovoAlunoSheet,
+                        icon: Icon(Icons.person, size: 16, color: accentColor),
+                        label: Text(
+                          'Adicionar',
+                          style: TextStyle(fontSize: 12.0, color: accentColor),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          fixedSize: const Size(90, 20),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
+                        ),
+                      ),
+
+                      ElevatedButton.icon(
+                        onPressed: () => {},
+                        icon: Icon(
+                          Icons.import_export,
+                          size: 16,
+                          color: accentColor,
+                        ),
+                        label: Text(
+                          'Importar',
+                          style: TextStyle(fontSize: 12.0, color: accentColor),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          fixedSize: const Size(80, 20),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 2,
+                            vertical: 2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 10),
@@ -253,7 +309,8 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: () {
-          final assessment = prova.assessment ??
+          final assessment =
+              prova.assessment ??
               Assessment(
                   title: prova.titulo,
                   subject: 'Matemática',
@@ -403,27 +460,201 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     );
   }
 
-  Widget _pill(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEEF0F3),
-        borderRadius: BorderRadius.circular(20),
+  void _openNovoAlunoSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _NovoAlunoSheet(
+        accentColor: accentColor,
+        borderColor: borderColor,
+        textColor: textColor,
+        mutedColor: mutedColor,
+        inputBgColor: inputBgColor,
+        onCreate: (nome, matricula) {
+          final nomeLimpo = nome.trim();
+          final matriculaLimpa = matricula.trim();
+
+          if (nomeLimpo.isEmpty || matriculaLimpa.isEmpty) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Preencha nome e matrícula do aluno'),
+              ),
+            );
+            return;
+          }
+
+          Navigator.pop(context);
+          setState(() {
+            _alunos.insert(0, _Aluno(nomeLimpo, 'Matrícula $matriculaLimpa'));
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Aluno(a) "$nomeLimpo" adicionado(a)')),
+          );
+        },
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: mutedColor),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w600,
-              color: mutedColor,
+    );
+  }
+}
+
+class _NovoAlunoSheet extends StatefulWidget {
+  const _NovoAlunoSheet({
+    required this.accentColor,
+    required this.borderColor,
+    required this.textColor,
+    required this.mutedColor,
+    required this.inputBgColor,
+    required this.onCreate,
+  });
+
+  final Color accentColor;
+  final Color borderColor;
+  final Color textColor;
+  final Color mutedColor;
+  final Color inputBgColor;
+  final void Function(String nome, String matricula) onCreate;
+
+  @override
+  State<_NovoAlunoSheet> createState() => _NovoAlunoSheetState();
+}
+
+class _NovoAlunoSheetState extends State<_NovoAlunoSheet> {
+  final TextEditingController _nomeController = TextEditingController();
+  final TextEditingController _matriculaController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nomeController.dispose();
+    _matriculaController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(top: 4, bottom: 12),
+                decoration: BoxDecoration(
+                  color: widget.borderColor,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
             ),
-          ),
-        ],
+            Text(
+              'Novo aluno(a)',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: widget.textColor,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _label('Nome'),
+            _field(_nomeController, hint: 'Ex: João da Silva'),
+            const SizedBox(height: 12),
+            _label('Matrícula'),
+            _field(_matriculaController, hint: 'Ex: 2026044'),
+            const SizedBox(height: 18),
+            ElevatedButton(
+              onPressed: () {
+                widget.onCreate(
+                  _nomeController.text,
+                  _matriculaController.text,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: widget.accentColor,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Adicionar aluno',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Center(
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Text(
+                  'Cancelar',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: widget.accentColor,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _label(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: widget.mutedColor,
+      ),
+    ),
+  );
+
+  Widget _field(
+    TextEditingController controller, {
+    String? hint,
+    TextInputType? keyboardType,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: TextStyle(fontSize: 13, color: widget.textColor),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(
+          fontSize: 13,
+          color: widget.mutedColor.withValues(alpha: 0.6),
+        ),
+        filled: true,
+        fillColor: widget.inputBgColor,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 12,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: widget.borderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: widget.accentColor, width: 1.5),
+        ),
       ),
     );
   }
@@ -441,10 +672,5 @@ class _Prova {
   final String status;
   final Assessment? assessment;
 
-  const _Prova(
-    this.titulo,
-    this.info,
-    this.status, {
-    this.assessment,
-  });
+  const _Prova(this.titulo, this.info, this.status, {this.assessment});
 }

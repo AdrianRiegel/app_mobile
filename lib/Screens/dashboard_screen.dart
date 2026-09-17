@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../data/mock_assessments.dart';
 import 'assessments_screen.dart';
 import 'correction_start_screen.dart';
+import 'report_screen.dart';
+import 'statistics_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -153,7 +155,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             label: 'Relatórios',
                             value: 'Gerar PDF',
                             onPress: () {
-                              _showComingSoon('Relatórios');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ReportScreen(),
+                                ),
+                              );
                             },
                           ),
                         ),
@@ -168,7 +175,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             label: 'Estatísticas',
                             value: 'Ver desempenho',
                             onPress: () {
-                              _showComingSoon('Estatísticas');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const StatisticsScreen(),
+                                ),
+                              );
                             },
                           ),
                         ),

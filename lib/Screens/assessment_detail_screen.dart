@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../models/assessment.dart';
+import '../models/statistics.dart';
 import '../theme/app_colors.dart';
 import 'answer_key_screen.dart';
 import 'correction_start_screen.dart';
+import 'exam_statistics_screen.dart';
 
 class AssessmentDetailScreen extends StatelessWidget {
   const AssessmentDetailScreen({super.key, required this.assessment});
@@ -260,7 +262,43 @@ class AssessmentDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _openStatistics(context),
+                icon: const Icon(Icons.bar_chart, size: 18),
+                label: const Text('Ver estatísticas'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.accent,
+                  side: const BorderSide(color: AppColors.border),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _openStatistics(BuildContext context) {
+    final parts = assessment.title.split(RegExp(r'\s+[—-]\s+'));
+    final shortLabel = parts.length > 1 ? parts.last : assessment.title;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ExamStatisticsScreen(
+          statistics: ExamStatistics.demo(
+            assessmentTitle: assessment.title,
+            shortLabel: shortLabel,
+            className: assessment.className,
+            subject: assessment.subject,
+            totalQuestions: assessment.totalQuestions,
+          ),
         ),
       ),
     );
