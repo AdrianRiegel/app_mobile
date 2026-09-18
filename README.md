@@ -148,3 +148,6 @@ flutter test
 Nesta etapa não há integração com backend, câmera, OCR ou leitura real de QR
 Code. Os comportamentos são intencionalmente simulados para validar a jornada
 e a experiência do usuário.
+
+## Link do Video do aplicativo
+(https://youtu.be/a2FAxay55is?si=P0_BHCM4h-RBPjNK)
