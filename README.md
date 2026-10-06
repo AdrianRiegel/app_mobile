@@ -138,6 +138,34 @@ flutter pub get
 flutter run
 ```
 
+## Configuração do envio de e-mail (SMTP do Gmail)
+
+O envio de e-mail (`lib/services/email_service.dart`) usa o SMTP do Gmail e lê
+as credenciais de um arquivo `.env` local, que nunca é commitado (já está no
+`.gitignore`).
+
+1. Ative a verificação em duas etapas na conta Google que vai enviar os
+   e-mails, em <https://myaccount.google.com/security> (é obrigatória para
+   gerar uma senha de app).
+2. Gere uma senha de app em
+   <https://myaccount.google.com/apppasswords>: dê um nome (ex.: "EduTurmas")
+   e copie a senha de 16 letras gerada — essa senha substitui a senha normal
+   da conta para o envio via SMTP.
+3. Copie `.env.example` para `.env` na raiz do projeto:
+   ```bash
+   cp .env.example .env
+   ```
+4. Edite o `.env` com o e-mail da conta e a senha de app gerada:
+   ```
+   GMAIL_USER=seu-email@gmail.com
+   GMAIL_APP_PASSWORD=sua-senha-de-app-de-16-letras
+   ```
+5. Rode `flutter pub get` para instalar as dependências `mailer` e
+   `flutter_dotenv` usadas pelo serviço.
+
+Nunca use a senha normal da conta Google nem comite o `.env` — apenas
+`.env.example` (com valores de exemplo) faz parte do repositório.
+
 ## Validação
 
 ```bash
