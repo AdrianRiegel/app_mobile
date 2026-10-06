@@ -15,4 +15,6 @@ abstract final class AppColors {
   static const Color warningLight = Color(0xFFFFF4D6);
   static const Color danger = Color(0xFFCC4B4B);
   static const Color dangerLight = Color(0xFFFDECEC);
+  static const Color neutralLight = Color(0xFFEEF0F3);
+  static const Color onAccentMuted = Color(0xFFE6E6FF);
 }

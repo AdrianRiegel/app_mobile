@@ -1,4 +1,32 @@
+import 'package:flutter/material.dart';
+
+import '../theme/app_colors.dart';
+
 enum AssessmentStatus { draft, scheduled, completed }
+
+extension AssessmentStatusBadge on AssessmentStatus {
+  Color get badgeBackground {
+    switch (this) {
+      case AssessmentStatus.completed:
+        return AppColors.successLight;
+      case AssessmentStatus.scheduled:
+        return AppColors.accentLight;
+      case AssessmentStatus.draft:
+        return AppColors.neutralLight;
+    }
+  }
+
+  Color get badgeForeground {
+    switch (this) {
+      case AssessmentStatus.completed:
+        return AppColors.success;
+      case AssessmentStatus.scheduled:
+        return AppColors.accent;
+      case AssessmentStatus.draft:
+        return AppColors.muted;
+    }
+  }
+}
 
 class Assessment {
   const Assessment({
