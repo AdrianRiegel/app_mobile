@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "151566499460",
+    "project_id": "eduturmasapp",
+    "storage_bucket": "eduturmasapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:151566499460:android:1c49bcde5a72b2b7ad0cd1",
+        "android_client_info": {
+          "package_name": "com.example.app_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAL4YzvBefqAYfd4xtevHoUzXnLSEuIxQ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_assessments.dart';
 import '../models/assessment.dart';
+import '../repositories/assessment_repository.dart';
 import '../theme/app_colors.dart';
 import 'assessment_detail_screen.dart';
 import 'correction_start_screen.dart';
@@ -17,14 +17,9 @@ class AssessmentsScreen extends StatefulWidget {
 }
 
 class _AssessmentsScreenState extends State<AssessmentsScreen> {
-  final List<Assessment> _assessments = [...mockAssessments];
+  final AssessmentRepository _repository = AssessmentRepository();
   _AssessmentViewState _viewState = _AssessmentViewState.content;
   AssessmentStatus? _filter;
-
-  List<Assessment> get _filteredAssessments {
-    if (_filter == null) return _assessments;
-    return _assessments.where((item) => item.status == _filter).toList();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +72,31 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
           child: Divider(height: 1, color: AppColors.border),
         ),
       ),
-      body: SafeArea(top: false, child: _buildBody()),
+      body: SafeArea(
+        top: false,
+        child: StreamBuilder<List<Assessment>>(
+          stream: _repository.getAssessments(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError || _viewState == _AssessmentViewState.error) {
+              return _errorState();
+            }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.accent),
+              );
+            }
+
+            final data = snapshot.data ?? [];
+
+            if (data.isEmpty || _viewState == _AssessmentViewState.empty) {
+              return _emptyState();
+            }
+
+            // Estado de Sucesso
+            return _content(data);
+          },
+        ),
+      ),
       floatingActionButton: _viewState == _AssessmentViewState.content
           ? FloatingActionButton.extended(
               onPressed: _createAssessment,
@@ -94,19 +113,11 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
     );
   }
 
-  Widget _buildBody() {
-    switch (_viewState) {
-      case _AssessmentViewState.empty:
-        return _emptyState();
-      case _AssessmentViewState.error:
-        return _errorState();
-      case _AssessmentViewState.content:
-        return _content();
-    }
-  }
+  Widget _content(List<Assessment> allAssessments) {
+    final items = _filter == null
+        ? allAssessments
+        : allAssessments.where((item) => item.status == _filter).toList();
 
-  Widget _content() {
-    final items = _filteredAssessments;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 92),
       children: [
@@ -114,7 +125,7 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
           color: AppColors.accent,
           borderRadius: BorderRadius.circular(12),
           child: InkWell(
-            onTap: _startQuickCorrection,
+            onTap: () => _startQuickCorrection(allAssessments),
             borderRadius: BorderRadius.circular(12),
             child: const Padding(
               padding: EdgeInsets.all(14),
@@ -451,7 +462,7 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
               onPressed: () {
                 setState(() => _viewState = _AssessmentViewState.content);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Avaliações carregadas')),
+                  const SnackBar(content: Text('Tentando reconectar...')),
                 );
               },
               icon: const Icon(Icons.refresh, size: 18),
@@ -505,21 +516,36 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
       return;
     }
 
-    setState(() {
-      _assessments.insert(0, assessment);
-      _viewState = _AssessmentViewState.content;
-      _filter = null;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Avaliação criada como rascunho')),
-    );
+    try {
+      await _repository.addAssessment(assessment);
+      
+      setState(() {
+        _viewState = _AssessmentViewState.content;
+        _filter = null;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Avaliação salva com sucesso!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao salvar: $e')),
+        );
+      }
+    }
   }
 
-  void _startQuickCorrection() {
-    final selected = _assessments.firstWhere(
+  void _startQuickCorrection(List<Assessment> currentAssessments) {
+    if (currentAssessments.isEmpty) return;
+    
+    final selected = currentAssessments.firstWhere(
       (item) => item.status == AssessmentStatus.scheduled,
-      orElse: () => _assessments.first,
+      orElse: () => currentAssessments.first,
     );
+    
     Navigator.push(
       context,
       MaterialPageRoute(
