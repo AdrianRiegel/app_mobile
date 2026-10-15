@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../components/components.dart';
 import '../models/assessment.dart';
 import '../theme/app_colors.dart';
 
@@ -30,28 +31,7 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, size: 20),
-          color: AppColors.text,
-        ),
-        title: const Text(
-          'Nova avaliação',
-          style: TextStyle(
-            color: AppColors.text,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.border),
-        ),
-      ),
+      appBar: const StandardAppBar(title: 'Nova avaliação'),
       body: SafeArea(
         top: false,
         child: Form(
@@ -156,21 +136,11 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-              ElevatedButton(
+              PrimaryButton(
+                label: 'Criar avaliação',
+                verticalPadding: 15,
+                fontSize: 13,
                 onPressed: _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  'Criar avaliação',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                ),
               ),
               const SizedBox(height: 10),
               TextButton(

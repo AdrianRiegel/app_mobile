@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../components/components.dart';
 import '../models/assessment.dart';
 import '../theme/app_colors.dart';
 
@@ -29,28 +30,7 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, size: 20),
-          color: AppColors.text,
-        ),
-        title: const Text(
-          'Configurar gabarito',
-          style: TextStyle(
-            color: AppColors.text,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.border),
-        ),
-      ),
+      appBar: const StandardAppBar(title: 'Configurar gabarito'),
       body: SafeArea(
         top: false,
         child: Column(
@@ -92,26 +72,12 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
             Container(
               color: AppColors.surface,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.pop(context, true),
-                  icon: const Icon(Icons.check, size: 17),
-                  label: const Text('Salvar gabarito'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    textStyle: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
+              child: PrimaryButton(
+                label: 'Salvar gabarito',
+                icon: Icons.check,
+                verticalPadding: 14,
+                fontSize: 13,
+                onPressed: () => Navigator.pop(context, true),
               ),
             ),
           ],

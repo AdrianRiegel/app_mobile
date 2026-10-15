@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../components/components.dart';
 import '../models/assessment.dart';
 import '../models/statistics.dart';
 import '../theme/app_colors.dart';
@@ -20,28 +21,7 @@ class AssessmentDetailScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, size: 20),
-          color: AppColors.text,
-        ),
-        title: const Text(
-          'Detalhes da avaliação',
-          style: TextStyle(
-            color: AppColors.text,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.border),
-        ),
-      ),
+      appBar: const StandardAppBar(title: 'Detalhes da avaliação'),
       body: SafeArea(
         top: false,
         child: ListView(
@@ -75,7 +55,13 @@ class AssessmentDetailScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                _statusBadge(),
+                StatusBadge(
+                  label: assessment.statusLabel,
+                  background: assessment.status.badgeBackground,
+                  foreground: assessment.status.badgeForeground,
+                  horizontalPadding: 8,
+                  verticalPadding: 5,
+                ),
               ],
             ),
             const SizedBox(height: 22),
@@ -219,65 +205,34 @@ class AssessmentDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => CorrectionStartScreen(
-                        assessment: assessment,
-                      ),
+            PrimaryButton(
+              label: 'Iniciar correção',
+              icon: Icons.qr_code_scanner,
+              verticalPadding: 14,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CorrectionStartScreen(
+                      assessment: assessment,
                     ),
-                  );
-                },
-                icon: const Icon(Icons.qr_code_scanner, size: 18),
-                label: const Text('Iniciar correção'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
                   ),
-                ),
-              ),
+                );
+              },
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => _openAnswerKey(context),
-                icon: const Icon(Icons.edit_note_outlined, size: 18),
-                label: const Text('Configurar gabarito'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.accent,
-                  side: const BorderSide(color: AppColors.border),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
+            SecondaryButton(
+              label: 'Configurar gabarito',
+              icon: Icons.edit_note_outlined,
+              verticalPadding: 14,
+              onPressed: () => _openAnswerKey(context),
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => _openStatistics(context),
-                icon: const Icon(Icons.bar_chart, size: 18),
-                label: const Text('Ver estatísticas'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.accent,
-                  side: const BorderSide(color: AppColors.border),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
+            SecondaryButton(
+              label: 'Ver estatísticas',
+              icon: Icons.bar_chart,
+              verticalPadding: 14,
+              onPressed: () => _openStatistics(context),
             ),
           ],
         ),
@@ -331,41 +286,6 @@ class AssessmentDetailScreen extends StatelessWidget {
           style: const TextStyle(color: AppColors.muted, fontSize: 9),
         ),
       ],
-    );
-  }
-
-  Widget _statusBadge() {
-    Color background;
-    Color foreground;
-    switch (assessment.status) {
-      case AssessmentStatus.completed:
-        background = AppColors.successLight;
-        foreground = AppColors.success;
-        break;
-      case AssessmentStatus.scheduled:
-        background = AppColors.accentLight;
-        foreground = AppColors.accent;
-        break;
-      case AssessmentStatus.draft:
-        background = const Color(0xFFEEF0F3);
-        foreground = AppColors.muted;
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        assessment.statusLabel,
-        style: TextStyle(
-          color: foreground,
-          fontSize: 9,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
     );
   }
 

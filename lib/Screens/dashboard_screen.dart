@@ -2,7 +2,9 @@ import 'package:app_mobile/Screens/classes_screen.dart';
 import 'package:app_mobile/Screens/login_screen.dart';
 import 'package:flutter/material.dart';
 
+import '../components/components.dart';
 import '../data/mock_assessments.dart';
+import '../theme/app_colors.dart';
 import 'assessments_screen.dart';
 import 'correction_start_screen.dart';
 import 'report_screen.dart';
@@ -16,20 +18,12 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final Color bgColor = const Color(0xFFF0F1F4);
-  final Color cardColor = const Color(0xFFFFFFFF);
-  final Color borderColor = const Color(0xFFE2E4E9);
-  final Color textColor = const Color(0xFF1B1D22);
-  final Color mutedColor = const Color(0xFF6B7078);
-  final Color accentColor = const Color(0xFF4F5BD5);
-  final Color accentLightColor = const Color(0xFFECEEFB);
-
   int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -40,22 +34,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Container(
                     width: 36,
                     height: 36,
-                    decoration: BoxDecoration(
-                      color: accentLightColor,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accentLight,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
-                    child: Text(
+                    child: const Text(
                       'MS',
                       style: TextStyle(
-                        color: accentColor,
+                        color: AppColors.accent,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -64,12 +58,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: textColor,
+                            color: AppColors.text,
                           ),
                         ),
                         Text(
                           'Professora',
-                          style: TextStyle(fontSize: 11, color: mutedColor),
+                          style: TextStyle(fontSize: 11, color: AppColors.muted),
                         ),
                       ],
                     ),
@@ -77,18 +71,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Container(
                     width: 60,
                     height: 36,
-                    decoration: BoxDecoration(
-                      color: accentLightColor,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accentLight,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.centerRight,
-
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.notifications_none,
-                          color: mutedColor,
+                          color: AppColors.muted,
                           size: 22,
                         ),
                         ElevatedButton(
@@ -109,9 +102,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.logout,
-                            color: mutedColor,
+                            color: AppColors.muted,
                             size: 20,
                           ),
                         ),
@@ -134,8 +127,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: _buildDashCard(
-                            onPress: () {
+                          child: DashboardStatCard(
+                            onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -150,11 +143,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: _buildDashCard(
+                          child: DashboardStatCard(
                             icon: Icons.insert_chart_outlined,
                             label: 'Relatórios',
                             value: 'Gerar PDF',
-                            onPress: () {
+                            onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -170,11 +163,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: _buildDashCard(
+                          child: DashboardStatCard(
                             icon: Icons.bar_chart,
                             label: 'Estatísticas',
                             value: 'Ver desempenho',
-                            onPress: () {
+                            onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -186,11 +179,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: _buildDashCard(
+                          child: DashboardStatCard(
                             icon: Icons.assignment_turned_in_outlined,
                             label: 'Avaliações',
                             value: '3 recentes',
-                            onPress: () {
+                            onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -203,66 +196,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    Material(
-                      color: accentColor,
-                      borderRadius: BorderRadius.circular(12),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CorrectionStartScreen(
-                                assessment: mockAssessments.first,
-                              ),
+                    AccentActionBanner(
+                      title: 'Ler QR Code',
+                      subtitle: 'Corrigir prova rápido',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CorrectionStartScreen(
+                              assessment: mockAssessments.first,
                             ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Ler QR Code',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Corrigir prova rápido',
-                                    style: TextStyle(
-                                      color: Color(0xFFE6E6FF),
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.qr_code_scanner,
-                                    color: Colors.white,
-                                    size: 26,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Icon(
-                                    Icons.chevron_right,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                ],
-                              ),
-                            ],
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -272,111 +218,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
 
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: borderColor, width: 1)),
-        ),
-        child: SafeArea(
-          // Protege contra a barra de baixo do iPhone/Android
-          child: BottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: (index) {
-              if (index == 1) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ClassesScreen(),
-                  ),
-                );
-                return;
-              }
-              if (index == 2) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AssessmentsScreen(),
-                  ),
-                );
-                return;
-              }
-              if (index == 3) {
-                _showComingSoon('Perfil');
-                return;
-              }
-              setState(() => _selectedIndex = index);
-            },
-            selectedItemColor: accentColor,
-            unselectedItemColor: mutedColor,
-            showUnselectedLabels: true,
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.white,
-            elevation: 0,
-            selectedFontSize: 10,
-            unselectedFontSize: 10,
-            iconSize: 22,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                label: 'Início',
+      bottomNavigationBar: AppBottomNavBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ClassesScreen(),
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.people_outline),
-                label: 'Turmas',
+            );
+            return;
+          }
+          if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AssessmentsScreen(),
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.assignment_outlined),
-                label: 'Avaliações',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                label: 'Perfil',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDashCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required VoidCallback onPress,
-  }) {
-    return Material(
-      color: cardColor,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onPress, // Ação de clique
-        borderRadius: BorderRadius.circular(
-          12,
-        ), // Mantém o efeito visual arredondado
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(color: borderColor),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: accentColor, size: 22),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(value, style: TextStyle(fontSize: 10, color: mutedColor)),
-            ],
-          ),
-        ),
+            );
+            return;
+          }
+          if (index == 3) {
+            _showComingSoon('Perfil');
+            return;
+          }
+          setState(() => _selectedIndex = index);
+        },
       ),
     );
   }

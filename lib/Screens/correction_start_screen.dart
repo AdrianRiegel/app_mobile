@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../components/components.dart';
 import '../data/mock_assessments.dart'; // ADICIONADO: Para puxar as avaliações reais
 import '../models/assessment.dart';
 import '../theme/app_colors.dart';
@@ -64,38 +65,20 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () {
-            if (_currentStage == 3 && _showGabarito) {
-              setState(() => _showGabarito = false);
-            } else if (_currentStage > 0) {
-              setState(() {
-                _currentStage--;
-                _readSuccess = false;
-              });
-            } else {
-              Navigator.pop(context);
-            }
-          },
-          icon: const Icon(Icons.arrow_back, size: 20),
-          color: AppColors.text,
-        ),
-        title: const Text(
-          'Iniciar correção',
-          style: TextStyle(
-            color: AppColors.text,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.border),
-        ),
+      appBar: StandardAppBar(
+        title: 'Iniciar correção',
+        onBack: () {
+          if (_currentStage == 3 && _showGabarito) {
+            setState(() => _showGabarito = false);
+          } else if (_currentStage > 0) {
+            setState(() {
+              _currentStage--;
+              _readSuccess = false;
+            });
+          } else {
+            Navigator.pop(context);
+          }
+        },
       ),
       body: SafeArea(
         top: false,
@@ -307,22 +290,12 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _selectedAssessment == null
-                ? null
-                : () => setState(() => _currentStage = 1),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: AppColors.accentLight,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Continuar para identificação do aluno'),
-          ),
+        PrimaryButton(
+          label: 'Continuar para identificação do aluno',
+          verticalPadding: 14,
+          onPressed: _selectedAssessment == null
+              ? null
+              : () => setState(() => _currentStage = 1),
         ),
       ],
     );
@@ -372,22 +345,12 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _selectedStudent == null
-                ? null
-                : () => setState(() => _currentStage = 2),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: AppColors.accentLight,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Continuar para leitura da folha'),
-          ),
+        PrimaryButton(
+          label: 'Continuar para leitura da folha',
+          verticalPadding: 14,
+          onPressed: _selectedStudent == null
+              ? null
+              : () => setState(() => _currentStage = 2),
         ),
       ],
     );
@@ -422,21 +385,11 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           style: TextStyle(color: AppColors.muted, fontSize: 11),
         ),
         const SizedBox(height: 22),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _reading ? null : _simulateRead,
-            icon: const Icon(Icons.camera_alt_outlined, size: 18),
-            label: const Text('Simular leitura da Folha'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: AppColors.accentLight,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
+        PrimaryButton(
+          label: 'Simular leitura da Folha',
+          icon: Icons.camera_alt_outlined,
+          verticalPadding: 14,
+          onPressed: _reading ? null : _simulateRead,
         ),
       ],
     );
@@ -472,19 +425,10 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
             style: TextStyle(color: AppColors.muted, fontSize: 11, height: 1.4),
           ),
           const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => setState(() => _currentStage = 3),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: const Text('Continuar para resultado'),
-            ),
+          PrimaryButton(
+            label: 'Continuar para resultado',
+            verticalPadding: 14,
+            onPressed: () => setState(() => _currentStage = 3),
           ),
         ],
       ),
@@ -564,18 +508,11 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: () => setState(() => _showGabarito = true),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.accent,
-              side: const BorderSide(color: AppColors.accent),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Ver gabarito detalhado'),
-          ),
+        SecondaryButton(
+          label: 'Ver gabarito detalhado',
+          verticalPadding: 14,
+          borderColor: AppColors.accent,
+          onPressed: () => setState(() => _showGabarito = true),
         ),
       ],
     );

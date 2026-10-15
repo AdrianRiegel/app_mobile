@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../components/components.dart';
 import '../data/mock_statistics.dart';
 import '../models/statistics.dart';
 import '../theme/app_colors.dart';
@@ -213,109 +214,35 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   Widget _emptyState() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                color: AppColors.accentLight,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: const Icon(
-                Icons.bar_chart,
-                color: AppColors.accent,
-                size: 34,
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Ainda não há estatísticas',
-              style: TextStyle(
-                color: AppColors.text,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Corrija ao menos uma prova para acompanhar o desempenho das turmas.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.muted,
-                fontSize: 11,
-                height: 1.4,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return const EmptyStateView(
+      icon: Icons.bar_chart,
+      iconBackground: AppColors.accentLight,
+      iconColor: AppColors.accent,
+      title: 'Ainda não há estatísticas',
+      message: 'Corrija ao menos uma prova para acompanhar o desempenho das turmas.',
     );
   }
 
   Widget _errorState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                color: AppColors.dangerLight,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: const Icon(
-                Icons.cloud_off_outlined,
-                color: AppColors.danger,
-                size: 32,
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Não foi possível carregar',
-              style: TextStyle(
-                color: AppColors.text,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Verifique sua conexão e tente novamente.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.muted, fontSize: 11),
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton.icon(
-              onPressed: () {
-                setState(() => _viewState = _StatisticsViewState.content);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Estatísticas carregadas')),
-                );
-              },
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Tentar novamente'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.accent,
-                side: const BorderSide(color: AppColors.border),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 13,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-          ],
-        ),
+    return EmptyStateView(
+      icon: Icons.cloud_off_outlined,
+      iconBackground: AppColors.dangerLight,
+      iconColor: AppColors.danger,
+      iconSize: 32,
+      title: 'Não foi possível carregar',
+      message: 'Verifique sua conexão e tente novamente.',
+      action: SecondaryButton(
+        label: 'Tentar novamente',
+        icon: Icons.refresh,
+        fullWidth: false,
+        verticalPadding: 13,
+        horizontalPadding: 20,
+        onPressed: () {
+          setState(() => _viewState = _StatisticsViewState.content);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Estatísticas carregadas')),
+          );
+        },
       ),
     );
   }
@@ -328,64 +255,31 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   Widget _bottomNav() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
-      ),
-      child: SafeArea(
-        child: BottomNavigationBar(
-          currentIndex: 2,
-          onTap: (index) {
-            switch (index) {
-              case 0:
-                Navigator.pop(context);
-              case 1:
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ClassesScreen()),
-                );
-              case 2:
-                break;
-              case 3:
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Perfil estará disponível em uma próxima entrega',
-                    ),
-                  ),
-                );
-            }
-          },
-          selectedItemColor: AppColors.accent,
-          unselectedItemColor: AppColors.muted,
-          showUnselectedLabels: true,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          elevation: 0,
-          selectedFontSize: 10,
-          unselectedFontSize: 10,
-          iconSize: 22,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              label: 'Início',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              label: 'Turmas',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart),
-              label: 'Estatísticas',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              label: 'Perfil',
-            ),
-          ],
-        ),
-      ),
+    return AppBottomNavBar(
+      currentIndex: 2,
+      thirdItemIcon: Icons.bar_chart,
+      thirdItemLabel: 'Estatísticas',
+      onTap: (index) {
+        switch (index) {
+          case 0:
+            Navigator.pop(context);
+          case 1:
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const ClassesScreen()),
+            );
+          case 2:
+            break;
+          case 3:
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Perfil estará disponível em uma próxima entrega',
+                ),
+              ),
+            );
+        }
+      },
     );
   }
 }

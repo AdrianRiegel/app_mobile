@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
+
+import '../components/components.dart';
+import '../theme/app_colors.dart';
 import 'reset_password_screen.dart';
 import 'register_screen.dart';
 import 'dashboard_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
-
-  final Color primaryAccent = const Color(0xFF4F5BD5);
-  final Color accentLight = const Color(0xFFECEEFB);
-  final Color textColor = const Color(0xFF1B1D22);
-  final Color mutedColor = const Color(0xFF6B7078);
-  final Color borderColor = const Color(0xFFE2E4E9);
-  final Color inputBgColor = const Color(0xFFFAFAFB);
 
   @override
   Widget build(BuildContext context) {
@@ -30,45 +26,43 @@ class LoginScreen extends StatelessWidget {
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
-                        color: accentLight,
+                        color: AppColors.accentLight,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.school_rounded,
-                        color: primaryAccent,
+                        color: AppColors.accent,
                         size: 32,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text(
+                    const Text(
                       'EduTurmas',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
-                        color: textColor,
+                        color: AppColors.text,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    const Text(
                       'Gestão de turmas e provas',
                       style: TextStyle(
                         fontSize: 14,
-                        color: mutedColor,
+                        color: AppColors.muted,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 40),
-                _buildFieldLabel('E-mail'),
-                const SizedBox(height: 6),
-                _buildTextField(
+                const LabeledTextField(
+                  label: 'E-mail',
                   hintText: 'nome@escola.com',
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 16),
-                _buildFieldLabel('Senha'),
-                const SizedBox(height: 6),
-                _buildTextField(
+                const LabeledTextField(
+                  label: 'Senha',
                   hintText: '••••••••',
                   obscureText: true,
                 ),
@@ -82,50 +76,35 @@ class LoginScreen extends StatelessWidget {
                         MaterialPageRoute(builder: (context) => const ResetPasswordScreen()),
                       );
                     },
-                    child: Text(
+                    child: const Text(
                       'Esqueci minha senha',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: primaryAccent,
+                        color: AppColors.accent,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
-                  ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => const DashboardScreen()),
-                        );
-                      },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryAccent,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text(
-                    'Entrar',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                PrimaryButton(
+                  label: 'Entrar',
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const DashboardScreen()),
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
+                    const Text(
                       'Não tem conta? ',
                       style: TextStyle(
                         fontSize: 13,
-                        color: mutedColor,
+                        color: AppColors.muted,
                       ),
                     ),
                     GestureDetector(
@@ -135,12 +114,12 @@ class LoginScreen extends StatelessWidget {
                           MaterialPageRoute(builder: (context) => const RegisterScreen()),
                         );
                       },
-                      child: Text(
+                      child: const Text(
                         'Cadastre-se',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: primaryAccent,
+                          color: AppColors.accent,
                         ),
                       ),
                     ),
@@ -149,44 +128,6 @@ class LoginScreen extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFieldLabel(String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: mutedColor,
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required String hintText,
-    bool obscureText = false,
-    TextInputType? keyboardType,
-  }) {
-    return TextField(
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      style: TextStyle(fontSize: 14, color: textColor),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: TextStyle(color: mutedColor.withValues(alpha: 0.6)),
-        filled: true,
-        fillColor: inputBgColor,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: borderColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: primaryAccent, width: 1.5),
         ),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../components/components.dart';
 import '../models/assessment.dart';
 import '../theme/app_colors.dart';
 
@@ -48,28 +49,7 @@ class _NewProofScreenState extends State<NewProofScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, size: 20),
-          color: AppColors.text,
-        ),
-        title: const Text(
-          'Nova prova',
-          style: TextStyle(
-            color: AppColors.text,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.border),
-        ),
-      ),
+      appBar: const StandardAppBar(title: 'Nova prova'),
       body: SafeArea(
         top: false,
         child: ListView(
@@ -103,7 +83,7 @@ class _NewProofScreenState extends State<NewProofScreen> {
                 TextButton(
                   onPressed: () => _showFeedback('Importação simulada'),
                   style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xFFEEF0F3),
+                    backgroundColor: AppColors.neutralLight,
                     foregroundColor: AppColors.muted,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     minimumSize: const Size(0, 32),
@@ -120,37 +100,17 @@ class _NewProofScreenState extends State<NewProofScreen> {
               (entry) => _questionCard(entry.key + 1, entry.value),
             ),
             const SizedBox(height: 12),
-            OutlinedButton(
+            SecondaryButton(
+              label: 'Adicionar questão',
+              verticalPadding: 14,
+              foregroundColor: AppColors.text,
               onPressed: () => _showFeedback('Editor de questão disponível na próxima etapa'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.text,
-                side: const BorderSide(color: AppColors.border),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text(
-                'Adicionar questão',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
             ),
             const SizedBox(height: 10),
-            ElevatedButton(
+            PrimaryButton(
+              label: 'Salvar prova',
+              verticalPadding: 15,
               onPressed: _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text(
-                'Salvar prova',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              ),
             ),
           ],
         ),
