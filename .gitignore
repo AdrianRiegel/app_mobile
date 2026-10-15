@@ -7,6 +7,9 @@
 .buildlog/
 .history
 
+# Environment variables (segredos locais, nunca commitar)
+.env
+
 
 
 # Flutter repo-specific
