@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../components/inputs/csv_file_picker.dart';
 import '../data/mock_assessments.dart';
 import '../models/assessment.dart';
+import '../services/csv_import_service.dart';
+import '../theme/app_colors.dart';
 import 'assessment_detail_screen.dart';
 import 'new_proof_screen.dart';
 import 'proof_grades_screen.dart';
@@ -180,7 +183,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                       ),
 
                       ElevatedButton.icon(
-                        onPressed: () => {},
+                        onPressed: _openImportarCsvSheet,
                         icon: Icon(
                           Icons.import_export,
                           size: 16,
@@ -312,15 +315,15 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           final assessment =
               prova.assessment ??
               Assessment(
-                  title: prova.titulo,
-                  subject: 'Matemática',
-                  className: widget.titulo.split(' - ').first,
-                  dateLabel: 'Sem data',
-                  status: AssessmentStatus.draft,
-                  totalQuestions: 10,
-                  correctedStudents: 0,
-                  totalStudents: _alunos.length,
-                );
+                title: prova.titulo,
+                subject: 'Matemática',
+                className: widget.titulo.split(' - ').first,
+                dateLabel: 'Sem data',
+                status: AssessmentStatus.draft,
+                totalQuestions: 10,
+                correctedStudents: 0,
+                totalStudents: _alunos.length,
+              );
           if (aplicada) {
             Navigator.push(
               context,
@@ -411,9 +414,8 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     final assessment = await Navigator.push<Assessment>(
       context,
       MaterialPageRoute(
-        builder: (_) => NewProofScreen(
-          className: widget.titulo.split(' - ').first,
-        ),
+        builder: (_) =>
+            NewProofScreen(className: widget.titulo.split(' - ').first),
       ),
     );
     if (assessment == null || !mounted) {
@@ -494,6 +496,203 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           );
         },
       ),
+    );
+  }
+
+  void _openImportarCsvSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _ImportarCsvSheet(
+        onImport: (novos) {
+          Navigator.pop(sheetContext);
+
+          final existentes = _alunos.map((aluno) => aluno.matricula).toSet();
+          final adicionados = novos
+              .map((row) => _Aluno(row.nome, 'Matrícula ${row.matricula}'))
+              .where((aluno) => !existentes.contains(aluno.matricula))
+              .toList();
+          final ignorados = novos.length - adicionados.length;
+
+          setState(() => _alunos.insertAll(0, adicionados));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                ignorados == 0
+                    ? '${adicionados.length} aluno(s) importado(s)'
+                    : '${adicionados.length} aluno(s) importado(s) · '
+                          '$ignorados já cadastrado(s)',
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ImportarCsvSheet extends StatefulWidget {
+  const _ImportarCsvSheet({required this.onImport});
+
+  final void Function(List<CsvStudentRow> alunos) onImport;
+
+  @override
+  State<_ImportarCsvSheet> createState() => _ImportarCsvSheetState();
+}
+
+class _ImportarCsvSheetState extends State<_ImportarCsvSheet> {
+  CsvImportResult? _result;
+
+  @override
+  Widget build(BuildContext context) {
+    final result = _result;
+    final canImport = result != null && result.alunos.isNotEmpty;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(top: 4, bottom: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const Text(
+              'Importar alunos',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.text,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Use um arquivo .csv com as colunas nome e matrícula, '
+              'separadas por vírgula ou ponto e vírgula.',
+              style: TextStyle(fontSize: 11, color: AppColors.muted),
+            ),
+            const SizedBox(height: 14),
+            CsvFilePicker(
+              onChanged: (file) => setState(() {
+                _result = file == null
+                    ? null
+                    : CsvImportService.parseStudents(file.content);
+              }),
+            ),
+            if (result != null) ...[
+              const SizedBox(height: 12),
+              Flexible(child: _buildResumo(result)),
+            ],
+            const SizedBox(height: 18),
+            ElevatedButton(
+              onPressed: canImport
+                  ? () => widget.onImport(result.alunos)
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: AppColors.border,
+                disabledForegroundColor: AppColors.muted,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(
+                canImport
+                    ? 'Importar ${result.alunos.length} aluno(s)'
+                    : 'Importar alunos',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Center(
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResumo(CsvImportResult result) {
+    return ListView(
+      shrinkWrap: true,
+      children: [
+        _resumoLinha(
+          Icons.check_circle_outline,
+          AppColors.success,
+          '${result.alunos.length} aluno(s) prontos para importar',
+        ),
+        if (result.erros.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          _resumoLinha(
+            Icons.warning_amber_rounded,
+            AppColors.warning,
+            '${result.erros.length} linha(s) ignorada(s)',
+          ),
+          ...result.erros.map(
+            (erro) => Padding(
+              padding: const EdgeInsets.only(left: 22, top: 4),
+              child: Text(
+                erro,
+                style: const TextStyle(fontSize: 11, color: AppColors.muted),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _resumoLinha(IconData icon, Color color, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
