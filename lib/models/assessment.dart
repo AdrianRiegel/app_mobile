@@ -28,8 +28,25 @@ extension AssessmentStatusBadge on AssessmentStatus {
   }
 }
 
+/// Resposta esperada de uma questão. [alternativaCorreta] fica `null`
+/// enquanto o gabarito ainda não foi configurado.
+class QuestaoGabarito {
+  const QuestaoGabarito({
+    required this.questao,
+    this.alternativaCorreta,
+    this.peso = 1.0,
+  });
+
+  final int questao;
+  final String? alternativaCorreta;
+  final double peso;
+}
+
 class Assessment {
   const Assessment({
+    this.id = '',
+    this.turmaId = '',
+    this.gabarito = const [],
     required this.title,
     required this.subject,
     required this.className,
@@ -40,6 +57,9 @@ class Assessment {
     required this.totalStudents,
   });
 
+  final String id;
+  final String turmaId;
+  final List<QuestaoGabarito> gabarito;
   final String title;
   final String subject;
   final String className;
@@ -48,6 +68,10 @@ class Assessment {
   final int totalQuestions;
   final int correctedStudents;
   final int totalStudents;
+
+  bool get gabaritoConfigurado =>
+      gabarito.isNotEmpty &&
+      gabarito.every((questao) => questao.alternativaCorreta != null);
 
   String get statusLabel {
     switch (status) {

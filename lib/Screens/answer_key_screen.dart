@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../components/components.dart';
 import '../models/assessment.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 
 class AnswerKeyScreen extends StatefulWidget {
@@ -15,15 +16,43 @@ class AnswerKeyScreen extends StatefulWidget {
 
 class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
   static const _options = ['A', 'B', 'C', 'D', 'E'];
-  late final List<String> _answers;
+  late final List<String?> _answers;
+  bool _salvando = false;
 
   @override
   void initState() {
     super.initState();
-    _answers = List.generate(
-      widget.assessment.totalQuestions,
-      (index) => _options[index % _options.length],
-    );
+    _answers = [
+      for (final questao in widget.assessment.gabarito)
+        questao.alternativaCorreta,
+    ];
+  }
+
+  Future<void> _salvar() async {
+    if (_answers.contains(null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Marque a alternativa correta de todas as questões'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _salvando = true);
+    try {
+      final atualizada = await AvaliacaoRepository().salvarGabarito(
+        widget.assessment,
+        _answers.cast<String>(),
+      );
+      if (!mounted) return;
+      Navigator.pop(context, atualizada);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _salvando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível salvar o gabarito')),
+      );
+    }
   }
 
   @override
@@ -64,7 +93,7 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
-                itemCount: widget.assessment.totalQuestions,
+                itemCount: _answers.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, index) => _questionRow(index),
               ),
@@ -73,11 +102,11 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
               color: AppColors.surface,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: PrimaryButton(
-                label: 'Salvar gabarito',
+                label: _salvando ? 'Salvando...' : 'Salvar gabarito',
                 icon: Icons.check,
                 verticalPadding: 14,
                 fontSize: 13,
-                onPressed: () => Navigator.pop(context, true),
+                onPressed: _salvando ? null : _salvar,
               ),
             ),
           ],

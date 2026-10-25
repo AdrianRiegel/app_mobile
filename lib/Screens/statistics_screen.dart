@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
-import '../data/mock_statistics.dart';
 import '../models/statistics.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 import 'classes_screen.dart';
 import 'exam_statistics_screen.dart';
 import 'report_screen.dart';
 
-enum _StatisticsViewState { content, empty, error }
+enum _StatisticsViewState { loading, content, empty, error }
 
 /// Tela 6 — Estatísticas gerais.
 ///
@@ -22,8 +22,31 @@ class StatisticsScreen extends StatefulWidget {
 }
 
 class _StatisticsScreenState extends State<StatisticsScreen> {
-  final List<ClassStatistics> _classes = mockClassStatistics;
-  _StatisticsViewState _viewState = _StatisticsViewState.content;
+  List<ClassStatistics> _classes = [];
+  _StatisticsViewState _viewState = _StatisticsViewState.loading;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  Future<void> _carregar() async {
+    setState(() => _viewState = _StatisticsViewState.loading);
+    try {
+      final classes = await EstatisticasRepository().porTurma();
+      if (!mounted) return;
+      setState(() {
+        _classes = classes;
+        _viewState = classes.every((turma) => turma.exams.isEmpty)
+            ? _StatisticsViewState.empty
+            : _StatisticsViewState.content;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _viewState = _StatisticsViewState.error);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,28 +78,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       color: AppColors.muted,
                     ),
                   ),
-                  PopupMenuButton<_StatisticsViewState>(
-                    tooltip: 'Demonstrar estados da tela',
+                  IconButton(
+                    tooltip: 'Atualizar',
+                    onPressed: _carregar,
                     icon: const Icon(
-                      Icons.more_vert,
+                      Icons.refresh,
                       size: 20,
                       color: AppColors.muted,
                     ),
-                    onSelected: (value) => setState(() => _viewState = value),
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(
-                        value: _StatisticsViewState.content,
-                        child: Text('Exibir estatísticas'),
-                      ),
-                      PopupMenuItem(
-                        value: _StatisticsViewState.empty,
-                        child: Text('Simular estado vazio'),
-                      ),
-                      PopupMenuItem(
-                        value: _StatisticsViewState.error,
-                        child: Text('Simular erro'),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -92,6 +101,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   Widget _buildBody() {
     switch (_viewState) {
+      case _StatisticsViewState.loading:
+        return const Center(
+          child: CircularProgressIndicator(color: AppColors.accent),
+        );
       case _StatisticsViewState.empty:
         return _emptyState();
       case _StatisticsViewState.error:
@@ -201,11 +214,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppColors.muted,
-              ),
+              const Icon(Icons.chevron_right, size: 18, color: AppColors.muted),
             ],
           ),
         ),
@@ -219,33 +228,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       iconBackground: AppColors.accentLight,
       iconColor: AppColors.accent,
       title: 'Ainda não há estatísticas',
-      message: 'Corrija ao menos uma prova para acompanhar o desempenho das turmas.',
+      message:
+          'Corrija ao menos uma prova para acompanhar o desempenho das turmas.',
     );
   }
 
-  Widget _errorState() {
-    return EmptyStateView(
-      icon: Icons.cloud_off_outlined,
-      iconBackground: AppColors.dangerLight,
-      iconColor: AppColors.danger,
-      iconSize: 32,
-      title: 'Não foi possível carregar',
-      message: 'Verifique sua conexão e tente novamente.',
-      action: SecondaryButton(
-        label: 'Tentar novamente',
-        icon: Icons.refresh,
-        fullWidth: false,
-        verticalPadding: 13,
-        horizontalPadding: 20,
-        onPressed: () {
-          setState(() => _viewState = _StatisticsViewState.content);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Estatísticas carregadas')),
-          );
-        },
-      ),
-    );
-  }
+  Widget _errorState() => LoadErrorView(onRetry: _carregar);
 
   void _openReport() {
     Navigator.push(

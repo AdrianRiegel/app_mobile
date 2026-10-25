@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
-import '../data/mock_assessments.dart';
 import '../models/assessment.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 import 'assessment_detail_screen.dart';
 import 'correction_start_screen.dart';
 import 'new_assessment_screen.dart';
 
-enum _AssessmentViewState { content, empty, error }
+enum _AssessmentViewState { loading, content, empty, error }
 
 class AssessmentsScreen extends StatefulWidget {
   const AssessmentsScreen({super.key});
@@ -18,9 +18,33 @@ class AssessmentsScreen extends StatefulWidget {
 }
 
 class _AssessmentsScreenState extends State<AssessmentsScreen> {
-  final List<Assessment> _assessments = [...mockAssessments];
-  _AssessmentViewState _viewState = _AssessmentViewState.content;
+  final _repository = AvaliacaoRepository();
+  List<Assessment> _assessments = [];
+  _AssessmentViewState _viewState = _AssessmentViewState.loading;
   AssessmentStatus? _filter;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  Future<void> _carregar() async {
+    setState(() => _viewState = _AssessmentViewState.loading);
+    try {
+      final assessments = await _repository.listar();
+      if (!mounted) return;
+      setState(() {
+        _assessments = assessments;
+        _viewState = assessments.isEmpty
+            ? _AssessmentViewState.empty
+            : _AssessmentViewState.content;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _viewState = _AssessmentViewState.error);
+    }
+  }
 
   List<Assessment> get _filteredAssessments {
     if (_filter == null) return _assessments;
@@ -31,34 +55,7 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: StandardAppBar(
-        title: 'Avaliações',
-        actions: [
-          PopupMenuButton<_AssessmentViewState>(
-            tooltip: 'Demonstrar estados da tela',
-            icon: const Icon(
-              Icons.more_vert,
-              size: 20,
-              color: AppColors.muted,
-            ),
-            onSelected: (value) => setState(() => _viewState = value),
-            itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: _AssessmentViewState.content,
-                child: Text('Exibir avaliações'),
-              ),
-              PopupMenuItem(
-                value: _AssessmentViewState.empty,
-                child: Text('Simular estado vazio'),
-              ),
-              PopupMenuItem(
-                value: _AssessmentViewState.error,
-                child: Text('Simular erro'),
-              ),
-            ],
-          ),
-        ],
-      ),
+      appBar: const StandardAppBar(title: 'Avaliações'),
       body: SafeArea(top: false, child: _buildBody()),
       floatingActionButton: _viewState == _AssessmentViewState.content
           ? FloatingActionButton.extended(
@@ -78,6 +75,10 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
 
   Widget _buildBody() {
     switch (_viewState) {
+      case _AssessmentViewState.loading:
+        return const Center(
+          child: CircularProgressIndicator(color: AppColors.accent),
+        );
       case _AssessmentViewState.empty:
         return _emptyState();
       case _AssessmentViewState.error:
@@ -195,13 +196,14 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
           ),
         ],
       ),
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => AssessmentDetailScreen(assessment: assessment),
           ),
         );
+        _carregar();
       },
     );
   }
@@ -224,29 +226,7 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
     );
   }
 
-  Widget _errorState() {
-    return EmptyStateView(
-      icon: Icons.cloud_off_outlined,
-      iconBackground: AppColors.dangerLight,
-      iconColor: AppColors.danger,
-      iconSize: 32,
-      title: 'Não foi possível carregar',
-      message: 'Verifique sua conexão e tente novamente.',
-      action: SecondaryButton(
-        label: 'Tentar novamente',
-        icon: Icons.refresh,
-        fullWidth: false,
-        verticalPadding: 13,
-        horizontalPadding: 20,
-        onPressed: () {
-          setState(() => _viewState = _AssessmentViewState.content);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Avaliações carregadas')),
-          );
-        },
-      ),
-    );
-  }
+  Widget _errorState() => LoadErrorView(onRetry: _carregar);
 
   Widget _smallFilteredEmptyState() {
     return const Column(
@@ -289,16 +269,16 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
     );
   }
 
-  void _startQuickCorrection() {
-    final selected = _assessments.firstWhere(
-      (item) => item.status == AssessmentStatus.scheduled,
-      orElse: () => _assessments.first,
-    );
-    Navigator.push(
+  Future<void> _startQuickCorrection() async {
+    final selected = _assessments
+        .where((item) => item.status == AssessmentStatus.scheduled)
+        .firstOrNull;
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => CorrectionStartScreen(assessment: selected),
       ),
     );
+    _carregar();
   }
 }

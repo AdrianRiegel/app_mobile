@@ -1,43 +1,64 @@
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
-import '../data/mock_assessments.dart';
+import '../models/aluno.dart';
 import '../models/assessment.dart';
+import '../models/turma.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 import 'assessment_detail_screen.dart';
 import 'new_proof_screen.dart';
 import 'proof_grades_screen.dart';
 
 class ClassDetailScreen extends StatefulWidget {
-  const ClassDetailScreen({super.key, required this.titulo});
+  const ClassDetailScreen({super.key, required this.turma});
 
-  final String titulo;
+  final Turma turma;
 
   @override
   State<ClassDetailScreen> createState() => _ClassDetailScreenState();
 }
 
 class _ClassDetailScreenState extends State<ClassDetailScreen> {
+  final _alunoRepository = AlunoRepository();
+  final _avaliacaoRepository = AvaliacaoRepository();
   int _tabIndex = 0;
 
-  final List<_Aluno> _alunos = [
-    _Aluno('Ana Beatriz', 'Matrícula 2026041'),
-    _Aluno('Carlos Dias', 'Matrícula 2026042'),
-    _Aluno('Elisa Ferreira', 'Matrícula 2026043'),
-  ];
+  List<Aluno> _alunos = [];
+  List<Assessment> _provas = [];
+  bool _carregando = true;
+  bool _erro = false;
 
-  final List<_Prova> _provas = mockAssessments
-      .map(
-        (assessment) => _Prova(
-          assessment.title,
-          '${assessment.totalQuestions} questões · ${assessment.dateLabel}',
-          assessment.status == AssessmentStatus.completed
-              ? 'Aplicada'
-              : assessment.statusLabel,
-          assessment: assessment,
-        ),
-      )
-      .toList();
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  Future<void> _carregar() async {
+    setState(() {
+      _carregando = true;
+      _erro = false;
+    });
+    try {
+      final (alunos, provas) = await (
+        _alunoRepository.listarPorTurma(widget.turma.id),
+        _avaliacaoRepository.listar(turmaId: widget.turma.id),
+      ).wait;
+      if (!mounted) return;
+      setState(() {
+        _alunos = alunos;
+        _provas = provas;
+        _carregando = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _erro = true;
+        _carregando = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,8 +66,8 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       backgroundColor: AppColors.background,
       appBar: StandardAppBar(
         title: _tabIndex == 1
-            ? 'Provas · ${widget.titulo.split(' - ').first}'
-            : widget.titulo,
+            ? 'Provas · ${widget.turma.nome}'
+            : widget.turma.descricao,
         showDivider: false,
         actions: const [
           Padding(
@@ -70,9 +91,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
               ),
             ),
             Container(height: 1, color: AppColors.border),
-            Expanded(
-              child: _tabIndex == 0 ? _buildAlunosTab() : _buildProvasTab(),
-            ),
+            Expanded(child: _buildConteudo()),
           ],
         ),
       ),
@@ -108,6 +127,18 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     );
   }
 
+  Widget _buildConteudo() {
+    if (_carregando) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.accent),
+      );
+    }
+    if (_erro) {
+      return LoadErrorView(onRetry: _carregar);
+    }
+    return _tabIndex == 0 ? _buildAlunosTab() : _buildProvasTab();
+  }
+
   Widget _buildAlunosTab() {
     return Column(
       children: [
@@ -120,7 +151,10 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                 children: [
                   Text(
                     '${_alunos.length} alunos',
-                    style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
+                    ),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -128,10 +162,17 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                     children: [
                       ElevatedButton.icon(
                         onPressed: _openNovoAlunoSheet,
-                        icon: const Icon(Icons.person, size: 16, color: AppColors.accent),
+                        icon: const Icon(
+                          Icons.person,
+                          size: 16,
+                          color: AppColors.accent,
+                        ),
                         label: const Text(
                           'Adicionar',
-                          style: TextStyle(fontSize: 12.0, color: AppColors.accent),
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            color: AppColors.accent,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
@@ -157,7 +198,10 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                         ),
                         label: const Text(
                           'Importar',
-                          style: TextStyle(fontSize: 12.0, color: AppColors.accent),
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            color: AppColors.accent,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
@@ -225,19 +269,19 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     );
   }
 
-  Widget _buildAlunoItem(_Aluno aluno) {
+  Widget _buildAlunoItem(Aluno aluno) {
     return AppListItemCard(
       leading: _avatar(aluno.nome),
       title: aluno.nome,
       subtitle: Text(
-        aluno.matricula,
+        'Matrícula ${aluno.matricula}',
         style: const TextStyle(fontSize: 11, color: AppColors.muted),
       ),
     );
   }
 
-  Widget _buildProvaItem(_Prova prova) {
-    final aplicada = prova.status == 'Aplicada';
+  Widget _buildProvaItem(Assessment prova) {
+    final aplicada = prova.status == AssessmentStatus.completed;
     return AppListItemCard(
       leading: Container(
         width: 34,
@@ -252,47 +296,26 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           color: AppColors.accent,
         ),
       ),
-      title: prova.titulo,
+      title: prova.title,
       subtitle: Text(
-        prova.info,
+        '${prova.totalQuestions} questões · ${prova.dateLabel}',
         style: const TextStyle(fontSize: 11, color: AppColors.muted),
       ),
       trailing: StatusBadge(
-        label: prova.status,
+        label: aplicada ? 'Aplicada' : prova.statusLabel,
         background: aplicada ? AppColors.successLight : AppColors.neutralLight,
         foreground: aplicada ? AppColors.success : AppColors.muted,
       ),
-      onTap: () {
-        final assessment =
-            prova.assessment ??
-            Assessment(
-                title: prova.titulo,
-                subject: 'Matemática',
-                className: widget.titulo.split(' - ').first,
-                dateLabel: 'Sem data',
-                status: AssessmentStatus.draft,
-                totalQuestions: 10,
-                correctedStudents: 0,
-                totalStudents: _alunos.length,
-              );
-        if (aplicada) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ProofGradesScreen(
-                proofTitle: assessment.title,
-                className: widget.titulo.split(' - ').first,
-              ),
-            ),
-          );
-        } else {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AssessmentDetailScreen(assessment: assessment),
-            ),
-          );
-        }
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => aplicada
+                ? ProofGradesScreen(assessment: prova)
+                : AssessmentDetailScreen(assessment: prova),
+          ),
+        );
+        _carregar();
       },
     );
   }
@@ -300,27 +323,13 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   Future<void> _createAssessment() async {
     final assessment = await Navigator.push<Assessment>(
       context,
-      MaterialPageRoute(
-        builder: (_) => NewProofScreen(
-          className: widget.titulo.split(' - ').first,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => NewProofScreen(turma: widget.turma)),
     );
     if (assessment == null || !mounted) {
       return;
     }
 
-    setState(() {
-      _provas.insert(
-        0,
-        _Prova(
-          assessment.title,
-          '${assessment.totalQuestions} questões',
-          'Rascunho',
-          assessment: assessment,
-        ),
-      );
-    });
+    setState(() => _provas.insert(0, assessment));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Avaliação criada como rascunho')),
     );
@@ -355,14 +364,15 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _NovoAlunoSheet(
-        onCreate: (nome, matricula) {
+      builder: (sheetContext) => _NovoAlunoSheet(
+        onCreate: (nome, matricula) async {
           final nomeLimpo = nome.trim();
           final matriculaLimpa = matricula.trim();
+          final messenger = ScaffoldMessenger.of(context);
+          Navigator.pop(sheetContext);
 
           if (nomeLimpo.isEmpty || matriculaLimpa.isEmpty) {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               const SnackBar(
                 content: Text('Preencha nome e matrícula do aluno'),
               ),
@@ -370,13 +380,26 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
             return;
           }
 
-          Navigator.pop(context);
-          setState(() {
-            _alunos.insert(0, _Aluno(nomeLimpo, 'Matrícula $matriculaLimpa'));
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Aluno(a) "$nomeLimpo" adicionado(a)')),
-          );
+          try {
+            final aluno = await _alunoRepository.adicionar(
+              turmaId: widget.turma.id,
+              nome: nomeLimpo,
+              matricula: matriculaLimpa,
+            );
+            if (!mounted) return;
+            setState(() => _alunos.insert(0, aluno));
+            messenger.showSnackBar(
+              SnackBar(content: Text('Aluno(a) "$nomeLimpo" adicionado(a)')),
+            );
+          } on MatriculaDuplicadaException catch (e) {
+            messenger.showSnackBar(SnackBar(content: Text(e.message)));
+          } catch (_) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Não foi possível adicionar o aluno'),
+              ),
+            );
+          }
         },
       ),
     );
@@ -483,19 +506,4 @@ class _NovoAlunoSheetState extends State<_NovoAlunoSheet> {
       ),
     );
   }
-}
-
-class _Aluno {
-  final String nome;
-  final String matricula;
-  const _Aluno(this.nome, this.matricula);
-}
-
-class _Prova {
-  final String titulo;
-  final String info;
-  final String status;
-  final Assessment? assessment;
-
-  const _Prova(this.titulo, this.info, this.status, {this.assessment});
 }
