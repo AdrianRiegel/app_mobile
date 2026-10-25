@@ -19,16 +19,6 @@ class ClassDetailScreen extends StatefulWidget {
 }
 
 class _ClassDetailScreenState extends State<ClassDetailScreen> {
-  final Color bgColor = const Color(0xFFF0F1F4);
-  final Color cardColor = const Color(0xFFFFFFFF);
-  final Color borderColor = const Color(0xFFE2E4E9);
-  final Color textColor = const Color(0xFF1B1D22);
-  final Color mutedColor = const Color(0xFF6B7078);
-  final Color accentColor = const Color(0xFF4F5BD5);
-  final Color accentLightColor = const Color(0xFFECEEFB);
-  final Color backIconBg = const Color(0xFFF2F3F5);
-  final Color inputBgColor = const Color(0xFFF8F8F9);
-
   int _tabIndex = 0;
 
   final List<_Aluno> _alunos = [
@@ -53,44 +43,23 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: AppColors.background,
+      appBar: StandardAppBar(
+        title: _tabIndex == 1
+            ? 'Provas · ${widget.titulo.split(' - ').first}'
+            : widget.titulo,
+        showDivider: false,
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 16),
+            child: Icon(Icons.more_vert, size: 18, color: AppColors.muted),
+          ),
+        ],
+      ),
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: backIconBg,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.arrow_back, size: 16, color: textColor),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _tabIndex == 1
-                          ? 'Provas · ${widget.titulo.split(' - ').first}'
-                          : widget.titulo,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Icon(Icons.more_vert, size: 18, color: mutedColor),
-                ],
-              ),
-            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -101,7 +70,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                 ],
               ),
             ),
-            Container(height: 1, color: borderColor),
+            Container(height: 1, color: AppColors.border),
             Expanded(
               child: _tabIndex == 0 ? _buildAlunosTab() : _buildProvasTab(),
             ),
@@ -121,7 +90,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: active ? accentColor : Colors.transparent,
+                color: active ? AppColors.accent : Colors.transparent,
                 width: 2,
               ),
             ),
@@ -132,7 +101,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: active ? accentColor : mutedColor,
+              color: active ? AppColors.accent : AppColors.muted,
             ),
           ),
         ),
@@ -141,7 +110,6 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   }
 
   Widget _buildAlunosTab() {
-    final Color accentColor = const Color(0xFF4F5BD5);
     return Column(
       children: [
         Expanded(
@@ -153,7 +121,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                 children: [
                   Text(
                     '${_alunos.length} alunos',
-                    style: TextStyle(fontSize: 11, color: mutedColor),
+                    style: const TextStyle(fontSize: 11, color: AppColors.muted),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -161,10 +129,10 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                     children: [
                       ElevatedButton.icon(
                         onPressed: _openNovoAlunoSheet,
-                        icon: Icon(Icons.person, size: 16, color: accentColor),
-                        label: Text(
+                        icon: const Icon(Icons.person, size: 16, color: AppColors.accent),
+                        label: const Text(
                           'Adicionar',
-                          style: TextStyle(fontSize: 12.0, color: accentColor),
+                          style: TextStyle(fontSize: 12.0, color: AppColors.accent),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
@@ -181,17 +149,16 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                           ),
                         ),
                       ),
-
                       ElevatedButton.icon(
                         onPressed: _openImportarCsvSheet,
                         icon: Icon(
                           Icons.import_export,
                           size: 16,
-                          color: accentColor,
+                          color: AppColors.accent,
                         ),
-                        label: Text(
+                        label: const Text(
                           'Importar',
-                          style: TextStyle(fontSize: 12.0, color: accentColor),
+                          style: TextStyle(fontSize: 12.0, color: AppColors.accent),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
@@ -213,31 +180,23 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              ..._alunos.map(_buildAlunoItem),
+              ..._alunos.map(
+                (aluno) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _buildAlunoItem(aluno),
+                ),
+              ),
             ],
           ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => setState(() => _tabIndex = 1),
-              icon: const Icon(Icons.assignment_outlined, size: 16),
-              label: const Text(
-                'Ver provas da turma',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accentColor,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
+          child: PrimaryButton(
+            label: 'Ver provas da turma',
+            icon: Icons.assignment_outlined,
+            verticalPadding: 13,
+            fontSize: 13,
+            onPressed: () => setState(() => _tabIndex = 1),
           ),
         ),
       ],
@@ -258,7 +217,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           bottom: 16,
           child: FloatingActionButton(
             onPressed: _createAssessment,
-            backgroundColor: accentColor,
+            backgroundColor: AppColors.accent,
             elevation: 4,
             child: const Icon(Icons.add, color: Colors.white),
           ),
@@ -268,39 +227,12 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   }
 
   Widget _buildAlunoItem(_Aluno aluno) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-      decoration: BoxDecoration(
-        color: cardColor,
-        border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          _avatar(aluno.nome),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  aluno.nome,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: textColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  aluno.matricula,
-                  style: TextStyle(fontSize: 11, color: mutedColor),
-                ),
-              ],
-            ),
-          ),
-        ],
+    return AppListItemCard(
+      leading: _avatar(aluno.nome),
+      title: aluno.nome,
+      subtitle: Text(
+        aluno.matricula,
+        style: const TextStyle(fontSize: 11, color: AppColors.muted),
       ),
     );
   }
@@ -407,6 +339,48 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           ),
         ),
       ),
+      title: prova.titulo,
+      subtitle: Text(
+        prova.info,
+        style: const TextStyle(fontSize: 11, color: AppColors.muted),
+      ),
+      trailing: StatusBadge(
+        label: prova.status,
+        background: aplicada ? AppColors.successLight : AppColors.neutralLight,
+        foreground: aplicada ? AppColors.success : AppColors.muted,
+      ),
+      onTap: () {
+        final assessment =
+            prova.assessment ??
+            Assessment(
+                title: prova.titulo,
+                subject: 'Matemática',
+                className: widget.titulo.split(' - ').first,
+                dateLabel: 'Sem data',
+                status: AssessmentStatus.draft,
+                totalQuestions: 10,
+                correctedStudents: 0,
+                totalStudents: _alunos.length,
+              );
+        if (aplicada) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProofGradesScreen(
+                proofTitle: assessment.title,
+                className: widget.titulo.split(' - ').first,
+              ),
+            ),
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AssessmentDetailScreen(assessment: assessment),
+            ),
+          );
+        }
+      },
     );
   }
 
@@ -446,17 +420,17 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     return Container(
       width: 36,
       height: 36,
-      decoration: BoxDecoration(
-        color: accentLightColor,
+      decoration: const BoxDecoration(
+        color: AppColors.accentLight,
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
       child: Text(
         initials.toUpperCase(),
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: accentColor,
+          color: AppColors.accent,
         ),
       ),
     );
@@ -468,11 +442,6 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _NovoAlunoSheet(
-        accentColor: accentColor,
-        borderColor: borderColor,
-        textColor: textColor,
-        mutedColor: mutedColor,
-        inputBgColor: inputBgColor,
         onCreate: (nome, matricula) {
           final nomeLimpo = nome.trim();
           final matriculaLimpa = matricula.trim();
@@ -698,20 +667,8 @@ class _ImportarCsvSheetState extends State<_ImportarCsvSheet> {
 }
 
 class _NovoAlunoSheet extends StatefulWidget {
-  const _NovoAlunoSheet({
-    required this.accentColor,
-    required this.borderColor,
-    required this.textColor,
-    required this.mutedColor,
-    required this.inputBgColor,
-    required this.onCreate,
-  });
+  const _NovoAlunoSheet({required this.onCreate});
 
-  final Color accentColor;
-  final Color borderColor;
-  final Color textColor;
-  final Color mutedColor;
-  final Color inputBgColor;
   final void Function(String nome, String matricula) onCreate;
 
   @override
@@ -751,108 +708,60 @@ class _NovoAlunoSheetState extends State<_NovoAlunoSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(top: 4, bottom: 12),
                 decoration: BoxDecoration(
-                  color: widget.borderColor,
+                  color: AppColors.border,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
-            Text(
+            const Text(
               'Novo aluno(a)',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: widget.textColor,
+                color: AppColors.text,
               ),
             ),
             const SizedBox(height: 14),
-            _label('Nome'),
-            _field(_nomeController, hint: 'Ex: João da Silva'),
+            LabeledTextField(
+              label: 'Nome',
+              controller: _nomeController,
+              hintText: 'Ex: João da Silva',
+              dense: true,
+            ),
             const SizedBox(height: 12),
-            _label('Matrícula'),
-            _field(_matriculaController, hint: 'Ex: 2026044'),
+            LabeledTextField(
+              label: 'Matrícula',
+              controller: _matriculaController,
+              hintText: 'Ex: 2026044',
+              dense: true,
+            ),
             const SizedBox(height: 18),
-            ElevatedButton(
+            PrimaryButton(
+              label: 'Adicionar aluno',
+              verticalPadding: 14,
+              fontSize: 13,
               onPressed: () {
                 widget.onCreate(
                   _nomeController.text,
                   _matriculaController.text,
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: widget.accentColor,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text(
-                'Adicionar aluno',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              ),
             ),
             const SizedBox(height: 10),
             Center(
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: Text(
+                child: const Text(
                   'Cancelar',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: widget.accentColor,
+                    color: AppColors.accent,
                   ),
                 ),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _label(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 6),
-    child: Text(
-      text,
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-        color: widget.mutedColor,
-      ),
-    ),
-  );
-
-  Widget _field(
-    TextEditingController controller, {
-    String? hint,
-    TextInputType? keyboardType,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: TextStyle(fontSize: 13, color: widget.textColor),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-          fontSize: 13,
-          color: widget.mutedColor.withValues(alpha: 0.6),
-        ),
-        filled: true,
-        fillColor: widget.inputBgColor,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 12,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: widget.borderColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: widget.accentColor, width: 1.5),
         ),
       ),
     );

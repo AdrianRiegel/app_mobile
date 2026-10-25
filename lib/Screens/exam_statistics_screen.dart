@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../components/components.dart';
 import '../models/statistics.dart';
 import '../theme/app_colors.dart';
 
@@ -16,28 +17,7 @@ class ExamStatisticsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, size: 20),
-          color: AppColors.text,
-        ),
-        title: const Text(
-          'Estatísticas',
-          style: TextStyle(
-            color: AppColors.text,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.border),
-        ),
-      ),
+      appBar: const StandardAppBar(title: 'Estatísticas'),
       body: SafeArea(
         top: false,
         child: ListView(
@@ -62,14 +42,14 @@ class ExamStatisticsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
-                    child: _summaryCard(
+                    child: StatSummaryCard(
                       label: 'Acerto médio',
                       value: '${statistics.averageScore}%',
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _summaryCard(
+                    child: StatSummaryCard(
                       label: 'Questão mais errada',
                       value: statistics.hardestQuestion,
                     ),
@@ -90,35 +70,6 @@ class ExamStatisticsScreen extends StatelessWidget {
             ...statistics.questions.map(_questionRow),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _summaryCard({required String label, required String value}) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(color: AppColors.muted, fontSize: 11),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppColors.text,
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
       ),
     );
   }

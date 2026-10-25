@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../components/components.dart';
 import '../data/mock_assessments.dart';
 import '../models/assessment.dart';
 import '../theme/app_colors.dart';
@@ -30,23 +31,8 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, size: 20),
-          color: AppColors.text,
-        ),
-        title: const Text(
-          'Avaliações',
-          style: TextStyle(
-            color: AppColors.text,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+      appBar: StandardAppBar(
+        title: 'Avaliações',
         actions: [
           PopupMenuButton<_AssessmentViewState>(
             tooltip: 'Demonstrar estados da tela',
@@ -72,10 +58,6 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
             ],
           ),
         ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.border),
-        ),
       ),
       body: SafeArea(top: false, child: _buildBody()),
       floatingActionButton: _viewState == _AssessmentViewState.content
@@ -110,46 +92,13 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 92),
       children: [
-        Material(
-          color: AppColors.accent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            onTap: _startQuickCorrection,
-            borderRadius: BorderRadius.circular(12),
-            child: const Padding(
-              padding: EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Correção rápida',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Leia o QR Code e comece em poucos passos',
-                          style: TextStyle(
-                            color: Color(0xFFE6E6FF),
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.qr_code_scanner, color: Colors.white, size: 28),
-                  SizedBox(width: 4),
-                  Icon(Icons.chevron_right, color: Colors.white, size: 18),
-                ],
-              ),
-            ),
-          ),
+        AccentActionBanner(
+          title: 'Correção rápida',
+          subtitle: 'Leia o QR Code e comece em poucos passos',
+          onTap: _startQuickCorrection,
+          padding: 14,
+          titleFontSize: 14,
+          iconSize: 28,
         ),
         const SizedBox(height: 20),
         Row(
@@ -203,273 +152,98 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
 
   Widget _filterChip(String label, AssessmentStatus? value) {
     final selected = _filter == value;
-    return ChoiceChip(
-      label: Text(label),
+    return AppFilterChip(
+      label: label,
       selected: selected,
       onSelected: (_) => setState(() => _filter = value),
-      showCheckmark: false,
-      selectedColor: AppColors.accentLight,
-      backgroundColor: AppColors.surface,
-      side: BorderSide(
-        color: selected ? AppColors.accent : AppColors.border,
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      labelStyle: TextStyle(
-        color: selected ? AppColors.accent : AppColors.muted,
-        fontSize: 10,
-        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-      ),
-      visualDensity: VisualDensity.compact,
     );
   }
 
   Widget _assessmentItem(Assessment assessment) {
-    return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AssessmentDetailScreen(assessment: assessment),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.accentLight,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.description_outlined,
-                  size: 19,
-                  color: AppColors.accent,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            assessment.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.text,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        _statusBadge(assessment),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${assessment.className} · ${assessment.subject}',
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 10,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${assessment.totalQuestions} questões · ${assessment.dateLabel}',
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 9,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 5),
-              const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppColors.muted,
-              ),
-            ],
-          ),
+    return AppListItemCard(
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: AppColors.accentLight,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(
+          Icons.description_outlined,
+          size: 19,
+          color: AppColors.accent,
         ),
       ),
-    );
-  }
-
-  Widget _statusBadge(Assessment assessment) {
-    Color background;
-    Color foreground;
-    switch (assessment.status) {
-      case AssessmentStatus.completed:
-        background = AppColors.successLight;
-        foreground = AppColors.success;
-        break;
-      case AssessmentStatus.scheduled:
-        background = AppColors.accentLight;
-        foreground = AppColors.accent;
-        break;
-      case AssessmentStatus.draft:
-        background = const Color(0xFFEEF0F3);
-        foreground = AppColors.muted;
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(20),
+      title: assessment.title,
+      titleTrailing: StatusBadge(
+        label: assessment.statusLabel,
+        background: assessment.status.badgeBackground,
+        foreground: assessment.status.badgeForeground,
+        fontSize: 8,
       ),
-      child: Text(
-        assessment.statusLabel,
-        style: TextStyle(
-          color: foreground,
-          fontSize: 8,
-          fontWeight: FontWeight.w600,
-        ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${assessment.className} · ${assessment.subject}',
+            style: const TextStyle(color: AppColors.muted, fontSize: 10),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '${assessment.totalQuestions} questões · ${assessment.dateLabel}',
+            style: const TextStyle(color: AppColors.muted, fontSize: 9),
+          ),
+        ],
       ),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AssessmentDetailScreen(assessment: assessment),
+          ),
+        );
+      },
     );
   }
 
   Widget _emptyState() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                color: AppColors.accentLight,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: const Icon(
-                Icons.assignment_outlined,
-                color: AppColors.accent,
-                size: 34,
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Nenhuma avaliação criada',
-              style: TextStyle(
-                color: AppColors.text,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Crie a primeira avaliação para configurar o gabarito e iniciar as correções.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.muted,
-                fontSize: 11,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _createAssessment,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Criar avaliação'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 13,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-          ],
-        ),
+    return EmptyStateView(
+      icon: Icons.assignment_outlined,
+      iconBackground: AppColors.accentLight,
+      iconColor: AppColors.accent,
+      title: 'Nenhuma avaliação criada',
+      message: 'Crie a primeira avaliação para configurar o gabarito e iniciar as correções.',
+      action: PrimaryButton(
+        label: 'Criar avaliação',
+        icon: Icons.add,
+        fullWidth: false,
+        verticalPadding: 13,
+        horizontalPadding: 20,
+        onPressed: _createAssessment,
       ),
     );
   }
 
   Widget _errorState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                color: AppColors.dangerLight,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: const Icon(
-                Icons.cloud_off_outlined,
-                color: AppColors.danger,
-                size: 32,
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Não foi possível carregar',
-              style: TextStyle(
-                color: AppColors.text,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Verifique sua conexão e tente novamente.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.muted, fontSize: 11),
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton.icon(
-              onPressed: () {
-                setState(() => _viewState = _AssessmentViewState.content);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Avaliações carregadas')),
-                );
-              },
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Tentar novamente'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.accent,
-                side: const BorderSide(color: AppColors.border),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 13,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-          ],
-        ),
+    return EmptyStateView(
+      icon: Icons.cloud_off_outlined,
+      iconBackground: AppColors.dangerLight,
+      iconColor: AppColors.danger,
+      iconSize: 32,
+      title: 'Não foi possível carregar',
+      message: 'Verifique sua conexão e tente novamente.',
+      action: SecondaryButton(
+        label: 'Tentar novamente',
+        icon: Icons.refresh,
+        fullWidth: false,
+        verticalPadding: 13,
+        horizontalPadding: 20,
+        onPressed: () {
+          setState(() => _viewState = _AssessmentViewState.content);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Avaliações carregadas')),
+          );
+        },
       ),
     );
   }

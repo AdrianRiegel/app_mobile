@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../components/components.dart';
+import '../theme/app_colors.dart';
 import 'assessments_screen.dart';
-
 import 'class_detail_screen.dart';
 
 class ClassesScreen extends StatefulWidget {
@@ -12,15 +13,6 @@ class ClassesScreen extends StatefulWidget {
 }
 
 class _ClassesScreenState extends State<ClassesScreen> {
-  final Color bgColor = const Color(0xFFF0F1F4);
-  final Color cardColor = const Color(0xFFFFFFFF);
-  final Color borderColor = const Color(0xFFE2E4E9);
-  final Color textColor = const Color(0xFF1B1D22);
-  final Color mutedColor = const Color(0xFF6B7078);
-  final Color accentColor = const Color(0xFF4F5BD5);
-  final Color accentLightColor = const Color(0xFFECEEFB);
-  final Color inputBgColor = const Color(0xFFFAFAFB);
-
   int _selectedIndex = 1;
   int _currentPage = 1;
   final int _totalPages = 3;
@@ -34,13 +26,13 @@ class _ClassesScreenState extends State<ClassesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: AppColors.background,
       floatingActionButtonLocation: const CustomMiniEndFloatLocation(),
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 10),
               child: Row(
                 children: [
                   Text(
@@ -48,7 +40,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: textColor,
+                      color: AppColors.text,
                     ),
                   ),
                 ],
@@ -59,37 +51,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: Column(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: inputBgColor,
-                        border: Border.all(color: borderColor),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.search, size: 18, color: mutedColor),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              style: TextStyle(fontSize: 13, color: textColor),
-                              decoration: InputDecoration(
-                                isDense: true,
-                                border: InputBorder.none,
-                                hintText: 'Buscar turma por nome',
-                                hintStyle: TextStyle(
-                                  fontSize: 13,
-                                  color: mutedColor,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    const SearchField(hintText: 'Buscar turma por nome'),
                     const SizedBox(height: 12),
                     Expanded(
                       child: ListView.separated(
@@ -113,7 +75,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
                         ),
                         Text(
                           'Página $_currentPage de $_totalPages',
-                          style: TextStyle(fontSize: 11, color: mutedColor),
+                          style: const TextStyle(fontSize: 11, color: AppColors.muted),
                         ),
                         _pageButton(
                           'Próxima ›',
@@ -131,134 +93,66 @@ class _ClassesScreenState extends State<ClassesScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openNovaTurmaSheet,
-        backgroundColor: accentColor,
+        backgroundColor: AppColors.accent,
         elevation: 6,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: borderColor, width: 1)),
-        ),
-        child: SafeArea(
-          child: BottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: (index) {
-              if (index == 0) {
-                Navigator.pop(context);
-                return;
-              }
-              if (index == 2) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AssessmentsScreen(),
-                  ),
-                );
-                return;
-              }
-              if (index == 3) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Perfil estará disponível em uma próxima entrega',
-                    ),
-                  ),
-                );
-                return;
-              }
-              setState(() => _selectedIndex = index);
-            },
-            selectedItemColor: accentColor,
-            unselectedItemColor: mutedColor,
-            showUnselectedLabels: true,
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.white,
-            elevation: 0,
-            selectedFontSize: 10,
-            unselectedFontSize: 10,
-            iconSize: 22,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                label: 'Início',
+      bottomNavigationBar: AppBottomNavBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.pop(context);
+            return;
+          }
+          if (index == 2) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AssessmentsScreen(),
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.people_outline),
-                label: 'Turmas',
+            );
+            return;
+          }
+          if (index == 3) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Perfil estará disponível em uma próxima entrega',
+                ),
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.assignment_outlined),
-                label: 'Avaliações',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                label: 'Perfil',
-              ),
-            ],
-          ),
-        ),
+            );
+            return;
+          }
+          setState(() => _selectedIndex = index);
+        },
       ),
     );
   }
 
   Widget _buildTurmaItem(_Turma turma) {
-    return Material(
-      color: cardColor,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ClassDetailScreen(titulo: turma.titulo),
-            ),
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-          decoration: BoxDecoration(
-            border: Border.all(color: borderColor),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: accentLightColor,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Icon(Icons.people_outline, size: 18, color: accentColor),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      turma.titulo,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      turma.subtitulo,
-                      style: TextStyle(fontSize: 11, color: mutedColor),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, size: 18, color: mutedColor),
-            ],
-          ),
+    return AppListItemCard(
+      leading: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: AppColors.accentLight,
+          borderRadius: BorderRadius.circular(9),
         ),
+        child: const Icon(Icons.people_outline, size: 18, color: AppColors.accent),
       ),
+      title: turma.titulo,
+      subtitle: Text(
+        turma.subtitulo,
+        style: const TextStyle(fontSize: 11, color: AppColors.muted),
+      ),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ClassDetailScreen(titulo: turma.titulo),
+          ),
+        );
+      },
     );
   }
 
@@ -274,7 +168,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w500,
-          color: enabled ? accentColor : mutedColor.withValues(alpha: 0.4),
+          color: enabled ? AppColors.accent : AppColors.muted.withValues(alpha: 0.4),
         ),
       ),
     );
@@ -286,11 +180,6 @@ class _ClassesScreenState extends State<ClassesScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _NovaTurmaSheet(
-        accentColor: accentColor,
-        borderColor: borderColor,
-        textColor: textColor,
-        mutedColor: mutedColor,
-        inputBgColor: inputBgColor,
         onCreate: (descricao) {
           Navigator.pop(context);
           ScaffoldMessenger.of(
@@ -327,20 +216,8 @@ class _Turma {
 }
 
 class _NovaTurmaSheet extends StatefulWidget {
-  const _NovaTurmaSheet({
-    required this.accentColor,
-    required this.borderColor,
-    required this.textColor,
-    required this.mutedColor,
-    required this.inputBgColor,
-    required this.onCreate,
-  });
+  const _NovaTurmaSheet({required this.onCreate});
 
-  final Color accentColor;
-  final Color borderColor;
-  final Color textColor;
-  final Color mutedColor;
-  final Color inputBgColor;
   final ValueChanged<String> onCreate;
 
   @override
@@ -386,109 +263,64 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(top: 4, bottom: 12),
                 decoration: BoxDecoration(
-                  color: widget.borderColor,
+                  color: AppColors.border,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
-            Text(
+            const Text(
               'Nova turma',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: widget.textColor,
+                color: AppColors.text,
               ),
             ),
             const SizedBox(height: 14),
-            _label('Descrição'),
-            _field(_descricaoController, hint: 'Ex: 3º Ano A - Matemática'),
+            LabeledTextField(
+              label: 'Descrição',
+              controller: _descricaoController,
+              hintText: 'Ex: 3º Ano A - Matemática',
+              dense: true,
+            ),
             const SizedBox(height: 12),
-            _label('Semestre'),
-            _field(_semestreController),
+            LabeledTextField(
+              label: 'Semestre',
+              controller: _semestreController,
+              dense: true,
+            ),
             const SizedBox(height: 12),
-            _label('Ano'),
-            _field(_anoController, keyboardType: TextInputType.number),
+            LabeledTextField(
+              label: 'Ano',
+              controller: _anoController,
+              keyboardType: TextInputType.number,
+              dense: true,
+            ),
             const SizedBox(height: 18),
-            ElevatedButton(
+            PrimaryButton(
+              label: 'Criar turma',
+              verticalPadding: 14,
+              fontSize: 13,
               onPressed: () {
                 final descricao = _descricaoController.text.trim();
                 widget.onCreate(descricao.isEmpty ? 'Nova turma' : descricao);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: widget.accentColor,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text(
-                'Criar turma',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              ),
             ),
             const SizedBox(height: 10),
             Center(
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: Text(
+                child: const Text(
                   'Cancelar',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: widget.accentColor,
+                    color: AppColors.accent,
                   ),
                 ),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _label(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 6),
-    child: Text(
-      text,
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-        color: widget.mutedColor,
-      ),
-    ),
-  );
-
-  Widget _field(
-    TextEditingController controller, {
-    String? hint,
-    TextInputType? keyboardType,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: TextStyle(fontSize: 13, color: widget.textColor),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-          fontSize: 13,
-          color: widget.mutedColor.withValues(alpha: 0.6),
-        ),
-        filled: true,
-        fillColor: widget.inputBgColor,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 12,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: widget.borderColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: widget.accentColor, width: 1.5),
         ),
       ),
     );
