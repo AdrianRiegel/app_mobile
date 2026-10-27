@@ -1,5 +1,4 @@
 import 'package:app_mobile/Screens/exam_statistics_screen.dart';
-import 'package:app_mobile/Screens/report_screen.dart';
 import 'package:app_mobile/Screens/statistics_screen.dart';
 import 'package:app_mobile/models/statistics.dart';
 import 'package:flutter/material.dart';
@@ -94,26 +93,5 @@ void main() {
     expect(find.byType(FractionallySizedBox), findsNWidgets(6));
   });
 
-  testWidgets('relatório gera a prévia ao tocar em Gerar e baixar PDF', (
-    tester,
-  ) async {
-    final firestore = await configurarBancoFalso();
-    await adicionarResultado(
-      firestore,
-      alunoId: 'aluno-1',
-      acertos: [true, true, true, false],
-    );
-    await tester.pumpWidget(const MaterialApp(home: ReportScreen()));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Prévia do relatório em PDF'), findsOneWidget);
-
-    await tester.tap(find.text('Gerar e baixar PDF'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Prévia do relatório em PDF'), findsNothing);
-    expect(find.text('Relatório de desempenho'), findsOneWidget);
-    expect(find.text('Provas incluídas'), findsOneWidget);
-    expect(find.text('75% · mais errada Q4'), findsOneWidget);
-  });
+  // A geração do PDF da tela de relatório é testada em relatorio_pdf_test.dart.
 }
