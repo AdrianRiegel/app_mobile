@@ -30,6 +30,8 @@ extension AssessmentStatusBadge on AssessmentStatus {
 
 class Assessment {
   const Assessment({
+    this.id = 'prova-demo',
+    this.classId = 'turma-3a',
     required this.title,
     required this.subject,
     required this.className,
@@ -40,6 +42,8 @@ class Assessment {
     required this.totalStudents,
   });
 
+  final String id;
+  final String classId;
   final String title;
   final String subject;
   final String className;

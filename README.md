@@ -18,6 +18,14 @@ uso de dados simulados.
 - Geração de relatório de desempenho com prévia simulada em PDF.
 - Demonstração dos estados vazio e de erro nas telas de avaliações e de
   estatísticas.
+- Busca com paginação local na lista de turmas; edição e exclusão simuladas,
+  com bloqueio de exclusão para turmas que tenham provas aplicadas.
+- Paginação local da lista de alunos e navegação por gesto entre as abas da
+  turma e entre páginas da lista.
+- Login e cadastro com validação e contas mantidas somente em memória. A conta
+  inicial de demonstração é `professor@eduturmas.com` / `Demo1234`.
+- QR Code individual por aluno, com payload versionado contendo os IDs da
+  turma, prova e aluno.
 
 ## Prints das telas
 
@@ -179,3 +187,7 @@ e a experiência do usuário.
 
 ## Link do Video do aplicativo
 (https://youtu.be/a2FAxay55is?si=P0_BHCM4h-RBPjNK)
+Não há integração com backend nem persistência: turmas, alunos e contas são
+dados locais de demonstração e são reiniciados ao fechar o app. O QR Code é
+gerado localmente para cada aluno, mas a leitura por câmera, OCR e validação
+contra um servidor ainda não fazem parte desta entrega.

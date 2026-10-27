@@ -211,10 +211,17 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
       '2º Ano B': 24,
       '1º Ano C': 31,
     };
+    const classIds = {
+      '3º Ano A': 'turma-3a',
+      '2º Ano B': 'turma-2b',
+      '1º Ano C': 'turma-1c',
+    };
 
     Navigator.pop(
       context,
       Assessment(
+        id: 'prova-${DateTime.now().microsecondsSinceEpoch}',
+        classId: classIds[_selectedClass]!,
         title: _titleController.text.trim(),
         subject: _subjectController.text.trim(),
         className: _selectedClass,

@@ -5,9 +5,10 @@ import '../models/assessment.dart';
 import '../theme/app_colors.dart';
 
 class NewProofScreen extends StatefulWidget {
-  const NewProofScreen({super.key, required this.className});
+  const NewProofScreen({super.key, required this.className, this.classId = 'turma-3a'});
 
   final String className;
+  final String classId;
 
   @override
   State<NewProofScreen> createState() => _NewProofScreenState();
@@ -196,6 +197,8 @@ class _NewProofScreenState extends State<NewProofScreen> {
     Navigator.pop(
       context,
       Assessment(
+        id: 'prova-${DateTime.now().microsecondsSinceEpoch}',
+        classId: widget.classId,
         title: title,
         subject: 'Matemática',
         className: widget.className,

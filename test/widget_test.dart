@@ -17,6 +17,8 @@ void main() {
     await tester.pumpWidget(const EduTurmasApp());
 
     expect(find.text('EduTurmas'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).at(0), 'professor@eduturmas.com');
+    await tester.enterText(find.byType(TextFormField).at(1), 'Demo1234');
     await tester.tap(find.text('Entrar'));
     await tester.pumpAndSettle();
 
@@ -49,7 +51,7 @@ void main() {
     await tester.tap(find.text('Adicionar'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Novo aluno'), findsOneWidget);
+    expect(find.text('Novo aluno(a)'), findsOneWidget);
 
     final textFields = find.byType(TextField);
     expect(textFields, findsNWidgets(2));

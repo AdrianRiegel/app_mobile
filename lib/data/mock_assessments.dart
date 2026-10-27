@@ -2,6 +2,8 @@ import '../models/assessment.dart';
 
 const List<Assessment> mockAssessments = [
   Assessment(
+    id: 'prova-avaliacao-bimestral-2026',
+    classId: 'turma-3a',
     title: 'Avaliação bimestral — Cap. 4',
     subject: 'Matemática',
     className: '3º Ano A',
@@ -12,6 +14,8 @@ const List<Assessment> mockAssessments = [
     totalStudents: 28,
   ),
   Assessment(
+    id: 'prova-mensal-cinematica-2026',
+    classId: 'turma-2b',
     title: 'Prova mensal — Cinemática',
     subject: 'Física',
     className: '2º Ano B',
@@ -22,6 +26,8 @@ const List<Assessment> mockAssessments = [
     totalStudents: 24,
   ),
   Assessment(
+    id: 'prova-recuperacao-ligacoes-2026',
+    classId: 'turma-1c',
     title: 'Recuperação — Ligações químicas',
     subject: 'Química',
     className: '1º Ano C',
