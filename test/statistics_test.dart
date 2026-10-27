@@ -46,6 +46,36 @@ void main() {
     expect(find.text('Ainda não há estatísticas'), findsOneWidget);
   });
 
+  testWidgets('botão de voltar das estatísticas retorna à tela anterior', (
+    tester,
+  ) async {
+    await configurarBancoFalso();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StatisticsScreen()),
+              ),
+              child: const Text('Abrir estatísticas'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Abrir estatísticas'));
+    await tester.pumpAndSettle();
+    expect(find.byType(StatisticsScreen), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    expect(find.byType(StatisticsScreen), findsNothing);
+    expect(find.text('Abrir estatísticas'), findsOneWidget);
+  });
+
   testWidgets('tela da prova mostra uma barra por questão', (tester) async {
     final stats = ExamStatistics.demo(
       assessmentTitle: 'Prova teste',
