@@ -6,13 +6,15 @@ import '../components/components.dart';
 import '../models/aluno.dart';
 import '../models/assessment.dart';
 import '../models/resultado.dart';
+import '../services/omr/omr_processor.dart';
+import 'omr_review_screen.dart';
 import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 
 class CorrectionStartScreen extends StatefulWidget {
   const CorrectionStartScreen({super.key, this.assessment});
 
-  /// Avaliação pré-selecionada; sem ela, o professor escolhe na lista.
+  /// AvaliaÃƒÂ§ÃƒÂ£o prÃƒÂ©-selecionada; sem ela, o professor escolhe na lista.
   final Assessment? assessment;
 
   @override
@@ -20,7 +22,7 @@ class CorrectionStartScreen extends StatefulWidget {
 }
 
 class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
-  int _currentStage = 0; // 0 = Avaliação, 1 = Aluno, 2 = Folha, 3 = Resultado
+  int _currentStage = 0; // 0 = AvaliaÃƒÂ§ÃƒÂ£o, 1 = Aluno, 2 = Folha, 3 = Resultado
   bool _reading = false;
   bool _readSuccess = false;
   bool _showGabarito = false;
@@ -46,7 +48,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
     _carregarAvaliacoes();
   }
 
-  /// Só avaliações com gabarito completo podem ser corrigidas.
+  /// SÃƒÂ³ avaliaÃƒÂ§ÃƒÂµes com gabarito completo podem ser corrigidas.
   Future<void> _carregarAvaliacoes() async {
     setState(() {
       _carregando = true;
@@ -93,7 +95,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         _currentStage = 0;
         _carregandoAlunos = false;
       });
-      _mostrarMensagem('Não foi possível carregar os alunos da turma');
+      _mostrarMensagem('NÃƒÂ£o foi possÃƒÂ­vel carregar os alunos da turma');
     }
   }
 
@@ -114,7 +116,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _salvando = false);
-      _mostrarMensagem('Não foi possível salvar a correção');
+      _mostrarMensagem('NÃƒÂ£o foi possÃƒÂ­vel salvar a correÃƒÂ§ÃƒÂ£o');
     }
   }
 
@@ -138,7 +140,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: StandardAppBar(
-        title: 'Iniciar correção',
+        title: 'Iniciar correÃƒÂ§ÃƒÂ£o',
         onBack: () {
           if (_currentStage == 3 && _showGabarito) {
             setState(() => _showGabarito = false);
@@ -160,10 +162,10 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
             _steps(),
             const SizedBox(height: 24),
 
-            // Só exibe o card resumo se a avaliação já foi escolhida (Etapa 1 em diante)
+            // SÃƒÂ³ exibe o card resumo se a avaliaÃƒÂ§ÃƒÂ£o jÃƒÂ¡ foi escolhida (Etapa 1 em diante)
             if (_currentStage > 0 && _selectedAssessment != null) ...[
               const Text(
-                'Avaliação selecionada',
+                'AvaliaÃƒÂ§ÃƒÂ£o selecionada',
                 style: TextStyle(
                   color: AppColors.muted,
                   fontSize: 11,
@@ -208,7 +210,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            '${_selectedAssessment!.className} · ${_selectedAssessment!.totalQuestions} questões',
+                            '${_selectedAssessment!.className} Ã‚Â· ${_selectedAssessment!.totalQuestions} questÃƒÂµes',
                             style: const TextStyle(
                               color: AppColors.muted,
                               fontSize: 10,
@@ -246,7 +248,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
   }
 
   Widget _steps() {
-    const labels = ['Avaliação', 'Aluno', 'Folha', 'Resultado'];
+    const labels = ['AvaliaÃƒÂ§ÃƒÂ£o', 'Aluno', 'Folha', 'Resultado'];
     int currentStep = _currentStage;
 
     return Row(
@@ -313,7 +315,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
     );
   }
 
-  // ETAPA 0: Selecionar Avaliação (Vinculado ao model Assessment)
+  // ETAPA 0: Selecionar AvaliaÃƒÂ§ÃƒÂ£o (Vinculado ao model Assessment)
   Widget _selectAssessmentContent() {
     if (_carregando) {
       return const Padding(
@@ -336,8 +338,8 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         icon: Icons.assignment_outlined,
         iconBackground: AppColors.accentLight,
         iconColor: AppColors.accent,
-        title: 'Nenhuma avaliação pronta',
-        message: 'Configure o gabarito de uma avaliação para poder corrigi-la.',
+        title: 'Nenhuma avaliaÃƒÂ§ÃƒÂ£o pronta',
+        message: 'Configure o gabarito de uma avaliaÃƒÂ§ÃƒÂ£o para poder corrigi-la.',
       );
     }
     return Column(
@@ -345,7 +347,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Identificação da Avaliação',
+          'IdentificaÃƒÂ§ÃƒÂ£o da AvaliaÃƒÂ§ÃƒÂ£o',
           style: TextStyle(
             color: AppColors.text,
             fontSize: 14,
@@ -354,7 +356,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         ),
         const SizedBox(height: 6),
         const Text(
-          'Selecione a avaliação que você irá corrigir agora.',
+          'Selecione a avaliaÃƒÂ§ÃƒÂ£o que vocÃƒÂª irÃƒÂ¡ corrigir agora.',
           style: TextStyle(color: AppColors.muted, fontSize: 11),
         ),
         const SizedBox(height: 20),
@@ -369,7 +371,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
             child: DropdownButton<Assessment>(
               isExpanded: true,
               hint: const Text(
-                'Selecione uma avaliação...',
+                'Selecione uma avaliaÃƒÂ§ÃƒÂ£o...',
                 style: TextStyle(fontSize: 13),
               ),
               value: _selectedAssessment,
@@ -398,7 +400,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         ),
         const SizedBox(height: 24),
         PrimaryButton(
-          label: 'Continuar para identificação do aluno',
+          label: 'Continuar para identificaÃƒÂ§ÃƒÂ£o do aluno',
           verticalPadding: 14,
           onPressed: _selectedAssessment == null ? null : _irParaAlunos,
         ),
@@ -433,7 +435,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Identificação do Aluno',
+          'IdentificaÃƒÂ§ÃƒÂ£o do Aluno',
           style: TextStyle(
             color: AppColors.text,
             fontSize: 14,
@@ -529,7 +531,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         ),
         const SizedBox(height: 5),
         const Text(
-          'Enquadre a folha inteira na câmera\nEsta etapa é uma simulação visual.',
+          'Enquadre a folha inteira na cÃƒÂ¢mera\nEsta etapa ÃƒÂ© uma simulaÃƒÂ§ÃƒÂ£o visual.',
           textAlign: TextAlign.center,
           style: TextStyle(color: AppColors.muted, fontSize: 11),
         ),
@@ -580,7 +582,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Ao continuar, a correção será salva e o resultado exibido.',
+            'Ao continuar, a correÃƒÂ§ÃƒÂ£o serÃƒÂ¡ salva e o resultado exibido.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.muted, fontSize: 11, height: 1.4),
           ),
@@ -681,7 +683,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      aprovado ? 'Na Média' : 'Abaixo da Média',
+                      aprovado ? 'Na MÃƒÂ©dia' : 'Abaixo da MÃƒÂ©dia',
                       style: TextStyle(
                         color: aprovado ? Colors.green[700] : Colors.red[700],
                         fontSize: 11,
@@ -703,7 +705,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         ),
         const SizedBox(height: 10),
         PrimaryButton(
-          label: 'Corrigir próximo aluno',
+          label: 'Corrigir prÃƒÂ³ximo aluno',
           verticalPadding: 14,
           onPressed: _corrigirProximoAluno,
         ),
@@ -763,7 +765,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           for (final resposta in respostas)
             _answerBadge(
               '${resposta.questao}',
-              resposta.alternativaMarcada ?? '–',
+              resposta.alternativaMarcada ?? 'Ã¢â‚¬â€œ',
               isCorrect: resposta.correta,
             ),
         ],
@@ -798,23 +800,50 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
     );
   }
 
-  /// Simula a leitura óptica da folha: cada questão tem 70% de chance de vir
+  /// Simula a leitura ÃƒÂ³ptica da folha: cada questÃƒÂ£o tem 70% de chance de vir
   /// com a alternativa correta do gabarito.
-  Future<void> _simulateRead() async {
+  Future<void> _simulateRead({bool simularAmbiguidade = false}) async {
     setState(() => _reading = true);
     await Future<void>.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
 
     const alternativas = ['A', 'B', 'C', 'D', 'E'];
-    final respostas = [
+    final rawRespostas = [
       for (final questao in _selectedAssessment!.gabarito)
         _random.nextDouble() < 0.7
             ? questao.alternativaCorreta
             : alternativas[_random.nextInt(alternativas.length)],
     ];
 
+    final matrix = OmrProcessor.createDensityMatrix(
+      answers: rawRespostas,
+      ambiguousQuestions: simularAmbiguidade && rawRespostas.isNotEmpty
+          ? {1}
+          : null,
+    );
+
+    final omrResult = OmrProcessor.processDensityMatrix(matrix);
+    List<String?> respostasFinais = omrResult.formattedAnswers;
+
+    if (omrResult.needsManualReview) {
+      final revisadas = await Navigator.push<List<String?>>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OmrReviewScreen(
+            result: omrResult,
+            studentName: _selectedStudent?.nome ?? 'Aluno',
+          ),
+        ),
+      );
+      if (revisadas == null || !mounted) {
+        setState(() => _reading = false);
+        return;
+      }
+      respostasFinais = revisadas;
+    }
+
     setState(() {
-      _respostasLidas = respostas;
+      _respostasLidas = respostasFinais;
       _reading = false;
       _readSuccess = true;
     });
