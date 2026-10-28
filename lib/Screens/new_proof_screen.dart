@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
-import '../models/assessment.dart';
+import '../models/turma.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 
 class NewProofScreen extends StatefulWidget {
-  const NewProofScreen({super.key, required this.className});
+  const NewProofScreen({super.key, required this.turma});
 
-  final String className;
+  final Turma turma;
 
   @override
   State<NewProofScreen> createState() => _NewProofScreenState();
@@ -25,18 +26,11 @@ class _NewProofScreenState extends State<NewProofScreen> {
   final _titleController = TextEditingController(
     text: 'Avaliação bimestral — Cap. 4',
   );
+  bool _salvando = false;
 
   final List<_QuestionDraft> _questions = const [
-    _QuestionDraft(
-      'Qual é o resultado de 7 × 8?',
-      ['54', '56', '58'],
-      1,
-    ),
-    _QuestionDraft(
-      'Qual fração equivale a 0,5?',
-      ['1/2', '1/4'],
-      0,
-    ),
+    _QuestionDraft('Qual é o resultado de 7 × 8?', ['54', '56', '58'], 1),
+    _QuestionDraft('Qual fração equivale a 0,5?', ['1/2', '1/4'], 0),
   ];
 
   @override
@@ -104,13 +98,15 @@ class _NewProofScreenState extends State<NewProofScreen> {
               label: 'Adicionar questão',
               verticalPadding: 14,
               foregroundColor: AppColors.text,
-              onPressed: () => _showFeedback('Editor de questão disponível na próxima etapa'),
+              onPressed: () => _showFeedback(
+                'Editor de questão disponível na próxima etapa',
+              ),
             ),
             const SizedBox(height: 10),
             PrimaryButton(
-              label: 'Salvar prova',
+              label: _salvando ? 'Salvando...' : 'Salvar prova',
               verticalPadding: 15,
-              onPressed: _save,
+              onPressed: _salvando ? null : _save,
             ),
           ],
         ),
@@ -186,29 +182,38 @@ class _NewProofScreenState extends State<NewProofScreen> {
     );
   }
 
-  void _save() {
+  Future<void> _save() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
       _showFeedback('Informe um título para salvar a prova');
       return;
     }
 
-    Navigator.pop(
-      context,
-      Assessment(
-        title: title,
-        subject: 'Matemática',
-        className: widget.className,
-        dateLabel: 'Sem data',
-        status: AssessmentStatus.draft,
-        totalQuestions: _questions.length,
-        correctedStudents: 0,
-        totalStudents: 28,
-      ),
-    );
+    setState(() => _salvando = true);
+    try {
+      // Os enunciados não são persistidos; o gabarito vem das alternativas
+      // corretas de cada questão (a → A, b → B...).
+      final assessment = await AvaliacaoRepository().criar(
+        turma: widget.turma,
+        titulo: title,
+        disciplina: widget.turma.disciplina,
+        totalQuestoes: _questions.length,
+        respostas: [
+          for (final question in _questions)
+            String.fromCharCode(65 + question.correctIndex),
+        ],
+      );
+      if (!mounted) return;
+      Navigator.pop(context, assessment);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _salvando = false);
+      _showFeedback('Não foi possível salvar a prova');
+    }
   }
 
   void _showFeedback(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }

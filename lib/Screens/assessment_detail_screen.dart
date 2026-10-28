@@ -2,16 +2,34 @@ import 'package:flutter/material.dart';
 
 import '../components/components.dart';
 import '../models/assessment.dart';
-import '../models/statistics.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 import 'answer_key_screen.dart';
 import 'correction_start_screen.dart';
 import 'exam_statistics_screen.dart';
 
-class AssessmentDetailScreen extends StatelessWidget {
+class AssessmentDetailScreen extends StatefulWidget {
   const AssessmentDetailScreen({super.key, required this.assessment});
 
   final Assessment assessment;
+
+  @override
+  State<AssessmentDetailScreen> createState() => _AssessmentDetailScreenState();
+}
+
+class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
+  late Assessment assessment = widget.assessment;
+  bool _carregandoEstatisticas = false;
+
+  /// Recarrega após correções, que mudam o progresso e o status.
+  Future<void> _recarregar() async {
+    try {
+      final atualizada = await AvaliacaoRepository().buscar(assessment.id);
+      if (mounted) setState(() => assessment = atualizada);
+    } catch (_) {
+      // Mantém os dados já exibidos.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -170,8 +188,9 @@ class AssessmentDetailScreen extends StatelessWidget {
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: List.generate(assessment.totalQuestions, (index) {
-                  final answer = String.fromCharCode(65 + (index % 5));
+                children: List.generate(assessment.gabarito.length, (index) {
+                  final answer =
+                      assessment.gabarito[index].alternativaCorreta ?? '–';
                   return Container(
                     width: 40,
                     height: 40,
@@ -209,16 +228,7 @@ class AssessmentDetailScreen extends StatelessWidget {
               label: 'Iniciar correção',
               icon: Icons.qr_code_scanner,
               verticalPadding: 14,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CorrectionStartScreen(
-                      assessment: assessment,
-                    ),
-                  ),
-                );
-              },
+              onPressed: () => _iniciarCorrecao(context),
             ),
             const SizedBox(height: 10),
             SecondaryButton(
@@ -229,10 +239,14 @@ class AssessmentDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             SecondaryButton(
-              label: 'Ver estatísticas',
+              label: _carregandoEstatisticas
+                  ? 'Carregando...'
+                  : 'Ver estatísticas',
               icon: Icons.bar_chart,
               verticalPadding: 14,
-              onPressed: () => _openStatistics(context),
+              onPressed: _carregandoEstatisticas
+                  ? null
+                  : () => _openStatistics(context),
             ),
           ],
         ),
@@ -240,23 +254,54 @@ class AssessmentDetailScreen extends StatelessWidget {
     );
   }
 
-  void _openStatistics(BuildContext context) {
-    final parts = assessment.title.split(RegExp(r'\s+[—-]\s+'));
-    final shortLabel = parts.length > 1 ? parts.last : assessment.title;
-    Navigator.push(
+  Future<void> _iniciarCorrecao(BuildContext context) async {
+    if (!assessment.gabaritoConfigurado) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Configure o gabarito antes de iniciar a correção'),
+        ),
+      );
+      return;
+    }
+    await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ExamStatisticsScreen(
-          statistics: ExamStatistics.demo(
-            assessmentTitle: assessment.title,
-            shortLabel: shortLabel,
-            className: assessment.className,
-            subject: assessment.subject,
-            totalQuestions: assessment.totalQuestions,
-          ),
-        ),
+        builder: (_) => CorrectionStartScreen(assessment: assessment),
       ),
     );
+    _recarregar();
+  }
+
+  Future<void> _openStatistics(BuildContext context) async {
+    if (assessment.correctedStudents == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Corrija ao menos uma prova para ver as estatísticas'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _carregandoEstatisticas = true);
+    try {
+      final statistics = await EstatisticasRepository().daAvaliacao(assessment);
+      if (!context.mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ExamStatisticsScreen(statistics: statistics),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível carregar as estatísticas'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _carregandoEstatisticas = false);
+    }
   }
 
   Widget _metric(
@@ -290,13 +335,14 @@ class AssessmentDetailScreen extends StatelessWidget {
   }
 
   Future<void> _openAnswerKey(BuildContext context) async {
-    final saved = await Navigator.push<bool>(
+    final saved = await Navigator.push<Assessment>(
       context,
       MaterialPageRoute(
         builder: (_) => AnswerKeyScreen(assessment: assessment),
       ),
     );
-    if (saved == true && context.mounted) {
+    if (saved != null && context.mounted) {
+      setState(() => assessment = saved);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Gabarito salvo com sucesso')),
       );
