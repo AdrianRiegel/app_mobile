@@ -46,13 +46,13 @@ class AvaliacaoRepository extends FirestoreRepository {
     return _montar(doc, turma);
   }
 
-  /// Cria a avaliação como rascunho. Sem [respostas], o gabarito é criado com
-  /// [totalQuestoes] questões ainda sem alternativa correta.
+  /// Cria a avaliação como rascunho com a data prevista de aplicação opcional.
   Future<Assessment> criar({
     required Turma turma,
     required String titulo,
     required String disciplina,
     required int totalQuestoes,
+    DateTime? dataAplicacao,
     List<String>? respostas,
   }) async {
     final gabarito = List.generate(
@@ -68,7 +68,8 @@ class AvaliacaoRepository extends FirestoreRepository {
       'titulo': titulo,
       'disciplina': disciplina,
       'status': _statusParaBanco(AssessmentStatus.draft),
-      'dataAplicacao': null,
+      'dataAplicacao':
+          dataAplicacao != null ? Timestamp.fromDate(dataAplicacao) : null,
       'gabarito': gabarito.map(_gabaritoParaBanco).toList(),
       'criadoEm': FieldValue.serverTimestamp(),
     });
@@ -80,12 +81,51 @@ class AvaliacaoRepository extends FirestoreRepository {
       title: titulo,
       subject: disciplina,
       className: turma.nome,
-      dateLabel: 'Sem data',
+      dateLabel:
+          dataAplicacao != null ? formatarData(dataAplicacao) : 'Sem data',
+      dataAplicacao: dataAplicacao,
       status: AssessmentStatus.draft,
       totalQuestions: totalQuestoes,
       correctedStudents: 0,
       totalStudents: turma.totalAlunos,
     );
+  }
+
+  /// Atualiza título, disciplina e data de aplicação da prova.
+  Future<Assessment> editar({
+    required String id,
+    required String titulo,
+    required String disciplina,
+    DateTime? dataAplicacao,
+  }) async {
+    final dados = <String, dynamic>{
+      'titulo': titulo.trim(),
+      'disciplina': disciplina.trim(),
+    };
+    if (dataAplicacao != null) {
+      dados['dataAplicacao'] = Timestamp.fromDate(dataAplicacao);
+    }
+    await avaliacoes.doc(id).update(dados);
+    return buscar(id);
+  }
+
+  /// Exclui uma avaliação somente se ela NÃO estiver concluída/aplicada.
+  /// Lança [StateError] se a avaliação já foi aplicada.
+  Future<void> excluir(String id) async {
+    final avaliacao = await buscar(id);
+    if (avaliacao.status == AssessmentStatus.completed) {
+      throw StateError('Não é possível excluir uma avaliação já aplicada');
+    }
+
+    final batch = firestore.batch()..delete(avaliacoes.doc(id));
+    final snapshotResultados = await resultados
+        .where('professorId', isEqualTo: professorId)
+        .where('avaliacaoId', isEqualTo: id)
+        .get();
+    for (final doc in snapshotResultados.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
   }
 
   /// Salva o gabarito e, se a avaliação ainda era rascunho, a marca como
@@ -155,6 +195,7 @@ class AvaliacaoRepository extends FirestoreRepository {
       dateLabel: dataAplicacao is Timestamp
           ? formatarData(dataAplicacao.toDate())
           : 'Sem data',
+      dataAplicacao: dataAplicacao is Timestamp ? dataAplicacao.toDate() : null,
       status: _statusDoBanco(data['status'] as String?),
       totalQuestions: gabarito.length,
       correctedStudents: corrigidos,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../components/components.dart';
 import '../models/assessment.dart';
 import '../services/database/database.dart';
+import '../services/random_exam_service.dart';
 import '../theme/app_colors.dart';
 import 'answer_key_screen.dart';
 import 'correction_start_screen.dart';
@@ -21,7 +22,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
   late Assessment assessment = widget.assessment;
   bool _carregandoEstatisticas = false;
 
-  /// Recarrega após correções, que mudam o progresso e o status.
+  /// Recarrega após correções ou alterações.
   Future<void> _recarregar() async {
     try {
       final atualizada = await AvaliacaoRepository().buscar(assessment.id);
@@ -29,6 +30,109 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
     } catch (_) {
       // Mantém os dados já exibidos.
     }
+  }
+
+  void _openEditarInformacoes() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _EditarProvaSheet(
+        assessment: assessment,
+        onSave: (novoTitulo, novaDisciplina, novaData) async {
+          final messenger = ScaffoldMessenger.of(context);
+          Navigator.pop(sheetContext);
+
+          try {
+            final atualizada = await AvaliacaoRepository().editar(
+              id: assessment.id,
+              titulo: novoTitulo,
+              disciplina: novaDisciplina,
+              dataAplicacao: novaData,
+            );
+            if (!mounted) return;
+            setState(() => assessment = atualizada);
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Informações da prova atualizadas com sucesso')),
+            );
+          } catch (_) {
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Não foi possível atualizar a avaliação')),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _confirmarExclusao() async {
+    if (assessment.status == AssessmentStatus.completed) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Exclusão não permitida'),
+          content: const Text(
+            'Esta avaliação já foi aplicada e possui notas registradas. Não é possível excluí-la.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Entendi'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final confirma = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir avaliação'),
+        content: Text('Deseja realmente excluir a avaliação "${assessment.title}"? Esta ação não pode ser desfeita.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirma == true && mounted) {
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        await AvaliacaoRepository().excluir(assessment.id);
+        if (!mounted) return;
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Avaliação excluída com sucesso')),
+        );
+        Navigator.pop(context, true);
+      } catch (e) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Erro ao excluir avaliação: $e')),
+        );
+      }
+    }
+  }
+
+  void _gerarProvaRandomicaPdf() {
+    final variantes = RandomExamService.gerarVariantes(
+      assessment: assessment,
+      quantidade: 2,
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _VisualizarVariantesSheet(variantes: variantes),
+    );
   }
 
   @override
@@ -39,7 +143,26 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const StandardAppBar(title: 'Detalhes da avaliação'),
+      appBar: StandardAppBar(
+        title: 'Detalhes da avaliação',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shuffle, size: 20, color: AppColors.accent),
+            tooltip: 'Gerar PDF randômico',
+            onPressed: _gerarProvaRandomicaPdf,
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.accent),
+            tooltip: 'Editar informações',
+            onPressed: _openEditarInformacoes,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.danger),
+            tooltip: 'Excluir avaliação',
+            onPressed: _confirmarExclusao,
+          ),
+        ],
+      ),
       body: SafeArea(
         top: false,
         child: ListView(
@@ -73,10 +196,8 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                StatusBadge(
-                  label: assessment.statusLabel,
-                  background: assessment.status.badgeBackground,
-                  foreground: assessment.status.badgeForeground,
+                StatusBadge.assessment(
+                  assessment.status,
                   horizontalPadding: 8,
                   verticalPadding: 5,
                 ),
@@ -129,7 +250,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                         style: TextStyle(color: AppColors.muted, fontSize: 11),
                       ),
                       Text(
-                        '${assessment.correctedStudents}/${assessment.totalStudents}',
+                        '${assessment.correctedStudents} de ${assessment.totalStudents} alunos',
                         style: const TextStyle(
                           color: AppColors.text,
                           fontSize: 11,
@@ -138,22 +259,20 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 7),
+                  const SizedBox(height: 8),
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(999),
                     child: LinearProgressIndicator(
                       value: progress,
                       minHeight: 6,
-                      backgroundColor: AppColors.accentLight,
-                      valueColor: const AlwaysStoppedAnimation(
-                        AppColors.accent,
-                      ),
+                      backgroundColor: AppColors.border,
+                      valueColor: const AlwaysStoppedAnimation(AppColors.accent),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -347,5 +466,303 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
         const SnackBar(content: Text('Gabarito salvo com sucesso')),
       );
     }
+  }
+}
+
+class _EditarProvaSheet extends StatefulWidget {
+  const _EditarProvaSheet({
+    required this.assessment,
+    required this.onSave,
+  });
+
+  final Assessment assessment;
+  final void Function(String titulo, String disciplina, DateTime data) onSave;
+
+  @override
+  State<_EditarProvaSheet> createState() => _EditarProvaSheetState();
+}
+
+class _EditarProvaSheetState extends State<_EditarProvaSheet> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _subjectController;
+  late DateTime _dataAplicacao;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.assessment.title);
+    _subjectController = TextEditingController(text: widget.assessment.subject);
+    _dataAplicacao = widget.assessment.dataAplicacao ?? DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _subjectController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _selecionarData() async {
+    final escolhida = await showDatePicker(
+      context: context,
+      initialDate: _dataAplicacao,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (escolhida != null && mounted) {
+      setState(() => _dataAplicacao = escolhida);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(top: 4, bottom: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const Text(
+              'Editar Informações da Prova',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.text,
+              ),
+            ),
+            const SizedBox(height: 14),
+            LabeledTextField(
+              label: 'Título da avaliação',
+              controller: _titleController,
+              dense: true,
+            ),
+            const SizedBox(height: 12),
+            LabeledTextField(
+              label: 'Disciplina',
+              controller: _subjectController,
+              dense: true,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Data de aplicação',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: AppColors.muted,
+              ),
+            ),
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: _selecionarData,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.input,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      AvaliacaoRepository.formatarData(_dataAplicacao),
+                      style: const TextStyle(fontSize: 13, color: AppColors.text),
+                    ),
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 16,
+                      color: AppColors.accent,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            PrimaryButton(
+              label: 'Salvar alterações',
+              verticalPadding: 14,
+              fontSize: 13,
+              onPressed: () {
+                final titulo = _titleController.text.trim();
+                final disciplina = _subjectController.text.trim();
+                if (titulo.isNotEmpty && disciplina.isNotEmpty) {
+                  widget.onSave(titulo, disciplina, _dataAplicacao);
+                }
+              },
+            ),
+            const SizedBox(height: 10),
+            Center(
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VisualizarVariantesSheet extends StatefulWidget {
+  const _VisualizarVariantesSheet({required this.variantes});
+
+  final List<RandomizedExamVariant> variantes;
+
+  @override
+  State<_VisualizarVariantesSheet> createState() =>
+      _VisualizarVariantesSheetState();
+}
+
+class _VisualizarVariantesSheetState extends State<_VisualizarVariantesSheet> {
+  int _varianteSelecionada = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.variantes.isEmpty) {
+      return const SizedBox();
+    }
+    final variante = widget.variantes[_varianteSelecionada];
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 4, bottom: 12),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'PDF da Prova Randômica',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.text,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: widget.variantes.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final item = entry.value;
+              final ativa = idx == _varianteSelecionada;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(item.variantLabel),
+                  selected: ativa,
+                  selectedColor: AppColors.accent,
+                  labelStyle: TextStyle(
+                    color: ativa ? Colors.white : AppColors.text,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  onSelected: (selected) {
+                    if (selected) setState(() => _varianteSelecionada = idx);
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Gabarito desta versão: ${variante.gabaritoResumido}',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.accent,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.input,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: SingleChildScrollView(
+                child: Text(
+                  variante.gerarLayoutProvaPdf(),
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    height: 1.4,
+                    color: AppColors.text,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          PrimaryButton(
+            label: 'Exportar / Baixar Prova e Gabarito',
+            icon: Icons.picture_as_pdf_outlined,
+            verticalPadding: 13,
+            fontSize: 13,
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    '${variante.variantLabel} gerada com sucesso para impressão!',
+                  ),
+                ),
+              );
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
   }
 }
