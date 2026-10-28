@@ -7,6 +7,7 @@ export 'aluno_repository.dart';
 export 'auth_repository.dart';
 export 'avaliacao_repository.dart';
 export 'estatisticas_repository.dart';
+export 'relatorio_repository.dart';
 export 'resultado_repository.dart';
 export 'turma_repository.dart';
 

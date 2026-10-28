@@ -1,17 +1,40 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 
 import '../components/components.dart';
 import '../models/statistics.dart';
 import '../services/database/database.dart';
+import '../services/pdf/relatorio_pdf.dart';
 import '../theme/app_colors.dart';
+
+/// Salva/compartilha o PDF gerado. No celular abre o menu de
+/// compartilhamento (salvar em arquivos, enviar, imprimir); na web baixa.
+typedef CompartilharPdf = Future<void> Function(Uint8List bytes, String nome);
+
+Future<void> _compartilharComPrinting(Uint8List bytes, String nome) async {
+  await Printing.sharePdf(bytes: bytes, filename: nome);
+}
+
+enum TipoRelatorio {
+  desempenho('Desempenho da turma (notas por aluno)'),
+  estatisticas('Estatísticas das provas (acerto por questão)');
+
+  const TipoRelatorio(this.label);
+
+  final String label;
+}
 
 /// Tela 7 — Gerar relatório (PDF).
 ///
-/// Permite escolher a turma e, opcionalmente, uma prova, e visualizar uma
-/// prévia do relatório com os dados do banco. A geração do PDF ainda é
-/// simulada: não há download real nem biblioteca de PDF envolvida.
+/// Permite escolher a turma, o tipo de relatório e, opcionalmente, uma
+/// prova. Gera o PDF com os dados do banco e mostra um resumo na prévia.
 class ReportScreen extends StatefulWidget {
-  const ReportScreen({super.key});
+  const ReportScreen({super.key, this.compartilharPdf});
+
+  /// Troca a forma de salvar o PDF (usado nos testes).
+  final CompartilharPdf? compartilharPdf;
 
   @override
   State<ReportScreen> createState() => _ReportScreenState();
@@ -24,7 +47,9 @@ class _ReportScreenState extends State<ReportScreen> {
 
   late ClassStatistics _selectedClass;
   ExamStatistics? _selectedExam; // null = todas as provas
+  TipoRelatorio _tipo = TipoRelatorio.desempenho;
   bool _generated = false;
+  bool _gerando = false;
 
   @override
   void initState() {
@@ -102,6 +127,20 @@ class _ReportScreenState extends State<ReportScreen> {
                 },
               ),
               const SizedBox(height: 16),
+              const _FieldLabel('Tipo de relatório'),
+              _dropdown<TipoRelatorio>(
+                value: _tipo,
+                items: TipoRelatorio.values,
+                labelBuilder: (tipo) => tipo.label,
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() {
+                    _tipo = value;
+                    _generated = false;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
               const _FieldLabel('Prova (opcional)'),
               _dropdown<ExamStatistics?>(
                 value: _selectedExam,
@@ -123,11 +162,11 @@ class _ReportScreenState extends State<ReportScreen> {
           color: AppColors.surface,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: PrimaryButton(
-            label: 'Gerar e baixar PDF',
+            label: _gerando ? 'Gerando PDF...' : 'Gerar e baixar PDF',
             icon: Icons.download_outlined,
             verticalPadding: 14,
             fontSize: 13,
-            onPressed: _generate,
+            onPressed: _gerando ? null : _generate,
           ),
         ),
       ],
@@ -242,6 +281,7 @@ class _ReportScreenState extends State<ReportScreen> {
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Divider(height: 1, color: AppColors.border),
           ),
+          _previewLine('Tipo', _tipo.label),
           _previewLine('Turma', _selectedClass.displayName),
           _previewLine(
             'Prova',
@@ -324,15 +364,54 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  void _generate() {
-    setState(() => _generated = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Relatório gerado (pré-visualização simulada nesta entrega)',
+  Future<void> _generate() async {
+    setState(() => _gerando = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final (bytes, nome) = await _montarPdf();
+      await (widget.compartilharPdf ?? _compartilharComPrinting)(bytes, nome);
+      if (!mounted) return;
+      setState(() => _generated = true);
+      messenger.showSnackBar(
+        SnackBar(content: Text('Relatório gerado: $nome')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível gerar o relatório. Tente novamente.'),
         ),
-      ),
-    );
+      );
+    } finally {
+      if (mounted) setState(() => _gerando = false);
+    }
+  }
+
+  Future<(Uint8List, String)> _montarPdf() async {
+    switch (_tipo) {
+      case TipoRelatorio.estatisticas:
+        final bytes = await RelatorioPdf.estatisticas(
+          turma: _selectedClass,
+          prova: _selectedExam,
+        );
+        return (
+          bytes,
+          RelatorioPdf.nomeArquivo('estatisticas', _selectedClass.displayName),
+        );
+      case TipoRelatorio.desempenho:
+        final desempenho = await RelatorioRepository().desempenhoDaTurma(
+          _selectedClass.turmaId,
+          avaliacaoId: _selectedExam?.assessmentId,
+        );
+        final bytes = await RelatorioPdf.desempenhoTurma(
+          desempenho,
+          provaSelecionada: _selectedExam?.assessmentTitle,
+        );
+        return (
+          bytes,
+          RelatorioPdf.nomeArquivo('desempenho', _selectedClass.displayName),
+        );
+    }
   }
 
   String _todayLabel() {
