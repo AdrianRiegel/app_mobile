@@ -24,6 +24,7 @@ class EstatisticasRepository extends FirestoreRepository {
     return [
       for (final turma in turmasDoProfessor)
         ClassStatistics(
+          turmaId: turma.id,
           className: turma.nome,
           subject: turma.disciplina,
           exams: [
@@ -69,6 +70,7 @@ class EstatisticasRepository extends FirestoreRepository {
     ];
 
     return ExamStatistics.fromQuestions(
+      assessmentId: avaliacao.id,
       assessmentTitle: avaliacao.title,
       shortLabel: rotuloCurto(avaliacao.title),
       className: avaliacao.className,

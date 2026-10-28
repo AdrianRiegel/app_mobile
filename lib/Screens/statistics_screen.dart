@@ -52,49 +52,26 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Estatísticas',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.text,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Gerar relatório',
-                    onPressed: _openReport,
-                    icon: const Icon(
-                      Icons.picture_as_pdf_outlined,
-                      size: 20,
-                      color: AppColors.muted,
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Atualizar',
-                    onPressed: _carregar,
-                    icon: const Icon(
-                      Icons.refresh,
-                      size: 20,
-                      color: AppColors.muted,
-                    ),
-                  ),
-                ],
-              ),
+      appBar: StandardAppBar(
+        title: 'Estatísticas',
+        actions: [
+          IconButton(
+            tooltip: 'Gerar relatório',
+            onPressed: _openReport,
+            icon: const Icon(
+              Icons.picture_as_pdf_outlined,
+              size: 20,
+              color: AppColors.muted,
             ),
-            const Divider(height: 1, color: AppColors.border),
-            Expanded(child: _buildBody()),
-          ],
-        ),
+          ),
+          IconButton(
+            tooltip: 'Atualizar',
+            onPressed: _carregar,
+            icon: const Icon(Icons.refresh, size: 20, color: AppColors.muted),
+          ),
+        ],
       ),
+      body: SafeArea(top: false, child: _buildBody()),
       bottomNavigationBar: _bottomNav(),
     );
   }
