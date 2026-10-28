@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../components/components.dart';
 import '../components/inputs/csv_file_picker.dart';
-import '../data/mock_assessments.dart';
+import '../models/aluno.dart';
 import '../models/assessment.dart';
+import '../models/turma.dart';
 import '../services/csv_import_service.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 import 'assessment_detail_screen.dart';
 import 'new_proof_screen.dart';
@@ -190,7 +193,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                       ),
                       ElevatedButton.icon(
                         onPressed: _openImportarCsvSheet,
-                        icon: Icon(
+                        icon: const Icon(
                           Icons.import_export,
                           size: 16,
                           color: AppColors.accent,
@@ -279,106 +282,20 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     );
   }
 
-  Widget _buildProvaItem(_Prova prova) {
-    final aplicada = prova.status == 'Aplicada';
-    return Material(
-      color: cardColor,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: () {
-          final assessment =
-              prova.assessment ??
-              Assessment(
-                title: prova.titulo,
-                subject: 'Matemática',
-                className: widget.titulo.split(' - ').first,
-                dateLabel: 'Sem data',
-                status: AssessmentStatus.draft,
-                totalQuestions: 10,
-                correctedStudents: 0,
-                totalStudents: _alunos.length,
-              );
-          if (aplicada) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ProofGradesScreen(
-                  proofTitle: assessment.title,
-                  className: widget.titulo.split(' - ').first,
-                ),
-              ),
-            );
-          } else {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => AssessmentDetailScreen(assessment: assessment),
-              ),
-            );
-          }
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-          decoration: BoxDecoration(
-            border: Border.all(color: borderColor),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: accentLightColor,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Icon(
-                  Icons.description_outlined,
-                  size: 18,
-                  color: accentColor,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      prova.titulo,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      prova.info,
-                      style: TextStyle(fontSize: 11, color: mutedColor),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: aplicada
-                      ? const Color(0xFFE4F6ED)
-                      : const Color(0xFFEEF0F3),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  prova.status,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: aplicada ? const Color(0xFF1F9D6E) : mutedColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
+  Widget _buildProvaItem(Assessment prova) {
+    final aplicada = prova.status == AssessmentStatus.completed;
+    return AppListItemCard(
+      leading: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: AppColors.accentLight,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: const Icon(
+          Icons.description_outlined,
+          size: 18,
+          color: AppColors.accent,
         ),
       ),
       title: prova.title,
@@ -406,21 +323,15 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   }
 
   Future<void> _createAssessment() async {
-    final assessment = await Navigator.push<Assessment>(
+    final criada = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            NewProofScreen(className: widget.titulo.split(' - ').first),
+        builder: (_) => NewProofScreen(turma: widget.turma),
       ),
     );
-    if (assessment == null || !mounted) {
-      return;
+    if (criada == true && mounted) {
+      _carregar();
     }
-
-    setState(() => _provas.insert(0, assessment));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Avaliação criada como rascunho')),
-    );
   }
 
   Widget _avatar(String nome) {
@@ -499,24 +410,41 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => _ImportarCsvSheet(
-        onImport: (novos) {
+        onImport: (novos) async {
           Navigator.pop(sheetContext);
 
           final existentes = _alunos.map((aluno) => aluno.matricula).toSet();
-          final adicionados = novos
-              .map((row) => _Aluno(row.nome, 'Matrícula ${row.matricula}'))
-              .where((aluno) => !existentes.contains(aluno.matricula))
-              .toList();
-          final ignorados = novos.length - adicionados.length;
+          int importados = 0;
+          int duplicados = 0;
 
-          setState(() => _alunos.insertAll(0, adicionados));
+          for (final row in novos) {
+            if (existentes.contains(row.matricula)) {
+              duplicados++;
+              continue;
+            }
+            try {
+              final aluno = await _alunoRepository.adicionar(
+                turmaId: widget.turma.id,
+                nome: row.nome,
+                matricula: row.matricula,
+              );
+              if (!mounted) return;
+              setState(() => _alunos.insert(0, aluno));
+              existentes.add(aluno.matricula);
+              importados++;
+            } catch (_) {
+              duplicados++;
+            }
+          }
+
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                ignorados == 0
-                    ? '${adicionados.length} aluno(s) importado(s)'
-                    : '${adicionados.length} aluno(s) importado(s) · '
-                          '$ignorados já cadastrado(s)',
+                duplicados == 0
+                    ? '$importados aluno(s) importado(s)'
+                    : '$importados aluno(s) importado(s) · '
+                        '$duplicados já cadastrado(s) ou ignorado(s)',
               ),
             ),
           );
