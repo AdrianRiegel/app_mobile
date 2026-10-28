@@ -23,9 +23,9 @@ class ResultadoRepository extends FirestoreRepository {
 
   /// Corrige as [respostas] do aluno e salva o resultado.
   ///
-  /// O documento usa o id `{avaliacaoId}_{alunoId}`, então corrigir o mesmo
+  /// O documento usa o id `{avaliacaoId}_{alunoId}`, entÃ£o corrigir o mesmo
   /// aluno de novo substitui o resultado anterior. Quando todos os alunos da
-  /// turma têm resultado, a avaliação passa a `concluida`.
+  /// turma tÃªm resultado, a avaliaÃ§Ã£o passa a `concluida`.
   Future<Resultado> salvar({
     required Assessment avaliacao,
     required Aluno aluno,
@@ -74,8 +74,73 @@ class ResultadoRepository extends FirestoreRepository {
     return resultado;
   }
 
+  /// Encerra a correcao de uma avaliacao atribuindo nota 0 para todos os alunos
+  /// da turma que ainda nao possuem resultado registrado.
+  Future<int> encerrarCorrecao({required Assessment avaliacao}) async {
+    final alunos = await AlunoRepository().listarPorTurma(avaliacao.turmaId);
+    final resultadosExistentes = await listarPorAvaliacao(avaliacao.id);
+    final alunosComResultado =
+        resultadosExistentes.map((r) => r.alunoId).toSet();
+
+    var ausentesAtribuidos = 0;
+
+    for (final aluno in alunos) {
+      if (alunosComResultado.contains(aluno.id)) {
+        continue;
+      }
+
+      final respostasVazias = [
+        for (final q in avaliacao.gabarito)
+          RespostaAluno(
+            questao: q.questao,
+            alternativaMarcada: null,
+            correta: false,
+          ),
+      ];
+
+      final resultadoZero = Resultado(
+        id: '${avaliacao.id}_${aluno.id}',
+        avaliacaoId: avaliacao.id,
+        turmaId: avaliacao.turmaId,
+        alunoId: aluno.id,
+        respostas: respostasVazias,
+        totalAcertos: 0,
+        notaCalculada: 0.0,
+      );
+
+      await resultados.doc(resultadoZero.id).set({
+        'avaliacaoId': resultadoZero.avaliacaoId,
+        'turmaId': resultadoZero.turmaId,
+        'professorId': professorId,
+        'alunoId': resultadoZero.alunoId,
+        'respostasAluno': [
+          for (final r in resultadoZero.respostas)
+            {
+              'questao': r.questao,
+              'alternativaMarcada': null,
+              'correta': false,
+            },
+        ],
+        'totalAcertos': 0,
+        'notaCalculada': 0.0,
+        'ausente': true,
+        'corrigidoEm': FieldValue.serverTimestamp(),
+      });
+
+      alunosComResultado.add(aluno.id);
+      ausentesAtribuidos++;
+    }
+
+    await AvaliacaoRepository().atualizarStatus(
+      avaliacao.id,
+      AssessmentStatus.completed,
+    );
+
+    return ausentesAtribuidos;
+  }
+
   /// Compara as respostas com o gabarito. A nota vai de 0 a 10 e considera o
-  /// peso de cada questão.
+  /// peso de cada questÃ£o.
   static Resultado corrigir({
     required String id,
     required Assessment avaliacao,
