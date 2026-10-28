@@ -50,7 +50,8 @@ Capturas reais do app rodando, uma por fluxo principal:
   buscar turma por nome, criar uma nova turma (descrição, semestre e ano) e
   navegar entre páginas da listagem.
 - **Gestão de alunos**: dentro de uma turma, deve ser possível listar os
-  alunos matriculados e adicionar um novo aluno.
+  alunos matriculados, adicionar um novo aluno e importar alunos a partir de
+  um arquivo CSV (colunas `nome` e `matricula`, separadas por `,` ou `;`).
 - **Gestão de avaliações**: o sistema deve permitir listar avaliações,
   filtrar por status (rascunho, agendada, concluída), criar uma nova
   avaliação (vinculada a uma turma, salva como rascunho) e visualizar seus
@@ -95,7 +96,8 @@ Capturas reais do app rodando, uma por fluxo principal:
   `test/`).
 - **Idioma**: toda a interface é em português do Brasil (pt-BR).
 - **Sem dependências externas de terceiros para o core**: além dos pacotes
-  padrão do Flutter (`cupertino_icons`), a primeira entrega não introduz
+  padrão do Flutter (`cupertino_icons`) e do `file_picker` (seleção do
+  arquivo CSV na importação de alunos), o projeto não introduz
   bibliotecas externas para câmera, OCR, geração real de PDF ou leitura de
   QR Code — esses comportamentos são simulados na própria UI.
 
