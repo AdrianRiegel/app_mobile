@@ -52,8 +52,8 @@ Capturas reais do app rodando, uma por fluxo principal:
   buscar turma por nome, criar uma nova turma (descrição, semestre e ano) e
   navegar entre páginas da listagem.
 - **Gestão de alunos**: dentro de uma turma, deve ser possível listar os
-  alunos matriculados e adicionar um novo aluno, sem repetir matrícula na
-  mesma turma.
+  alunos matriculados, adicionar um novo aluno e importar alunos a partir de
+  um arquivo CSV (colunas `nome` e `matricula`, separadas por `,` ou `;`).
 - **Gestão de avaliações**: o sistema deve permitir listar avaliações,
   filtrar por status (rascunho, agendada, concluída), criar uma nova
   avaliação (vinculada a uma turma, salva como rascunho) e visualizar seus
@@ -100,11 +100,11 @@ Capturas reais do app rodando, uma por fluxo principal:
   (`flutter test`) cobrindo ao menos os modelos/telas críticos (ver
   `test/`).
 - **Idioma**: toda a interface é em português do Brasil (pt-BR).
-- **Dependências externas**: além dos pacotes padrão do Flutter, o projeto
-  usa `firebase_core`, `firebase_auth` e `cloud_firestore` (banco e
-  autenticação), `mailer` e `flutter_dotenv` (envio de e-mail). Não há
-  bibliotecas para câmera, OCR, geração real de PDF ou leitura de QR Code —
-  esses comportamentos são simulados na própria UI.
+- **Sem dependências externas de terceiros para o core**: além dos pacotes
+  padrão do Flutter (`cupertino_icons`) e do `file_picker` (seleção do
+  arquivo CSV na importação de alunos), o projeto não introduz
+  bibliotecas externas para câmera, OCR, geração real de PDF ou leitura de
+  QR Code — esses comportamentos são simulados na própria UI.
 
 ## Escopo delimitado
 
