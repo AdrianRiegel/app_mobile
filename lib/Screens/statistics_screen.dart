@@ -51,23 +51,23 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: StandardAppBar(
         title: 'Estatísticas',
         actions: [
           IconButton(
             tooltip: 'Gerar relatório',
             onPressed: _openReport,
-            icon: const Icon(
+            icon: Icon(
               Icons.picture_as_pdf_outlined,
               size: 20,
-              color: AppColors.muted,
+              color: context.colors.muted,
             ),
           ),
           IconButton(
             tooltip: 'Atualizar',
             onPressed: _carregar,
-            icon: const Icon(Icons.refresh, size: 20, color: AppColors.muted),
+            icon: Icon(Icons.refresh, size: 20, color: context.colors.muted),
           ),
         ],
       ),
@@ -79,8 +79,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   Widget _buildBody() {
     switch (_viewState) {
       case _StatisticsViewState.loading:
-        return const Center(
-          child: CircularProgressIndicator(color: AppColors.accent),
+        return Center(
+          child: CircularProgressIndicator(color: context.colors.accent),
         );
       case _StatisticsViewState.empty:
         return _emptyState();
@@ -102,10 +102,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   Widget _classCard(ClassStatistics classStats, bool startsExpanded) {
     return Material(
-      color: AppColors.surface,
+      color: context.colors.surface,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: context.colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Theme(
@@ -115,12 +115,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           tilePadding: const EdgeInsets.symmetric(horizontal: 14),
           childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
-          iconColor: AppColors.muted,
-          collapsedIconColor: AppColors.muted,
+          iconColor: context.colors.muted,
+          collapsedIconColor: context.colors.muted,
           title: Text(
             classStats.displayName,
-            style: const TextStyle(
-              color: AppColors.text,
+            style: TextStyle(
+              color: context.colors.text,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
@@ -131,7 +131,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               classStats.exams.isEmpty
                   ? 'Sem provas corrigidas'
                   : '${classStats.exams.length} ${classStats.exams.length == 1 ? 'prova' : 'provas'} · média ${classStats.averageScore}%',
-              style: const TextStyle(color: AppColors.muted, fontSize: 10),
+              style: TextStyle(color: context.colors.muted, fontSize: 10),
             ),
           ),
           children: [
@@ -148,7 +148,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   Widget _examRow(ExamStatistics exam) {
     return Material(
-      color: AppColors.input,
+      color: context.colors.input,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -161,7 +161,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.colors.border),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -174,8 +174,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       exam.assessmentTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.text,
+                      style: TextStyle(
+                        color: context.colors.text,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -183,15 +183,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     const SizedBox(height: 3),
                     Text(
                       'Acerto médio: ${exam.averageScore}%',
-                      style: const TextStyle(
-                        color: AppColors.muted,
+                      style: TextStyle(
+                        color: context.colors.muted,
                         fontSize: 10,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 18, color: AppColors.muted),
+              Icon(Icons.chevron_right, size: 18, color: context.colors.muted),
             ],
           ),
         ),
@@ -200,10 +200,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   Widget _emptyState() {
-    return const EmptyStateView(
+    return EmptyStateView(
       icon: Icons.bar_chart,
-      iconBackground: AppColors.accentLight,
-      iconColor: AppColors.accent,
+      iconBackground: context.colors.accentLight,
+      iconColor: context.colors.accent,
       title: 'Ainda não há estatísticas',
       message:
           'Corrija ao menos uma prova para acompanhar o desempenho das turmas.',

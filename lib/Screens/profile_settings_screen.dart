@@ -4,6 +4,7 @@ import '../components/components.dart';
 import '../models/usuario.dart';
 import '../services/database/database.dart';
 import '../theme/app_colors.dart';
+import '../theme/theme_controller.dart';
 import 'login_screen.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
@@ -97,9 +98,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Perfil atualizado com sucesso!'),
-          backgroundColor: AppColors.accent,
+          backgroundColor: context.colors.accent,
         ),
       );
     } catch (e) {
@@ -151,8 +152,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_carregando) {
-      return const Scaffold(
-        backgroundColor: AppColors.background,
+      return Scaffold(
+        backgroundColor: context.colors.background,
         appBar: StandardAppBar(title: 'Perfil e Configurações'),
         body: Center(child: CircularProgressIndicator()),
       );
@@ -161,7 +162,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     final iniciais = _usuario?.iniciais ?? '?';
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: const StandardAppBar(title: 'Perfil e Configurações'),
       body: SafeArea(
         top: false,
@@ -173,18 +174,18 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: context.colors.dangerLight,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: context.colors.danger),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                    Icon(Icons.error_outline, color: context.colors.danger, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _erro!,
-                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                        style: TextStyle(color: context.colors.danger, fontSize: 13),
                       ),
                     ),
                   ],
@@ -199,15 +200,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   Container(
                     width: 76,
                     height: 76,
-                    decoration: const BoxDecoration(
-                      color: AppColors.accentLight,
+                    decoration: BoxDecoration(
+                      color: context.colors.accentLight,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       iniciais,
-                      style: const TextStyle(
-                        color: AppColors.accent,
+                      style: TextStyle(
+                        color: context.colors.accent,
                         fontWeight: FontWeight.bold,
                         fontSize: 26,
                       ),
@@ -216,8 +217,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   const SizedBox(height: 10),
                   Text(
                     _usuario?.nome ?? 'Professor(a)',
-                    style: const TextStyle(
-                      color: AppColors.text,
+                    style: TextStyle(
+                      color: context.colors.text,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -225,8 +226,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   const SizedBox(height: 2),
                   Text(
                     _usuario?.email ?? '',
-                    style: const TextStyle(
-                      color: AppColors.muted,
+                    style: TextStyle(
+                      color: context.colors.muted,
                       fontSize: 13,
                     ),
                   ),
@@ -234,13 +235,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppColors.accentLight,
+                      color: context.colors.accentLight,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Professor(a)',
                       style: TextStyle(
-                        color: AppColors.accent,
+                        color: context.colors.accent,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -253,10 +254,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             const SizedBox(height: 28),
 
             // Dados Pessoais
-            const Text(
+            Text(
               'Dados Pessoais e Profissionais',
               style: TextStyle(
-                color: AppColors.text,
+                color: context.colors.text,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
@@ -276,12 +277,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               enabled: false,
               readOnly: true,
               hintText: 'seu.email@escola.com',
-              suffixIcon: const Icon(Icons.lock_outline, size: 18, color: AppColors.muted),
+              suffixIcon: Icon(Icons.lock_outline, size: 18, color: context.colors.muted),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'O e-mail é utilizado para autenticação e não pode ser alterado por aqui.',
-              style: TextStyle(color: AppColors.muted, fontSize: 11),
+              style: TextStyle(color: context.colors.muted, fontSize: 11),
             ),
             const SizedBox(height: 14),
 
@@ -301,10 +302,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             const SizedBox(height: 28),
 
             // Seção Preferências
-            const Text(
+            Text(
               'Preferências e Notificações',
               style: TextStyle(
-                color: AppColors.text,
+                color: context.colors.text,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
@@ -312,26 +313,26 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             const SizedBox(height: 12),
 
             Material(
-              color: AppColors.surface,
+              color: context.colors.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppColors.border),
+                side: BorderSide(color: context.colors.border),
               ),
               child: SwitchListTile(
                 value: _notificacoesEmail,
-                activeThumbColor: AppColors.accent,
+                activeThumbColor: context.colors.accent,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                title: const Text(
+                title: Text(
                   'Notificações por e-mail',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.text,
+                    color: context.colors.text,
                   ),
                 ),
-                subtitle: const Text(
+                subtitle: Text(
                   'Receba alertas sobre correções e turmas',
-                  style: TextStyle(fontSize: 12, color: AppColors.muted),
+                  style: TextStyle(fontSize: 12, color: context.colors.muted),
                 ),
                 onChanged: (val) {
                   setState(() => _notificacoesEmail = val);
@@ -341,17 +342,72 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
             const SizedBox(height: 14),
 
+            // Tema do app
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              decoration: BoxDecoration(
+                color: context.colors.surface,
+                border: Border.all(color: context.colors.border),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Aparência',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: context.colors.text,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ValueListenableBuilder<ThemeMode>(
+                    valueListenable: ThemeController.instance,
+                    builder: (context, modo, _) => SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<ThemeMode>(
+                        showSelectedIcon: false,
+                        segments: const [
+                          ButtonSegment(
+                            value: ThemeMode.system,
+                            icon: Icon(Icons.brightness_auto_outlined, size: 18),
+                            label: Text('Sistema'),
+                          ),
+                          ButtonSegment(
+                            value: ThemeMode.light,
+                            icon: Icon(Icons.light_mode_outlined, size: 18),
+                            label: Text('Claro'),
+                          ),
+                          ButtonSegment(
+                            value: ThemeMode.dark,
+                            icon: Icon(Icons.dark_mode_outlined, size: 18),
+                            label: Text('Escuro'),
+                          ),
+                        ],
+                        selected: {modo},
+                        onSelectionChanged: (selecao) =>
+                            ThemeController.instance.alterar(selecao.first),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
             // Info sobre app
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.surface,
-                border: Border.all(color: AppColors.border),
+                color: context.colors.surface,
+                border: Border.all(color: context.colors.border),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.info_outline, size: 20, color: AppColors.muted),
+                  Icon(Icons.info_outline, size: 20, color: context.colors.muted),
                   SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -362,12 +418,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.text,
+                            color: context.colors.text,
                           ),
                         ),
                         Text(
                           'Versão 1.0.0 · Correção inteligente de provas',
-                          style: TextStyle(fontSize: 11, color: AppColors.muted),
+                          style: TextStyle(fontSize: 11, color: context.colors.muted),
                         ),
                       ],
                     ),

@@ -11,8 +11,8 @@ class SecondaryButton extends StatelessWidget {
     this.fullWidth = true,
     this.verticalPadding = 14,
     this.horizontalPadding,
-    this.foregroundColor = AppColors.accent,
-    this.borderColor = AppColors.border,
+    this.foregroundColor,
+    this.borderColor,
   });
 
   final String label;
@@ -21,17 +21,24 @@ class SecondaryButton extends StatelessWidget {
   final bool fullWidth;
   final double verticalPadding;
   final double? horizontalPadding;
-  final Color foregroundColor;
-  final Color borderColor;
+
+  /// Padrão: `accent` do tema.
+  final Color? foregroundColor;
+
+  /// Padrão: `border` do tema.
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
     final style = OutlinedButton.styleFrom(
-      foregroundColor: foregroundColor,
-      side: BorderSide(color: borderColor),
+      foregroundColor: foregroundColor ?? context.colors.accent,
+      side: BorderSide(color: borderColor ?? context.colors.border),
       padding: horizontalPadding == null
           ? EdgeInsets.symmetric(vertical: verticalPadding)
-          : EdgeInsets.symmetric(vertical: verticalPadding, horizontal: horizontalPadding!),
+          : EdgeInsets.symmetric(
+              vertical: verticalPadding,
+              horizontal: horizontalPadding!,
+            ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     );
     final labelWidget = Text(

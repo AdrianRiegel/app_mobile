@@ -72,28 +72,28 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
-                        color: AppColors.accentLight,
+                        color: context.colors.accentLight,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.school_rounded,
-                        color: AppColors.accent,
+                        color: context.colors.accent,
                         size: 32,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'EduTurmas',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.text,
+                        color: context.colors.text,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'Gestão de turmas e provas',
-                      style: TextStyle(fontSize: 14, color: AppColors.muted),
+                      style: TextStyle(fontSize: 14, color: context.colors.muted),
                     ),
                   ],
                 ),
@@ -123,12 +123,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       );
                     },
-                    child: const Text(
+                    child: Text(
                       'Esqueci minha senha',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.accent,
+                        color: context.colors.accent,
                       ),
                     ),
                   ),
@@ -142,9 +142,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'Não tem conta? ',
-                      style: TextStyle(fontSize: 13, color: AppColors.muted),
+                      style: TextStyle(fontSize: 13, color: context.colors.muted),
                     ),
                     GestureDetector(
                       onTap: () {
@@ -155,12 +155,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         );
                       },
-                      child: const Text(
+                      child: Text(
                         'Cadastre-se',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.accent,
+                          color: context.colors.accent,
                         ),
                       ),
                     ),

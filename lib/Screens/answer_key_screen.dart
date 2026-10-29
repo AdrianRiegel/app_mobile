@@ -62,8 +62,8 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
           bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
         ),
         child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: context.colors.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -77,23 +77,23 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
                   height: 4,
                   margin: const EdgeInsets.only(top: 4, bottom: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: context.colors.border,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
               ),
-              const Text(
+              Text(
                 'Importar Gabarito via Planilha (CSV)',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.text,
+                  color: context.colors.text,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Selecione um arquivo .csv ou cole as linhas com "questao" e "resposta" (ex.: 1;A ou questao,resposta):',
-                style: TextStyle(fontSize: 12, color: AppColors.muted),
+                style: TextStyle(fontSize: 12, color: context.colors.muted),
               ),
               const SizedBox(height: 10),
               CsvFilePicker(
@@ -107,15 +107,15 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
                 style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
                 decoration: InputDecoration(
                   hintText: "questao,resposta\n1,A\n2,B\n3,C\n4,D",
-                  hintStyle: const TextStyle(
-                    color: AppColors.muted,
+                  hintStyle: TextStyle(
+                    color: context.colors.muted,
                     fontSize: 11,
                   ),
                   filled: true,
-                  fillColor: AppColors.input,
+                  fillColor: context.colors.input,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: BorderSide(color: context.colors.border),
                   ),
                 ),
               ),
@@ -171,12 +171,12 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
               Center(
                 child: GestureDetector(
                   onTap: () => Navigator.pop(sheetContext),
-                  child: const Text(
+                  child: Text(
                     'Cancelar',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                     ),
                   ),
                 ),
@@ -191,15 +191,15 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: StandardAppBar(
         title: 'Configurar gabarito',
         actions: [
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.file_upload_outlined,
               size: 20,
-              color: AppColors.accent,
+              color: context.colors.accent,
             ),
             tooltip: 'Importar gabarito via CSV',
             onPressed: _openImportarGabaritoCsv,
@@ -212,15 +212,15 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
           children: [
             Container(
               width: double.infinity,
-              color: AppColors.surface,
+              color: context.colors.surface,
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     widget.assessment.title,
-                    style: const TextStyle(
-                      color: AppColors.text,
+                    style: TextStyle(
+                      color: context.colors.text,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -228,8 +228,8 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
                   const SizedBox(height: 3),
                   Text(
                     '${widget.assessment.className} · ${widget.assessment.totalQuestions} questões',
-                    style: const TextStyle(
-                      color: AppColors.muted,
+                    style: TextStyle(
+                      color: context.colors.muted,
                       fontSize: 11,
                     ),
                   ),
@@ -250,7 +250,7 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
       // Como bottomNavigationBar, os SnackBars aparecem acima do botão em vez
       // de cobri-lo.
       bottomNavigationBar: Container(
-        color: AppColors.surface,
+        color: context.colors.surface,
         child: SafeArea(
           top: false,
           child: Padding(
@@ -272,8 +272,8 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
+        color: context.colors.surface,
+        border: Border.all(color: context.colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -282,8 +282,8 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
             width: 30,
             child: Text(
               '${index + 1}.',
-              style: const TextStyle(
-                color: AppColors.text,
+              style: TextStyle(
+                color: context.colors.text,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -303,14 +303,14 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: selected
-                          ? AppColors.accent
-                          : AppColors.accentLight,
+                          ? context.colors.accent
+                          : context.colors.accentLight,
                       shape: BoxShape.circle,
                     ),
                     child: Text(
                       option,
                       style: TextStyle(
-                        color: selected ? Colors.white : AppColors.accent,
+                        color: selected ? Colors.white : context.colors.accent,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),

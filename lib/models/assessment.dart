@@ -5,25 +5,25 @@ import '../theme/app_colors.dart';
 enum AssessmentStatus { draft, scheduled, completed }
 
 extension AssessmentStatusBadge on AssessmentStatus {
-  Color get badgeBackground {
+  Color badgeBackground(AppColors colors) {
     switch (this) {
       case AssessmentStatus.completed:
-        return AppColors.successLight;
+        return colors.successLight;
       case AssessmentStatus.scheduled:
-        return AppColors.accentLight;
+        return colors.accentLight;
       case AssessmentStatus.draft:
-        return AppColors.neutralLight;
+        return colors.neutralLight;
     }
   }
 
-  Color get badgeForeground {
+  Color badgeForeground(AppColors colors) {
     switch (this) {
       case AssessmentStatus.completed:
-        return AppColors.success;
+        return colors.success;
       case AssessmentStatus.scheduled:
-        return AppColors.accent;
+        return colors.accent;
       case AssessmentStatus.draft:
-        return AppColors.muted;
+        return colors.muted;
     }
   }
 

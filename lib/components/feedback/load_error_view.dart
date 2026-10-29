@@ -14,8 +14,8 @@ class LoadErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return EmptyStateView(
       icon: Icons.cloud_off_outlined,
-      iconBackground: AppColors.dangerLight,
-      iconColor: AppColors.danger,
+      iconBackground: context.colors.dangerLight,
+      iconColor: context.colors.danger,
       iconSize: 32,
       title: 'Não foi possível carregar',
       message: 'Verifique sua conexão e tente novamente.',

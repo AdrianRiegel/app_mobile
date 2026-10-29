@@ -39,7 +39,7 @@ class _OmrReviewScreenState extends State<OmrReviewScreen> {
     const options = ['A', 'B', 'C', 'D', 'E'];
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: const StandardAppBar(title: 'Revisão do Cartão'),
       body: SafeArea(
         top: false,
@@ -49,16 +49,16 @@ class _OmrReviewScreenState extends State<OmrReviewScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF8E6),
-                border: Border.all(color: const Color(0xFFFFD573)),
+                color: context.colors.warningLight,
+                border: Border.all(color: context.colors.warning),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.warning_amber_rounded,
-                    color: Color(0xFFD98200),
+                    color: context.colors.warning,
                     size: 22,
                   ),
                   const SizedBox(width: 10),
@@ -66,12 +66,12 @@ class _OmrReviewScreenState extends State<OmrReviewScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Revisão manual necessária',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF8A5300),
+                            color: context.colors.warning,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -79,9 +79,9 @@ class _OmrReviewScreenState extends State<OmrReviewScreen> {
                           result.reviewReason ??
                               'Algumas marcações possuem baixa confiança ou ambiguidade. '
                                   'Confirme as alternativas marcadas por ${widget.studentName}.',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF8A5300),
+                            color: context.colors.warning,
                           ),
                         ),
                       ],
@@ -91,12 +91,12 @@ class _OmrReviewScreenState extends State<OmrReviewScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Respostas Detectadas',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.text,
+                color: context.colors.text,
               ),
             ),
             const SizedBox(height: 8),
@@ -109,11 +109,11 @@ class _OmrReviewScreenState extends State<OmrReviewScreen> {
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: context.colors.surface,
                   border: Border.all(
                     color: question.needsReview
-                        ? const Color(0xFFFFD573)
-                        : AppColors.border,
+                        ? context.colors.warning
+                        : context.colors.border,
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -125,28 +125,28 @@ class _OmrReviewScreenState extends State<OmrReviewScreen> {
                       children: [
                         Text(
                           'Questão ${question.questao}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.text,
+                            color: context.colors.text,
                           ),
                         ),
                         if (question.isMultipleMarked)
                           _statusTag(
                             'Dupla marcação',
-                            const Color(0xFFFFEBEB),
-                            Colors.red[700]!,
+                            context.colors.dangerLight,
+                            context.colors.danger,
                           )
                         else if (question.isAmbiguous)
                           _statusTag(
                             'Rasura/Ambígua',
-                            const Color(0xFFFFF4D4),
-                            const Color(0xFFB36B00),
+                            context.colors.warningLight,
+                            context.colors.warning,
                           )
                         else if (question.isBlank)
-                          _statusTag('Em branco', AppColors.neutralLight, AppColors.muted)
+                          _statusTag('Em branco', context.colors.neutralLight, context.colors.muted)
                         else
-                          _statusTag('OK', AppColors.successLight, AppColors.success),
+                          _statusTag('OK', context.colors.successLight, context.colors.success),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -157,11 +157,11 @@ class _OmrReviewScreenState extends State<OmrReviewScreen> {
                           ChoiceChip(
                             label: Text(opt),
                             selected: currentSelection == opt,
-                            selectedColor: AppColors.accent,
+                            selectedColor: context.colors.accent,
                             labelStyle: TextStyle(
                               color: currentSelection == opt
                                   ? Colors.white
-                                  : AppColors.text,
+                                  : context.colors.text,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -174,11 +174,11 @@ class _OmrReviewScreenState extends State<OmrReviewScreen> {
                         ChoiceChip(
                           label: const Text('Em branco'),
                           selected: currentSelection == null,
-                          selectedColor: AppColors.muted,
+                          selectedColor: context.colors.muted,
                           labelStyle: TextStyle(
                             color: currentSelection == null
                                 ? Colors.white
-                                : AppColors.muted,
+                                : context.colors.muted,
                             fontSize: 11,
                           ),
                           onSelected: (selected) {

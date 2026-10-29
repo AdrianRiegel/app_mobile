@@ -63,13 +63,13 @@ class _ProofGradesScreenState extends State<ProofGradesScreen> {
   Widget build(BuildContext context) {
     final proofTitle = widget.assessment.title;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: StandardAppBar(
         title: 'Notas · ${proofTitle.replaceFirst('Avaliação ', '')}',
       ),
       body: _carregando
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.accent),
+          ? Center(
+              child: CircularProgressIndicator(color: context.colors.accent),
             )
           : _erro
           ? LoadErrorView(onRetry: _carregar)
@@ -113,8 +113,8 @@ class _ProofGradesScreenState extends State<ProofGradesScreen> {
         const SizedBox(height: 14),
         Text(
           '${widget.assessment.className} · $proofTitle',
-          style: const TextStyle(
-            color: AppColors.muted,
+          style: TextStyle(
+            color: context.colors.muted,
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
@@ -148,15 +148,15 @@ class _ProofGradesScreenState extends State<ProofGradesScreen> {
       leading: Container(
         width: 38,
         height: 38,
-        decoration: const BoxDecoration(
-          color: AppColors.accentLight,
+        decoration: BoxDecoration(
+          color: context.colors.accentLight,
           shape: BoxShape.circle,
         ),
         alignment: Alignment.center,
         child: Text(
           initials,
-          style: const TextStyle(
-            color: AppColors.accent,
+          style: TextStyle(
+            color: context.colors.accent,
             fontSize: 12,
             fontWeight: FontWeight.w700,
           ),
@@ -166,12 +166,12 @@ class _ProofGradesScreenState extends State<ProofGradesScreen> {
       titleFontSize: 14,
       subtitle: Text(
         detail,
-        style: const TextStyle(color: AppColors.muted, fontSize: 11),
+        style: TextStyle(color: context.colors.muted, fontSize: 11),
       ),
       trailing: StatusBadge(
         label: grade,
-        background: passing ? AppColors.successLight : AppColors.neutralLight,
-        foreground: passing ? AppColors.success : AppColors.muted,
+        background: passing ? context.colors.successLight : context.colors.neutralLight,
+        foreground: passing ? context.colors.success : context.colors.muted,
         fontSize: 12,
         fontWeight: FontWeight.w700,
         horizontalPadding: 9,

@@ -138,8 +138,8 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
 
   Widget _buildBody() {
     if (_checkingPermission) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.accent),
+      return Center(
+        child: CircularProgressIndicator(color: context.colors.accent),
       );
     }
 
@@ -175,7 +175,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 24),
               constraints: const BoxConstraints(maxWidth: 380, maxHeight: 480),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.accent, width: 2),
+                border: Border.all(color: context.colors.accent, width: 2),
                 borderRadius: BorderRadius.circular(16),
                 color: const Color(0x66000000),
               ),
@@ -224,7 +224,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 4),
-                  color: AppColors.accent,
+                  color: context.colors.accent,
                 ),
                 child: _isCapturing
                     ? const Center(
@@ -250,16 +250,16 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       decoration: BoxDecoration(
         border: Border(
           top: top
-              ? const BorderSide(color: AppColors.accent, width: 3)
+              ? BorderSide(color: context.colors.accent, width: 3)
               : BorderSide.none,
           bottom: !top
-              ? const BorderSide(color: AppColors.accent, width: 3)
+              ? BorderSide(color: context.colors.accent, width: 3)
               : BorderSide.none,
           left: left
-              ? const BorderSide(color: AppColors.accent, width: 3)
+              ? BorderSide(color: context.colors.accent, width: 3)
               : BorderSide.none,
           right: !left
-              ? const BorderSide(color: AppColors.accent, width: 3)
+              ? BorderSide(color: context.colors.accent, width: 3)
               : BorderSide.none,
         ),
       ),
@@ -277,14 +277,14 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFF1F222A),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: context.colors.border),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.check_circle_outline,
-                    color: AppColors.success,
+                    color: context.colors.success,
                     size: 64,
                   ),
                   const SizedBox(height: 16),

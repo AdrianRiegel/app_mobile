@@ -113,18 +113,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     'Já tem conta? ',
-                    style: TextStyle(fontSize: 13, color: AppColors.muted),
+                    style: TextStyle(fontSize: 13, color: context.colors.muted),
                   ),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: const Text(
+                    child: Text(
                       'Entrar',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.accent,
+                        color: context.colors.accent,
                       ),
                     ),
                   ),

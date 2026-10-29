@@ -54,13 +54,13 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: const StandardAppBar(title: 'Avaliações'),
       body: SafeArea(top: false, child: _buildBody()),
       floatingActionButton: _viewState == _AssessmentViewState.content
           ? FloatingActionButton.extended(
               onPressed: _createAssessment,
-              backgroundColor: AppColors.accent,
+              backgroundColor: context.colors.accent,
               foregroundColor: Colors.white,
               elevation: 3,
               icon: const Icon(Icons.add, size: 19),
@@ -76,8 +76,8 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
   Widget _buildBody() {
     switch (_viewState) {
       case _AssessmentViewState.loading:
-        return const Center(
-          child: CircularProgressIndicator(color: AppColors.accent),
+        return Center(
+          child: CircularProgressIndicator(color: context.colors.accent),
         );
       case _AssessmentViewState.empty:
         return _emptyState();
@@ -105,17 +105,17 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Avaliações recentes',
               style: TextStyle(
-                color: AppColors.text,
+                color: context.colors.text,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             Text(
               '${items.length} ${items.length == 1 ? 'avaliação' : 'avaliações'}',
-              style: const TextStyle(color: AppColors.muted, fontSize: 10),
+              style: TextStyle(color: context.colors.muted, fontSize: 10),
             ),
           ],
         ),
@@ -166,13 +166,13 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: AppColors.accentLight,
+          color: context.colors.accentLight,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.description_outlined,
           size: 19,
-          color: AppColors.accent,
+          color: context.colors.accent,
         ),
       ),
       title: assessment.title,
@@ -185,12 +185,12 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
         children: [
           Text(
             '${assessment.className} · ${assessment.subject}',
-            style: const TextStyle(color: AppColors.muted, fontSize: 10),
+            style: TextStyle(color: context.colors.muted, fontSize: 10),
           ),
           const SizedBox(height: 3),
           Text(
             '${assessment.totalQuestions} questões · ${assessment.dateLabel}',
-            style: const TextStyle(color: AppColors.muted, fontSize: 9),
+            style: TextStyle(color: context.colors.muted, fontSize: 9),
           ),
         ],
       ),
@@ -209,8 +209,8 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
   Widget _emptyState() {
     return EmptyStateView(
       icon: Icons.assignment_outlined,
-      iconBackground: AppColors.accentLight,
-      iconColor: AppColors.accent,
+      iconBackground: context.colors.accentLight,
+      iconColor: context.colors.accent,
       title: 'Nenhuma avaliação criada',
       message: 'Crie a primeira avaliação para configurar o gabarito e iniciar as correções.',
       action: PrimaryButton(
@@ -227,14 +227,14 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
   Widget _errorState() => LoadErrorView(onRetry: _carregar);
 
   Widget _smallFilteredEmptyState() {
-    return const Column(
+    return Column(
       children: [
-        Icon(Icons.filter_alt_off_outlined, color: AppColors.muted, size: 30),
+        Icon(Icons.filter_alt_off_outlined, color: context.colors.muted, size: 30),
         SizedBox(height: 8),
         Text(
           'Nenhuma avaliação neste filtro',
           style: TextStyle(
-            color: AppColors.text,
+            color: context.colors.text,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
@@ -242,7 +242,7 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
         SizedBox(height: 3),
         Text(
           'Selecione outra categoria para continuar.',
-          style: TextStyle(color: AppColors.muted, fontSize: 10),
+          style: TextStyle(color: context.colors.muted, fontSize: 10),
         ),
       ],
     );

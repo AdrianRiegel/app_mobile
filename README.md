@@ -119,8 +119,12 @@ cp .env.example .env
 ```
 Gere os arquivos do Firebase para o projeto (caso ainda não possua o `firebase_options.dart` local):
 ```bash
-flutterfire configure --project=app-mobile-a16f3
+flutterfire configure --project=app-mobile-a16f3 \
+  --platforms=android,ios,web \
+  --ios-bundle-id=com.eduturmas.app \
+  --android-package-name=com.example.app_mobile
 ```
+O ID do app no iOS é `com.eduturmas.app` (o `com.example.appMobile` padrão do Flutter não pode ser registrado na Apple). Para rodar num iPhone, selecione seu time em **Xcode → Runner → Signing & Capabilities → Team**.
 
 ### 3. Executar o Aplicativo
 ```bash

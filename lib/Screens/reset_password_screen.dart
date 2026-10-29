@@ -56,9 +56,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Informe seu e-mail cadastrado para receber o link de redefinição.',
-                style: TextStyle(fontSize: 13, color: AppColors.muted),
+                style: TextStyle(fontSize: 13, color: context.colors.muted),
               ),
               const SizedBox(height: 24),
               LabeledTextField(
@@ -76,12 +76,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               Center(
                 child: GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: const Text(
+                  child: Text(
                     'Voltar para o login',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                     ),
                   ),
                 ),

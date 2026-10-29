@@ -27,7 +27,7 @@ class AppListItemCard extends StatelessWidget {
     final content = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -48,7 +48,7 @@ class AppListItemCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: titleFontSize,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.text,
+                          color: context.colors.text,
                         ),
                       ),
                     ),
@@ -69,7 +69,7 @@ class AppListItemCard extends StatelessWidget {
             trailing!
           else if (onTap != null) ...[
             const SizedBox(width: 5),
-            const Icon(Icons.chevron_right, size: 18, color: AppColors.muted),
+            Icon(Icons.chevron_right, size: 18, color: context.colors.muted),
           ],
         ],
       ),
@@ -78,7 +78,7 @@ class AppListItemCard extends StatelessWidget {
     if (onTap == null) {
       return Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(12),
         ),
         child: content,
@@ -86,7 +86,7 @@ class AppListItemCard extends StatelessWidget {
     }
 
     return Material(
-      color: AppColors.surface,
+      color: context.colors.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,

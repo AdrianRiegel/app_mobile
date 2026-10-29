@@ -40,7 +40,7 @@ class LabeledTextField extends StatelessWidget {
           style: TextStyle(
             fontSize: dense ? 11 : 13,
             fontWeight: FontWeight.w500,
-            color: AppColors.muted,
+            color: context.colors.muted,
           ),
         ),
         SizedBox(height: dense ? 6 : 6),
@@ -53,7 +53,7 @@ class LabeledTextField extends StatelessWidget {
           onChanged: onChanged,
           style: TextStyle(
             fontSize: dense ? 13 : 14,
-            color: enabled ? AppColors.text : AppColors.muted,
+            color: enabled ? context.colors.text : context.colors.muted,
           ),
           decoration: InputDecoration(
             hintText: hintText,
@@ -61,27 +61,27 @@ class LabeledTextField extends StatelessWidget {
             suffixIcon: suffixIcon,
             hintStyle: TextStyle(
               fontSize: dense ? 13 : null,
-              color: AppColors.muted.withValues(alpha: 0.6),
+              color: context.colors.muted.withValues(alpha: 0.6),
             ),
             filled: true,
-            fillColor: enabled ? AppColors.input : AppColors.surface,
+            fillColor: enabled ? context.colors.input : context.colors.surface,
             isDense: dense,
             contentPadding: dense
                 ? const EdgeInsets.symmetric(horizontal: 12, vertical: 12)
                 : const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(
-                color: AppColors.border.withValues(alpha: 0.5),
+                color: context.colors.border.withValues(alpha: 0.5),
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+              borderSide: BorderSide(color: context.colors.accent, width: 1.5),
             ),
           ),
         ),

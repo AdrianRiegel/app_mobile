@@ -16,8 +16,8 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _subjectController = TextEditingController();
-  final _questionsController = TextEditingController(text: '10');
-  DateTime _dataAplicacao = DateTime.now();
+  final _questionsController = TextEditingController();
+  DateTime? _dataAplicacao;
 
   List<Turma> _turmas = [];
   Turma? _selectedClass;
@@ -65,7 +65,7 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
   Future<void> _selecionarData() async {
     final escolhida = await showDatePicker(
       context: context,
-      initialDate: _dataAplicacao,
+      initialDate: _dataAplicacao ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
     );
@@ -85,7 +85,7 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: const StandardAppBar(title: 'Nova avaliação'),
       body: SafeArea(
         top: false,
@@ -96,18 +96,18 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
 
   Widget _buildConteudo() {
     if (_carregando) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.accent),
+      return Center(
+        child: CircularProgressIndicator(color: context.colors.accent),
       );
     }
     if (_erro) {
       return LoadErrorView(onRetry: _carregarTurmas);
     }
     if (_turmas.isEmpty) {
-      return const EmptyStateView(
+      return EmptyStateView(
         icon: Icons.people_outline,
-        iconBackground: AppColors.accentLight,
-        iconColor: AppColors.accent,
+        iconBackground: context.colors.accentLight,
+        iconColor: context.colors.accent,
         title: 'Nenhuma turma cadastrada',
         message: 'Cadastre ao menos uma turma para poder criar avaliações.',
       );
@@ -143,7 +143,7 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
             initialValue: _selectedClass,
             isExpanded: true,
             decoration: _decoration(null),
-            icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.muted),
+            icon: Icon(Icons.keyboard_arrow_down, color: context.colors.muted),
             items: [
               for (final turma in _turmas)
                 DropdownMenuItem(
@@ -165,21 +165,28 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
               decoration: BoxDecoration(
-                color: AppColors.input,
+                color: context.colors.input,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: context.colors.border),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    AvaliacaoRepository.formatarData(_dataAplicacao),
-                    style: const TextStyle(fontSize: 14, color: AppColors.text),
+                    _dataAplicacao == null
+                        ? 'Selecionar data'
+                        : AvaliacaoRepository.formatarData(_dataAplicacao!),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: _dataAplicacao == null
+                          ? context.colors.muted
+                          : context.colors.text,
+                    ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.calendar_today_outlined,
                     size: 18,
-                    color: AppColors.accent,
+                    color: context.colors.accent,
                   ),
                 ],
               ),
@@ -190,7 +197,7 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
           TextFormField(
             controller: _questionsController,
             keyboardType: TextInputType.number,
-            decoration: _decoration('10'),
+            decoration: _decoration('Ex: 10'),
             validator: (value) {
               final count = int.tryParse(value ?? '');
               if (count == null || count < 1 || count > 50) {
@@ -203,19 +210,19 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.accentLight,
+              color: context.colors.accentLight,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Row(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, size: 17, color: AppColors.accent),
+                Icon(Icons.info_outline, size: 17, color: context.colors.accent),
                 SizedBox(width: 9),
                 Expanded(
                   child: Text(
                     'A avaliação será criada como rascunho com a data prevista e ficará disponível para configurar o gabarito.',
                     style: TextStyle(
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                       fontSize: 11,
                       height: 1.4,
                     ),
@@ -234,10 +241,10 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
           const SizedBox(height: 10),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
+            child: Text(
               'Cancelar',
               style: TextStyle(
-                color: AppColors.accent,
+                color: context.colors.accent,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -253,8 +260,8 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(
         text,
-        style: const TextStyle(
-          color: AppColors.muted,
+        style: TextStyle(
+          color: context.colors.muted,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
@@ -265,25 +272,25 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
   InputDecoration _decoration(String? hintText) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: const TextStyle(color: AppColors.muted, fontSize: 13),
+      hintStyle: TextStyle(color: context.colors.muted, fontSize: 13),
       filled: true,
-      fillColor: AppColors.input,
+      fillColor: context.colors.input,
       contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: BorderSide(color: context.colors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+        borderSide: BorderSide(color: context.colors.accent, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.danger),
+        borderSide: BorderSide(color: context.colors.danger),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
+        borderSide: BorderSide(color: context.colors.danger, width: 1.5),
       ),
     );
   }

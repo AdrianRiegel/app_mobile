@@ -73,12 +73,12 @@ class _ClassesScreenState extends State<ClassesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       floatingActionButtonLocation: const CustomMiniEndFloatLocation(),
       body: SafeArea(
         child: Column(
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(16, 16, 16, 10),
               child: Row(
                 children: [
@@ -87,7 +87,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.text,
+                      color: context.colors.text,
                     ),
                   ),
                 ],
@@ -118,9 +118,9 @@ class _ClassesScreenState extends State<ClassesScreen> {
                         ),
                         Text(
                           'Página $_currentPage de $_totalPages',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.muted,
+                            color: context.colors.muted,
                           ),
                         ),
                         _pageButton(
@@ -139,7 +139,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openNovaTurmaSheet,
-        backgroundColor: AppColors.accent,
+        backgroundColor: context.colors.accent,
         elevation: 6,
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -177,8 +177,8 @@ class _ClassesScreenState extends State<ClassesScreen> {
 
   Widget _buildLista() {
     if (_carregando) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.accent),
+      return Center(
+        child: CircularProgressIndicator(color: context.colors.accent),
       );
     }
     if (_erro) {
@@ -188,8 +188,8 @@ class _ClassesScreenState extends State<ClassesScreen> {
     if (turmas.isEmpty) {
       return EmptyStateView(
         icon: Icons.people_outline,
-        iconBackground: AppColors.accentLight,
-        iconColor: AppColors.accent,
+        iconBackground: context.colors.accentLight,
+        iconColor: context.colors.accent,
         title: _turmas.isEmpty
             ? 'Nenhuma turma cadastrada'
             : 'Nenhuma turma encontrada',
@@ -212,19 +212,19 @@ class _ClassesScreenState extends State<ClassesScreen> {
         width: 34,
         height: 34,
         decoration: BoxDecoration(
-          color: AppColors.accentLight,
+          color: context.colors.accentLight,
           borderRadius: BorderRadius.circular(9),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.people_outline,
           size: 18,
-          color: AppColors.accent,
+          color: context.colors.accent,
         ),
       ),
       title: turma.descricao,
       subtitle: Text(
         turma.resumo,
-        style: const TextStyle(fontSize: 11, color: AppColors.muted),
+        style: TextStyle(fontSize: 11, color: context.colors.muted),
       ),
       onTap: () async {
         await Navigator.push(
@@ -252,8 +252,8 @@ class _ClassesScreenState extends State<ClassesScreen> {
           fontSize: 11,
           fontWeight: FontWeight.w500,
           color: enabled
-              ? AppColors.accent
-              : AppColors.muted.withValues(alpha: 0.4),
+              ? context.colors.accent
+              : context.colors.muted.withValues(alpha: 0.4),
         ),
       ),
     );
@@ -366,8 +366,8 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: context.colors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
@@ -381,17 +381,17 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(top: 4, bottom: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: context.colors.border,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
-            const Text(
+            Text(
               'Nova turma',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppColors.text,
+                color: context.colors.text,
               ),
             ),
             const SizedBox(height: 14),
@@ -425,12 +425,12 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
             Center(
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: const Text(
+                child: Text(
                   'Cancelar',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.accent,
+                    color: context.colors.accent,
                   ),
                 ),
               ),

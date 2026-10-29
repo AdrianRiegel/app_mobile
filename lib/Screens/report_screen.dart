@@ -82,7 +82,7 @@ class _ReportScreenState extends State<ReportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: const StandardAppBar(title: 'Relatório'),
       body: SafeArea(top: false, child: _buildBody()),
     );
@@ -90,18 +90,18 @@ class _ReportScreenState extends State<ReportScreen> {
 
   Widget _buildBody() {
     if (_carregando) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.accent),
+      return Center(
+        child: CircularProgressIndicator(color: context.colors.accent),
       );
     }
     if (_erro) {
       return LoadErrorView(onRetry: _carregar);
     }
     if (_classes.isEmpty) {
-      return const EmptyStateView(
+      return EmptyStateView(
         icon: Icons.picture_as_pdf_outlined,
-        iconBackground: AppColors.accentLight,
-        iconColor: AppColors.accent,
+        iconBackground: context.colors.accentLight,
+        iconColor: context.colors.accent,
         title: 'Nenhuma turma cadastrada',
         message: 'Cadastre turmas e corrija provas para gerar relatórios.',
       );
@@ -159,7 +159,7 @@ class _ReportScreenState extends State<ReportScreen> {
           ),
         ),
         Container(
-          color: AppColors.surface,
+          color: context.colors.surface,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: PrimaryButton(
             label: _gerando ? 'Gerando PDF...' : 'Gerar e baixar PDF',
@@ -182,16 +182,16 @@ class _ReportScreenState extends State<ReportScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.input,
-        border: Border.all(color: AppColors.border),
+        color: context.colors.input,
+        border: Border.all(color: context.colors.border),
         borderRadius: BorderRadius.circular(10),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: value,
           isExpanded: true,
-          icon: const Icon(Icons.expand_more, color: AppColors.muted, size: 20),
-          style: const TextStyle(color: AppColors.text, fontSize: 13),
+          icon: Icon(Icons.expand_more, color: context.colors.muted, size: 20),
+          style: TextStyle(color: context.colors.text, fontSize: 13),
           borderRadius: BorderRadius.circular(10),
           items: [
             for (final item in items)
@@ -216,13 +216,13 @@ class _ReportScreenState extends State<ReportScreen> {
       constraints: const BoxConstraints(minHeight: 280),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.input,
-        border: Border.all(color: AppColors.border),
+        color: context.colors.input,
+        border: Border.all(color: context.colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: _generated
           ? _previewContent()
-          : const Center(
+          : Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 40),
                 child: Column(
@@ -231,12 +231,12 @@ class _ReportScreenState extends State<ReportScreen> {
                     Icon(
                       Icons.picture_as_pdf_outlined,
                       size: 34,
-                      color: AppColors.muted,
+                      color: context.colors.muted,
                     ),
                     SizedBox(height: 10),
                     Text(
                       'Prévia do relatório em PDF',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                      style: TextStyle(color: context.colors.muted, fontSize: 12),
                     ),
                   ],
                 ),
@@ -257,17 +257,17 @@ class _ReportScreenState extends State<ReportScreen> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
+        color: context.colors.surface,
+        border: Border.all(color: context.colors.border),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Relatório de desempenho',
             style: TextStyle(
-              color: AppColors.text,
+              color: context.colors.text,
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
@@ -275,11 +275,11 @@ class _ReportScreenState extends State<ReportScreen> {
           const SizedBox(height: 2),
           Text(
             'EduTurmas · gerado em ${_todayLabel()}',
-            style: const TextStyle(color: AppColors.muted, fontSize: 10),
+            style: TextStyle(color: context.colors.muted, fontSize: 10),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1, color: AppColors.border),
+            child: Divider(height: 1, color: context.colors.border),
           ),
           _previewLine('Tipo', _tipo.label),
           _previewLine('Turma', _selectedClass.displayName),
@@ -289,19 +289,19 @@ class _ReportScreenState extends State<ReportScreen> {
           ),
           _previewLine('Acerto médio', '$average%'),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             'Provas incluídas',
             style: TextStyle(
-              color: AppColors.text,
+              color: context.colors.text,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 6),
           if (exams.isEmpty)
-            const Text(
+            Text(
               'Nenhuma prova corrigida para esta turma.',
-              style: TextStyle(color: AppColors.muted, fontSize: 11),
+              style: TextStyle(color: context.colors.muted, fontSize: 11),
             )
           else
             for (final exam in exams)
@@ -315,16 +315,16 @@ class _ReportScreenState extends State<ReportScreen> {
                         '• ${exam.assessmentTitle}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.text,
+                        style: TextStyle(
+                          color: context.colors.text,
                           fontSize: 11,
                         ),
                       ),
                     ),
                     Text(
                       '${exam.averageScore}% · mais errada ${exam.hardestQuestion}',
-                      style: const TextStyle(
-                        color: AppColors.muted,
+                      style: TextStyle(
+                        color: context.colors.muted,
                         fontSize: 10,
                       ),
                     ),
@@ -346,14 +346,14 @@ class _ReportScreenState extends State<ReportScreen> {
             width: 92,
             child: Text(
               label,
-              style: const TextStyle(color: AppColors.muted, fontSize: 11),
+              style: TextStyle(color: context.colors.muted, fontSize: 11),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                color: AppColors.text,
+              style: TextStyle(
+                color: context.colors.text,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -445,8 +445,8 @@ class _FieldLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(
         text,
-        style: const TextStyle(
-          color: AppColors.text,
+        style: TextStyle(
+          color: context.colors.text,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
