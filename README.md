@@ -18,13 +18,13 @@
 
 ## 👥 Equipe
 
-| Nome completo |
-|---|
-| Adrian Riegel |
+| Nome completo          |
+| ---------------------- |
+| Adrian Riegel          |
 | Emiliano Adamski Stack |
-| Kaue Keiser Lindner |
-| Matheus Machado |
-| Heitor Fugel |
+| Kaue Keiser Lindner    |
+| Matheus Machado        |
+| Heitor Fugel           |
 
 ## 📑 Sumário
 
@@ -55,28 +55,28 @@ A aplicação centraliza o cadastro de turmas, alunos e avaliações, além de a
 
 ### 2.1 Funcionais (RF)
 
-| Código | Requisito |
-|---|---|
-| RF01 | O sistema deve permitir que o professor realize cadastro, login e recuperação de senha. |
-| RF02 | O sistema deve permitir a criação, edição e listagem de turmas. |
-| RF03 | O sistema deve permitir o cadastro individual e a importação em massa de alunos. |
-| RF04 | O sistema deve permitir a criação de avaliações com título, disciplina, data e questões. |
-| RF05 | O sistema deve permitir a definição e edição do gabarito oficial da avaliação. |
-| RF06 | O sistema deve permitir a captura de imagens de provas e a correção automatizada por leitura OMR. |
-| RF07 | O sistema deve identificar respostas ambíguas ou em branco e abrir revisão manual antes de finalizar a nota. |
-| RF08 | O sistema deve calcular notas, estatísticas e gerar relatórios de desempenho. |
-| RF09 | O sistema deve permitir a visualização e atualização do perfil do professor. |
-| RF10 | O sistema deve atribuir nota zero para alunos ausentes ao encerrar a correção. |
+| Código | Requisito                                                                                                    |
+| ------ | ------------------------------------------------------------------------------------------------------------ |
+| RF01   | O sistema deve permitir que o professor realize cadastro, login e recuperação de senha.                      |
+| RF02   | O sistema deve permitir a criação, edição e listagem de turmas.                                              |
+| RF03   | O sistema deve permitir o cadastro individual e a importação em massa de alunos.                             |
+| RF04   | O sistema deve permitir a criação de avaliações com título, disciplina, data e questões.                     |
+| RF05   | O sistema deve permitir a definição e edição do gabarito oficial da avaliação.                               |
+| RF06   | O sistema deve permitir a captura de imagens de provas e a correção automatizada por leitura OMR.            |
+| RF07   | O sistema deve identificar respostas ambíguas ou em branco e abrir revisão manual antes de finalizar a nota. |
+| RF08   | O sistema deve calcular notas, estatísticas e gerar relatórios de desempenho.                                |
+| RF09   | O sistema deve permitir a visualização e atualização do perfil do professor.                                 |
+| RF10   | O sistema deve atribuir nota zero para alunos ausentes ao encerrar a correção.                               |
 
 ### 2.2 Não Funcionais (RNF)
 
-| Código | Requisito |
-|---|---|
-| RNF01 | O sistema deve responder de forma ágil em uma rede padrão, com carregamento de telas e consultas em tempo aceitável. |
-| RNF02 | Os dados do professor devem permanecer isolados por conta e por turma, respeitando o controle de acesso do Firebase. |
-| RNF03 | A autenticação deve ser protegida e manter sessão ativa no dispositivo para facilitar o uso diário. |
-| RNF04 | O app deve ser compatível com ambientes mobile Flutter e oferecer boa experiência em Android. |
-| RNF05 | A aplicação deve suportar importação de arquivos e dados em formatos comuns, como CSV, sem quebrar a rotina do professor. |
+| Código | Requisito                                                                                                                 |
+| ------ | ------------------------------------------------------------------------------------------------------------------------- |
+| RNF01  | O sistema deve responder de forma ágil em uma rede padrão, com carregamento de telas e consultas em tempo aceitável.      |
+| RNF02  | Os dados do professor devem permanecer isolados por conta e por turma, respeitando o controle de acesso do Firebase.      |
+| RNF03  | A autenticação deve ser protegida e manter sessão ativa no dispositivo para facilitar o uso diário.                       |
+| RNF04  | O app deve ser compatível com ambientes mobile Flutter e oferecer boa experiência em Android.                             |
+| RNF05  | A aplicação deve suportar importação de arquivos e dados em formatos comuns, como CSV, sem quebrar a rotina do professor. |
 
 ## 3. Telas do Sistema
 
@@ -85,46 +85,46 @@ A aplicação centraliza o cadastro de turmas, alunos e avaliações, além de a
 A sequência de telas abaixo representa o fluxo principal do uso do app: login, gestão de turmas, criação de avaliações e correção dos resultados.
 
 ![Tela de login](docs/screenshots/01_login.png)
-*Tela de login: autenticação do professor com e-mail e senha.*
+_Tela de login: autenticação do professor com e-mail e senha._
 
 ![Tela de cadastro](docs/screenshots/02_cadastro.png)
-*Tela de cadastro: criação da conta do professor e definição de dados básicos.*
+_Tela de cadastro: criação da conta do professor e definição de dados básicos._
 
 ![Tela de redefinição de senha](docs/screenshots/03_redefinir_senha.png)
-*Tela de redefinição de senha: recuperação do acesso ao sistema.*
+_Tela de redefinição de senha: recuperação do acesso ao sistema._
 
 ![Dashboard](docs/screenshots/04_dashboard.png)
-*Dashboard: visão geral das turmas e atividades do professor.*
+_Dashboard: visão geral das turmas e atividades do professor._
 
 ![Turmas](docs/screenshots/05_turmas.png)
-*Lista de turmas: cadastro e consulta das classes ativas.*
+_Lista de turmas: cadastro e consulta das classes ativas._
 
 ![Detalhe da turma](docs/screenshots/06_detalhe_turma.png)
-*Detalhe da turma: gestão de alunos e acompanhamento da turma.*
+_Detalhe da turma: gestão de alunos e acompanhamento da turma._
 
 ![Avaliações](docs/screenshots/07_avaliacoes.png)
-*Painel de avaliações: listagem das provas vinculadas a cada turma.*
+_Painel de avaliações: listagem das provas vinculadas a cada turma._
 
 ![Nova avaliação](docs/screenshots/08_nova_avaliacao.png)
-*Criação da avaliação: definição de título, disciplina e questões.*
+_Criação da avaliação: definição de título, disciplina e questões._
 
 ![Detalhe da avaliação](docs/screenshots/09_detalhe_avaliacao.png)
-*Detalhe da avaliação: visualização da prova e do status da correção.*
+_Detalhe da avaliação: visualização da prova e do status da correção._
 
 ![Gabarito](docs/screenshots/10_gabarito.png)
-*Configuração do gabarito: definição das respostas oficiais da prova.*
+_Configuração do gabarito: definição das respostas oficiais da prova._
 
 ![Correção OMR](docs/screenshots/11_correcao.png)
-*Correção OMR: processamento da imagem e revisão da avaliação.*
+_Correção OMR: processamento da imagem e revisão da avaliação._
 
 ![Estatísticas](docs/screenshots/12_estatisticas.png)
-*Estatísticas gerais: visão consolidada do desempenho por turma.*
+_Estatísticas gerais: visão consolidada do desempenho por turma._
 
 ![Estatísticas da prova](docs/screenshots/13_estatisticas_prova.png)
-*Estatísticas da prova: análise por questão e taxa de acerto.*
+_Estatísticas da prova: análise por questão e taxa de acerto._
 
 ![Relatório](docs/screenshots/14_relatorio.png)
-*Relatório: geração de dados de desempenho em formato visual.*
+_Relatório: geração de dados de desempenho em formato visual._
 
 ## 4. Modelo de Dados
 
@@ -147,16 +147,16 @@ O banco de dados da aplicação é o Firestore, que armazena documentos em cole�
 }
 ```
 
-| Campo | Tipo | Descrição |
-|---|---|---|
-| id | String | Identificador único do professor no Firebase Auth |
-| nome | String | Nome completo do professor |
-| email | String | E-mail utilizado para autenticação |
-| escola | String | Instituição de ensino do professor |
-| disciplinaPrincipal | String | Disciplina principal de atuação |
-| notificacoesEmail | Boolean | Preferência para envio de notificações |
-| ativo | Boolean | Status da conta do professor |
-| criadoEm | Timestamp | Data de criação do perfil |
+| Campo               | Tipo      | Descrição                                         |
+| ------------------- | --------- | ------------------------------------------------- |
+| id                  | String    | Identificador único do professor no Firebase Auth |
+| nome                | String    | Nome completo do professor                        |
+| email               | String    | E-mail utilizado para autenticação                |
+| escola              | String    | Instituição de ensino do professor                |
+| disciplinaPrincipal | String    | Disciplina principal de atuação                   |
+| notificacoesEmail   | Boolean   | Preferência para envio de notificações            |
+| ativo               | Boolean   | Status da conta do professor                      |
+| criadoEm            | Timestamp | Data de criação do perfil                         |
 
 ### Coleção: turmas
 
@@ -172,15 +172,15 @@ O banco de dados da aplicação é o Firestore, que armazena documentos em cole�
 }
 ```
 
-| Campo | Tipo | Descrição |
-|---|---|---|
-| id | String | Identificador único da turma |
-| professorId | String | UID do professor responsável |
-| descricao | String | Nome ou descrição da turma |
-| semestre | Number | Semestre letivo |
-| ano | Number | Ano letivo |
-| totalAlunos | Number | Quantidade total de alunos |
-| criadoEm | Timestamp | Data de criação da turma |
+| Campo       | Tipo      | Descrição                    |
+| ----------- | --------- | ---------------------------- |
+| id          | String    | Identificador único da turma |
+| professorId | String    | UID do professor responsável |
+| descricao   | String    | Nome ou descrição da turma   |
+| semestre    | Number    | Semestre letivo              |
+| ano         | Number    | Ano letivo                   |
+| totalAlunos | Number    | Quantidade total de alunos   |
+| criadoEm    | Timestamp | Data de criação da turma     |
 
 ### Coleção: alunos
 
@@ -195,14 +195,14 @@ O banco de dados da aplicação é o Firestore, que armazena documentos em cole�
 }
 ```
 
-| Campo | Tipo | Descrição |
-|---|---|---|
-| id | String | Identificador único do aluno |
-| professorId | String | UID do professor dono da turma |
-| turmaId | String | Referência para a turma do aluno |
-| nome | String | Nome do aluno |
-| matricula | String | Matrícula ou código de identificação |
-| criadoEm | Timestamp | Data de cadastro do aluno |
+| Campo       | Tipo      | Descrição                            |
+| ----------- | --------- | ------------------------------------ |
+| id          | String    | Identificador único do aluno         |
+| professorId | String    | UID do professor dono da turma       |
+| turmaId     | String    | Referência para a turma do aluno     |
+| nome        | String    | Nome do aluno                        |
+| matricula   | String    | Matrícula ou código de identificação |
+| criadoEm    | Timestamp | Data de cadastro do aluno            |
 
 ### Coleção: avaliacoes
 
@@ -224,18 +224,18 @@ O banco de dados da aplicação é o Firestore, que armazena documentos em cole�
 }
 ```
 
-| Campo | Tipo | Descrição |
-|---|---|---|
-| id | String | Identificador único da avaliação |
-| professorId | String | UID do professor responsável |
-| turmaId | String | Turma à qual a avaliação pertence |
-| titulo | String | Título da avaliação |
-| disciplina | String | Disciplina da prova |
-| status | String | Estado da avaliação (`rascunho`, `agendada`, `concluida`) |
-| dataAplicacao | Timestamp | Data prevista ou realizada |
-| totalQuestoes | Number | Quantidade total de questões |
-| gabarito | Array | Lista com as respostas corretas e pesos |
-| criadoEm | Timestamp | Data de criação |
+| Campo         | Tipo      | Descrição                                                 |
+| ------------- | --------- | --------------------------------------------------------- |
+| id            | String    | Identificador único da avaliação                          |
+| professorId   | String    | UID do professor responsável                              |
+| turmaId       | String    | Turma à qual a avaliação pertence                         |
+| titulo        | String    | Título da avaliação                                       |
+| disciplina    | String    | Disciplina da prova                                       |
+| status        | String    | Estado da avaliação (`rascunho`, `agendada`, `concluida`) |
+| dataAplicacao | Timestamp | Data prevista ou realizada                                |
+| totalQuestoes | Number    | Quantidade total de questões                              |
+| gabarito      | Array     | Lista com as respostas corretas e pesos                   |
+| criadoEm      | Timestamp | Data de criação                                           |
 
 ### Coleção: resultados
 
@@ -257,18 +257,18 @@ O banco de dados da aplicação é o Firestore, que armazena documentos em cole�
 }
 ```
 
-| Campo | Tipo | Descrição |
-|---|---|---|
-| id | String | Chave composta da correção: `avaliacaoId_alunoId` |
-| professorId | String | UID do professor responsável |
-| avaliacaoId | String | Identificador da prova corrigida |
-| turmaId | String | Turma da avaliação |
-| alunoId | String | Identificador do aluno avaliado |
-| respostasAluno | Array | Respostas marcadas pelo aluno e status de acerto |
-| totalAcertos | Number | Quantidade de acertos do aluno |
-| notaCalculada | Number | Nota final com base no peso das questões |
-| ausente | Boolean | Indicador de ausência na prova |
-| corrigidoEm | Timestamp | Data da correção |
+| Campo          | Tipo      | Descrição                                         |
+| -------------- | --------- | ------------------------------------------------- |
+| id             | String    | Chave composta da correção: `avaliacaoId_alunoId` |
+| professorId    | String    | UID do professor responsável                      |
+| avaliacaoId    | String    | Identificador da prova corrigida                  |
+| turmaId        | String    | Turma da avaliação                                |
+| alunoId        | String    | Identificador do aluno avaliado                   |
+| respostasAluno | Array     | Respostas marcadas pelo aluno e status de acerto  |
+| totalAcertos   | Number    | Quantidade de acertos do aluno                    |
+| notaCalculada  | Number    | Nota final com base no peso das questões          |
+| ausente        | Boolean   | Indicador de ausência na prova                    |
+| corrigidoEm    | Timestamp | Data da correção                                  |
 
 ## 5. Stack Tecnológica
 
@@ -323,12 +323,14 @@ analysis_options.yaml  # regras do linter
 📌 **N1**
 
 1. Clone o repositório:
+
    ```bash
    git clone https://github.com/AdrianRiegel/app_mobile.git
    cd app_mobile
    ```
 
 2. Instale as dependências do Flutter:
+
    ```bash
    flutter pub get
    ```
@@ -336,12 +338,15 @@ analysis_options.yaml  # regras do linter
 3. Configure o Firebase no projeto:
    - Verifique se o arquivo `firebase_options.dart` já existe.
    - Caso não exista, gere a configuração com o FlutterFire:
+
    ```bash
    flutterfire configure --project=<id-do-projeto> --platforms=android,ios,web
    ```
+
    - Confirme que os arquivos de configuração do Firebase estejam na estrutura correta do app.
 
 4. Execute a aplicação:
+
    ```bash
    flutter run
    ```
@@ -354,58 +359,52 @@ analysis_options.yaml  # regras do linter
 
 ### Adrian Riegel
 
-| Tarefa | Prazo | Status |
-|---|---|---|
-| Definição da estrutura do banco e das collections do Firestore | 15/09 | Concluído |
-| Integração com o Firebase e configuração inicial do backend | 18/09 | Concluído |
+| Tarefa                                                              | Prazo | Status    |
+| ------------------------------------------------------------------- | ----- | --------- |
+| Definição da estrutura do banco e das collections do Firestore      | 15/09 | Concluído |
+| Integração com o Firebase e configuração inicial do backend         | 18/09 | Concluído |
 | Desenvolvimento da funcionalidade de cadastro, login e autenticação | 22/09 | Concluído |
-| Implementação da página de perfil e configurações do professor | 25/09 | Concluído |
-| Desenvolvimento da leitura do cartão de resposta e pesquisa de OMR | 08/10 | Concluído |
-| Implementação da correção automática da prova e atribuição de nota | 10/10 | Concluído |
-| Finalização da correção para alunos ausentes e ajustes de fluxo | 12/10 | Concluído |
-| Reforço da navegação e refinamento das telas de avaliação | 15/10 | Concluído |
+| Implementação da página de perfil e configurações do professor      | 25/09 | Concluído |
+| Desenvolvimento da leitura do cartão de resposta e pesquisa de OMR  | 08/10 | Concluído |
+| Implementação da correção automática da prova e atribuição de nota  | 10/10 | Concluído |
+| Finalização da correção para alunos ausentes e ajustes de fluxo     | 12/10 | Concluído |
+| Reforço da navegação e refinamento das telas de avaliação           | 15/10 | Concluído |
 
 ### Emiliano Adamski Stack
 
-| Tarefa | Prazo | Status |
-|---|---|---|
-| Ajustes de build e configuração do projeto | 20/09 | Concluído |
-| Implementação do tema global do aplicativo | 27/09 | Concluído |
-| Componentização e refatoração das telas e módulos reutilizáveis | 30/09 | Concluído |
+| Tarefa                                                             | Prazo | Status    |
+| ------------------------------------------------------------------ | ----- | --------- |
+| Ajustes de build e configuração do projeto                         | 20/09 | Concluído |
+| Implementação do tema global do aplicativo                         | 27/09 | Concluído |
+| Componentização e refatoração das telas e módulos reutilizáveis    | 30/09 | Concluído |
 | Implementação do componente de importação CSV e integração inicial | 02/10 | Concluído |
-| Integração de comunicação com o banco e ajustes de arquitetura | 05/10 | Concluído |
-| Suporte na documentação e atualização do README | 10/10 | Concluído |
+| Integração de comunicação com o banco e ajustes de arquitetura     | 05/10 | Concluído |
+| Suporte na documentação e atualização do README                    | 10/10 | Concluído |
 
 ### Kaue Keiser Lindner
 
-| Tarefa | Prazo | Status |
-|---|---|---|
+| Tarefa                                                            | Prazo | Status    |
+| ----------------------------------------------------------------- | ----- | --------- |
 | Componentização do projeto e organização de widgets reutilizáveis | 25/09 | Concluído |
-| Desenvolvimento do componente de envio de e-mail | 30/09 | Concluído |
-| Auxílio na arquitetura de módulos e refatorações do projeto | 05/10 | Concluído |
-| Participação em ajustes de integração e estrutura do banco | 08/10 | Concluído |
+| Desenvolvimento do componente de envio de e-mail                  | 30/09 | Concluído |
+| Auxílio na arquitetura de módulos e refatorações do projeto       | 05/10 | Concluído |
+| Participação em ajustes de integração e estrutura do banco        | 08/10 | Concluído |
 
 ### Matheus Machado
 
-| Tarefa | Prazo | Status |
-|---|---|---|
+| Tarefa                                                          | Prazo | Status    |
+| --------------------------------------------------------------- | ----- | --------- |
 | Conclusão dos fluxos de turmas, autenticação e QR code da prova | 15/10 | Concluído |
-| Desenvolvimento do fluxo visual de avaliações e provas | 20/09 | Concluído |
-| Ajustes de navegação e integração dos dados entre telas | 04/10 | Concluído |
+| Desenvolvimento do fluxo visual de avaliações e provas          | 20/09 | Concluído |
+| Ajustes de navegação e integração dos dados entre telas         | 04/10 | Concluído |
 
 ### Heitor Fugel
 
-| Tarefa | Prazo | Status |
-|---|---|---|
-| Geração dos relatórios em PDF e estatísticas finais | 15/09 | Concluído |
+| Tarefa                                                     | Prazo | Status    |
+| ---------------------------------------------------------- | ----- | --------- |
+| Geração dos relatórios em PDF e estatísticas finais        | 15/09 | Concluído |
 | Implementação do botão de voltar nas telas de estatísticas | 20/09 | Concluído |
-| Testes de borda da correção e atribuição de notas | 25/09 | Concluído |
-| Ajustes de usabilidade em relatórios e correções | 30/09 | Concluído |
+| Testes de borda da correção e atribuição de notas          | 25/09 | Concluído |
+| Ajustes de usabilidade em relatórios e correções           | 30/09 | Concluído |
 
 ---
-
-<div align="center">
-
-*README elaborado com base no modelo da disciplina de Desenvolvimento de Dispositivos Móveis*
-
-</div>
