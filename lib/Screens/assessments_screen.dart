@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
-import '../data/mock_assessments.dart';
 import '../models/assessment.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 import 'assessment_detail_screen.dart';
 import 'correction_start_screen.dart';
 import 'new_assessment_screen.dart';
 
-enum _AssessmentViewState { content, empty, error }
+enum _AssessmentViewState { loading, content, empty, error }
 
 class AssessmentsScreen extends StatefulWidget {
   const AssessmentsScreen({super.key});
@@ -18,9 +18,33 @@ class AssessmentsScreen extends StatefulWidget {
 }
 
 class _AssessmentsScreenState extends State<AssessmentsScreen> {
-  final List<Assessment> _assessments = [...mockAssessments];
-  _AssessmentViewState _viewState = _AssessmentViewState.content;
+  final _repository = AvaliacaoRepository();
+  List<Assessment> _assessments = [];
+  _AssessmentViewState _viewState = _AssessmentViewState.loading;
   AssessmentStatus? _filter;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  Future<void> _carregar() async {
+    setState(() => _viewState = _AssessmentViewState.loading);
+    try {
+      final assessments = await _repository.listar();
+      if (!mounted) return;
+      setState(() {
+        _assessments = assessments;
+        _viewState = assessments.isEmpty
+            ? _AssessmentViewState.empty
+            : _AssessmentViewState.content;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _viewState = _AssessmentViewState.error);
+    }
+  }
 
   List<Assessment> get _filteredAssessments {
     if (_filter == null) return _assessments;
@@ -30,40 +54,13 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: StandardAppBar(
-        title: 'Avaliações',
-        actions: [
-          PopupMenuButton<_AssessmentViewState>(
-            tooltip: 'Demonstrar estados da tela',
-            icon: const Icon(
-              Icons.more_vert,
-              size: 20,
-              color: AppColors.muted,
-            ),
-            onSelected: (value) => setState(() => _viewState = value),
-            itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: _AssessmentViewState.content,
-                child: Text('Exibir avaliações'),
-              ),
-              PopupMenuItem(
-                value: _AssessmentViewState.empty,
-                child: Text('Simular estado vazio'),
-              ),
-              PopupMenuItem(
-                value: _AssessmentViewState.error,
-                child: Text('Simular erro'),
-              ),
-            ],
-          ),
-        ],
-      ),
+      backgroundColor: context.colors.background,
+      appBar: const StandardAppBar(title: 'Avaliações'),
       body: SafeArea(top: false, child: _buildBody()),
       floatingActionButton: _viewState == _AssessmentViewState.content
           ? FloatingActionButton.extended(
               onPressed: _createAssessment,
-              backgroundColor: AppColors.accent,
+              backgroundColor: context.colors.accent,
               foregroundColor: Colors.white,
               elevation: 3,
               icon: const Icon(Icons.add, size: 19),
@@ -78,6 +75,10 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
 
   Widget _buildBody() {
     switch (_viewState) {
+      case _AssessmentViewState.loading:
+        return Center(
+          child: CircularProgressIndicator(color: context.colors.accent),
+        );
       case _AssessmentViewState.empty:
         return _emptyState();
       case _AssessmentViewState.error:
@@ -104,17 +105,17 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Avaliações recentes',
               style: TextStyle(
-                color: AppColors.text,
+                color: context.colors.text,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             Text(
               '${items.length} ${items.length == 1 ? 'avaliação' : 'avaliações'}',
-              style: const TextStyle(color: AppColors.muted, fontSize: 10),
+              style: TextStyle(color: context.colors.muted, fontSize: 10),
             ),
           ],
         ),
@@ -125,11 +126,11 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
             children: [
               _filterChip('Todas', null),
               const SizedBox(width: 7),
-              _filterChip('Rascunhos', AssessmentStatus.draft),
+              _filterChip(AssessmentStatus.draft.pluralLabel, AssessmentStatus.draft),
               const SizedBox(width: 7),
-              _filterChip('Agendadas', AssessmentStatus.scheduled),
+              _filterChip(AssessmentStatus.scheduled.pluralLabel, AssessmentStatus.scheduled),
               const SizedBox(width: 7),
-              _filterChip('Concluídas', AssessmentStatus.completed),
+              _filterChip(AssessmentStatus.completed.pluralLabel, AssessmentStatus.completed),
             ],
           ),
         ),
@@ -165,20 +166,18 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: AppColors.accentLight,
+          color: context.colors.accentLight,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.description_outlined,
           size: 19,
-          color: AppColors.accent,
+          color: context.colors.accent,
         ),
       ),
       title: assessment.title,
-      titleTrailing: StatusBadge(
-        label: assessment.statusLabel,
-        background: assessment.status.badgeBackground,
-        foreground: assessment.status.badgeForeground,
+      titleTrailing: StatusBadge.assessment(
+        assessment.status,
         fontSize: 8,
       ),
       subtitle: Column(
@@ -186,22 +185,23 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
         children: [
           Text(
             '${assessment.className} · ${assessment.subject}',
-            style: const TextStyle(color: AppColors.muted, fontSize: 10),
+            style: TextStyle(color: context.colors.muted, fontSize: 10),
           ),
           const SizedBox(height: 3),
           Text(
             '${assessment.totalQuestions} questões · ${assessment.dateLabel}',
-            style: const TextStyle(color: AppColors.muted, fontSize: 9),
+            style: TextStyle(color: context.colors.muted, fontSize: 9),
           ),
         ],
       ),
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => AssessmentDetailScreen(assessment: assessment),
           ),
         );
+        _carregar();
       },
     );
   }
@@ -209,8 +209,8 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
   Widget _emptyState() {
     return EmptyStateView(
       icon: Icons.assignment_outlined,
-      iconBackground: AppColors.accentLight,
-      iconColor: AppColors.accent,
+      iconBackground: context.colors.accentLight,
+      iconColor: context.colors.accent,
       title: 'Nenhuma avaliação criada',
       message: 'Crie a primeira avaliação para configurar o gabarito e iniciar as correções.',
       action: PrimaryButton(
@@ -224,39 +224,17 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
     );
   }
 
-  Widget _errorState() {
-    return EmptyStateView(
-      icon: Icons.cloud_off_outlined,
-      iconBackground: AppColors.dangerLight,
-      iconColor: AppColors.danger,
-      iconSize: 32,
-      title: 'Não foi possível carregar',
-      message: 'Verifique sua conexão e tente novamente.',
-      action: SecondaryButton(
-        label: 'Tentar novamente',
-        icon: Icons.refresh,
-        fullWidth: false,
-        verticalPadding: 13,
-        horizontalPadding: 20,
-        onPressed: () {
-          setState(() => _viewState = _AssessmentViewState.content);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Avaliações carregadas')),
-          );
-        },
-      ),
-    );
-  }
+  Widget _errorState() => LoadErrorView(onRetry: _carregar);
 
   Widget _smallFilteredEmptyState() {
-    return const Column(
+    return Column(
       children: [
-        Icon(Icons.filter_alt_off_outlined, color: AppColors.muted, size: 30),
+        Icon(Icons.filter_alt_off_outlined, color: context.colors.muted, size: 30),
         SizedBox(height: 8),
         Text(
           'Nenhuma avaliação neste filtro',
           style: TextStyle(
-            color: AppColors.text,
+            color: context.colors.text,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
@@ -264,7 +242,7 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
         SizedBox(height: 3),
         Text(
           'Selecione outra categoria para continuar.',
-          style: TextStyle(color: AppColors.muted, fontSize: 10),
+          style: TextStyle(color: context.colors.muted, fontSize: 10),
         ),
       ],
     );
@@ -289,16 +267,16 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
     );
   }
 
-  void _startQuickCorrection() {
-    final selected = _assessments.firstWhere(
-      (item) => item.status == AssessmentStatus.scheduled,
-      orElse: () => _assessments.first,
-    );
-    Navigator.push(
+  Future<void> _startQuickCorrection() async {
+    final selected = _assessments
+        .where((item) => item.status == AssessmentStatus.scheduled)
+        .firstOrNull;
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => CorrectionStartScreen(assessment: selected),
       ),
     );
+    _carregar();
   }
 }

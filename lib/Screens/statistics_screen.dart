@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
-import '../data/mock_statistics.dart';
 import '../models/statistics.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 import 'classes_screen.dart';
 import 'exam_statistics_screen.dart';
 import 'report_screen.dart';
 
-enum _StatisticsViewState { content, empty, error }
+enum _StatisticsViewState { loading, content, empty, error }
 
 /// Tela 6 — Estatísticas gerais.
 ///
@@ -22,76 +22,66 @@ class StatisticsScreen extends StatefulWidget {
 }
 
 class _StatisticsScreenState extends State<StatisticsScreen> {
-  final List<ClassStatistics> _classes = mockClassStatistics;
-  _StatisticsViewState _viewState = _StatisticsViewState.content;
+  List<ClassStatistics> _classes = [];
+  _StatisticsViewState _viewState = _StatisticsViewState.loading;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  Future<void> _carregar() async {
+    setState(() => _viewState = _StatisticsViewState.loading);
+    try {
+      final classes = await EstatisticasRepository().porTurma();
+      if (!mounted) return;
+      setState(() {
+        _classes = classes;
+        _viewState = classes.every((turma) => turma.exams.isEmpty)
+            ? _StatisticsViewState.empty
+            : _StatisticsViewState.content;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _viewState = _StatisticsViewState.error);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Estatísticas',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.text,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Gerar relatório',
-                    onPressed: _openReport,
-                    icon: const Icon(
-                      Icons.picture_as_pdf_outlined,
-                      size: 20,
-                      color: AppColors.muted,
-                    ),
-                  ),
-                  PopupMenuButton<_StatisticsViewState>(
-                    tooltip: 'Demonstrar estados da tela',
-                    icon: const Icon(
-                      Icons.more_vert,
-                      size: 20,
-                      color: AppColors.muted,
-                    ),
-                    onSelected: (value) => setState(() => _viewState = value),
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(
-                        value: _StatisticsViewState.content,
-                        child: Text('Exibir estatísticas'),
-                      ),
-                      PopupMenuItem(
-                        value: _StatisticsViewState.empty,
-                        child: Text('Simular estado vazio'),
-                      ),
-                      PopupMenuItem(
-                        value: _StatisticsViewState.error,
-                        child: Text('Simular erro'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+      backgroundColor: context.colors.background,
+      appBar: StandardAppBar(
+        title: 'Estatísticas',
+        actions: [
+          IconButton(
+            tooltip: 'Gerar relatório',
+            onPressed: _openReport,
+            icon: Icon(
+              Icons.picture_as_pdf_outlined,
+              size: 20,
+              color: context.colors.muted,
             ),
-            const Divider(height: 1, color: AppColors.border),
-            Expanded(child: _buildBody()),
-          ],
-        ),
+          ),
+          IconButton(
+            tooltip: 'Atualizar',
+            onPressed: _carregar,
+            icon: Icon(Icons.refresh, size: 20, color: context.colors.muted),
+          ),
+        ],
       ),
+      body: SafeArea(top: false, child: _buildBody()),
       bottomNavigationBar: _bottomNav(),
     );
   }
 
   Widget _buildBody() {
     switch (_viewState) {
+      case _StatisticsViewState.loading:
+        return Center(
+          child: CircularProgressIndicator(color: context.colors.accent),
+        );
       case _StatisticsViewState.empty:
         return _emptyState();
       case _StatisticsViewState.error:
@@ -112,10 +102,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   Widget _classCard(ClassStatistics classStats, bool startsExpanded) {
     return Material(
-      color: AppColors.surface,
+      color: context.colors.surface,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: context.colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Theme(
@@ -125,12 +115,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           tilePadding: const EdgeInsets.symmetric(horizontal: 14),
           childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
-          iconColor: AppColors.muted,
-          collapsedIconColor: AppColors.muted,
+          iconColor: context.colors.muted,
+          collapsedIconColor: context.colors.muted,
           title: Text(
             classStats.displayName,
-            style: const TextStyle(
-              color: AppColors.text,
+            style: TextStyle(
+              color: context.colors.text,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
@@ -141,7 +131,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               classStats.exams.isEmpty
                   ? 'Sem provas corrigidas'
                   : '${classStats.exams.length} ${classStats.exams.length == 1 ? 'prova' : 'provas'} · média ${classStats.averageScore}%',
-              style: const TextStyle(color: AppColors.muted, fontSize: 10),
+              style: TextStyle(color: context.colors.muted, fontSize: 10),
             ),
           ),
           children: [
@@ -158,7 +148,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   Widget _examRow(ExamStatistics exam) {
     return Material(
-      color: AppColors.input,
+      color: context.colors.input,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -171,7 +161,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.colors.border),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -184,8 +174,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       exam.assessmentTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.text,
+                      style: TextStyle(
+                        color: context.colors.text,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -193,19 +183,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     const SizedBox(height: 3),
                     Text(
                       'Acerto médio: ${exam.averageScore}%',
-                      style: const TextStyle(
-                        color: AppColors.muted,
+                      style: TextStyle(
+                        color: context.colors.muted,
                         fontSize: 10,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppColors.muted,
-              ),
+              Icon(Icons.chevron_right, size: 18, color: context.colors.muted),
             ],
           ),
         ),
@@ -214,38 +200,17 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   Widget _emptyState() {
-    return const EmptyStateView(
+    return EmptyStateView(
       icon: Icons.bar_chart,
-      iconBackground: AppColors.accentLight,
-      iconColor: AppColors.accent,
+      iconBackground: context.colors.accentLight,
+      iconColor: context.colors.accent,
       title: 'Ainda não há estatísticas',
-      message: 'Corrija ao menos uma prova para acompanhar o desempenho das turmas.',
+      message:
+          'Corrija ao menos uma prova para acompanhar o desempenho das turmas.',
     );
   }
 
-  Widget _errorState() {
-    return EmptyStateView(
-      icon: Icons.cloud_off_outlined,
-      iconBackground: AppColors.dangerLight,
-      iconColor: AppColors.danger,
-      iconSize: 32,
-      title: 'Não foi possível carregar',
-      message: 'Verifique sua conexão e tente novamente.',
-      action: SecondaryButton(
-        label: 'Tentar novamente',
-        icon: Icons.refresh,
-        fullWidth: false,
-        verticalPadding: 13,
-        horizontalPadding: 20,
-        onPressed: () {
-          setState(() => _viewState = _StatisticsViewState.content);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Estatísticas carregadas')),
-          );
-        },
-      ),
-    );
-  }
+  Widget _errorState() => LoadErrorView(onRetry: _carregar);
 
   void _openReport() {
     Navigator.push(

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
+import '../components/inputs/csv_file_picker.dart';
 import '../models/assessment.dart';
+import '../services/csv_import_service.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 
 class AnswerKeyScreen extends StatefulWidget {
@@ -14,38 +17,210 @@ class AnswerKeyScreen extends StatefulWidget {
 }
 
 class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
-  static const _options = ['A', 'B', 'C', 'D', 'E'];
-  late final List<String> _answers;
+  final List<String> _options = const ['A', 'B', 'C', 'D', 'E'];
+  late final List<String?> _answers = [
+    for (final questao in widget.assessment.gabarito)
+      questao.alternativaCorreta,
+  ];
+  bool _salvando = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _answers = List.generate(
-      widget.assessment.totalQuestions,
-      (index) => _options[index % _options.length],
+  Future<void> _salvar() async {
+    if (_answers.contains(null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Marque a alternativa correta de todas as questões'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _salvando = true);
+    try {
+      final atualizada = await AvaliacaoRepository().salvarGabarito(
+        widget.assessment,
+        _answers.cast<String>(),
+      );
+      if (!mounted) return;
+      Navigator.pop(context, atualizada);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _salvando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível salvar o gabarito')),
+      );
+    }
+  }
+
+  void _openImportarGabaritoCsv() {
+    final controller = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.colors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 4, bottom: 12),
+                  decoration: BoxDecoration(
+                    color: context.colors.border,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              Text(
+                'Importar Gabarito via Planilha (CSV)',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: context.colors.text,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Selecione um arquivo .csv ou cole as linhas com "questao" e "resposta" (ex.: 1;A ou questao,resposta):',
+                style: TextStyle(fontSize: 12, color: context.colors.muted),
+              ),
+              const SizedBox(height: 10),
+              CsvFilePicker(
+                hint: 'Formato: questao;resposta',
+                onChanged: (file) => controller.text = file?.content ?? '',
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: controller,
+                maxLines: 5,
+                style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+                decoration: InputDecoration(
+                  hintText: "questao,resposta\n1,A\n2,B\n3,C\n4,D",
+                  hintStyle: TextStyle(
+                    color: context.colors.muted,
+                    fontSize: 11,
+                  ),
+                  filled: true,
+                  fillColor: context.colors.input,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: context.colors.border),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              PrimaryButton(
+                label: 'Aplicar ao Gabarito',
+                verticalPadding: 13,
+                fontSize: 13,
+                onPressed: () {
+                  final text = controller.text.trim();
+                  if (text.isEmpty) return;
+
+                  final resultado = CsvImportService.parseQuestions(text);
+                  Navigator.pop(sheetContext);
+
+                  if (!resultado.temQuestoes) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          resultado.erros.isNotEmpty
+                              ? resultado.erros.first
+                              : 'Nenhuma questão identificada no CSV',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+
+                  var aplicadas = 0;
+                  setState(() {
+                    for (final q in resultado.questoes) {
+                      final idx = q.questao - 1;
+                      if (idx >= 0 &&
+                          idx < _answers.length &&
+                          q.alternativaCorreta != null) {
+                        _answers[idx] = q.alternativaCorreta;
+                        aplicadas++;
+                      }
+                    }
+                  });
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '$aplicadas alternativas preenchidas via CSV!'
+                        '${resultado.erros.isNotEmpty ? ' (${resultado.erros.length} erros ignorados)' : ''}',
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(sheetContext),
+                  child: Text(
+                    'Cancelar',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: context.colors.accent,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: const StandardAppBar(title: 'Configurar gabarito'),
+      backgroundColor: context.colors.background,
+      appBar: StandardAppBar(
+        title: 'Configurar gabarito',
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.file_upload_outlined,
+              size: 20,
+              color: context.colors.accent,
+            ),
+            tooltip: 'Importar gabarito via CSV',
+            onPressed: _openImportarGabaritoCsv,
+          ),
+        ],
+      ),
       body: SafeArea(
         top: false,
         child: Column(
           children: [
             Container(
               width: double.infinity,
-              color: AppColors.surface,
+              color: context.colors.surface,
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     widget.assessment.title,
-                    style: const TextStyle(
-                      color: AppColors.text,
+                    style: TextStyle(
+                      color: context.colors.text,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -53,8 +228,8 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
                   const SizedBox(height: 3),
                   Text(
                     '${widget.assessment.className} · ${widget.assessment.totalQuestions} questões',
-                    style: const TextStyle(
-                      color: AppColors.muted,
+                    style: TextStyle(
+                      color: context.colors.muted,
                       fontSize: 11,
                     ),
                   ),
@@ -64,23 +239,30 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
-                itemCount: widget.assessment.totalQuestions,
+                itemCount: _answers.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, index) => _questionRow(index),
               ),
             ),
-            Container(
-              color: AppColors.surface,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: PrimaryButton(
-                label: 'Salvar gabarito',
-                icon: Icons.check,
-                verticalPadding: 14,
-                fontSize: 13,
-                onPressed: () => Navigator.pop(context, true),
-              ),
-            ),
           ],
+        ),
+      ),
+      // Como bottomNavigationBar, os SnackBars aparecem acima do botão em vez
+      // de cobri-lo.
+      bottomNavigationBar: Container(
+        color: context.colors.surface,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: PrimaryButton(
+              label: _salvando ? 'Salvando...' : 'Salvar gabarito',
+              icon: Icons.check,
+              verticalPadding: 14,
+              fontSize: 13,
+              onPressed: _salvando ? null : _salvar,
+            ),
+          ),
         ),
       ),
     );
@@ -90,8 +272,8 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
+        color: context.colors.surface,
+        border: Border.all(color: context.colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -100,8 +282,8 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
             width: 30,
             child: Text(
               '${index + 1}.',
-              style: const TextStyle(
-                color: AppColors.text,
+              style: TextStyle(
+                color: context.colors.text,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -121,14 +303,14 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: selected
-                          ? AppColors.accent
-                          : AppColors.accentLight,
+                          ? context.colors.accent
+                          : context.colors.accentLight,
                       shape: BoxShape.circle,
                     ),
                     child: Text(
                       option,
                       style: TextStyle(
-                        color: selected ? Colors.white : AppColors.accent,
+                        color: selected ? Colors.white : context.colors.accent,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),

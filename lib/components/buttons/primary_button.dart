@@ -25,9 +25,9 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = ElevatedButton.styleFrom(
-      backgroundColor: AppColors.accent,
+      backgroundColor: context.colors.accent,
       foregroundColor: Colors.white,
-      disabledBackgroundColor: AppColors.accentLight,
+      disabledBackgroundColor: context.colors.accentLight,
       elevation: 0,
       padding: horizontalPadding == null
           ? EdgeInsets.symmetric(vertical: verticalPadding)

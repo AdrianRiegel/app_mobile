@@ -1,7 +1,7 @@
 /// Modelos de dados usados nas telas de Estatísticas e Relatórios.
 ///
-/// Assim como o restante da primeira entrega, os valores são simulados
-/// (ver [../data/mock_statistics.dart]). Nenhuma informação vem de backend.
+/// Os valores são calculados a partir dos resultados salvos no Firestore
+/// (ver `services/database/estatisticas_repository.dart`).
 library;
 
 /// Percentual de acertos de uma questão específica de uma prova.
@@ -19,6 +19,7 @@ class QuestionStat {
 /// Estatísticas consolidadas de uma prova/avaliação.
 class ExamStatistics {
   const ExamStatistics({
+    this.assessmentId = '',
     required this.assessmentTitle,
     required this.shortLabel,
     required this.className,
@@ -29,7 +30,7 @@ class ExamStatistics {
   });
 
   /// Cria estatísticas simuladas a partir dos dados de uma avaliação,
-  /// para quando não há um registro fixo em [mockClassStatistics].
+  /// usadas nos testes de interface.
   factory ExamStatistics.demo({
     required String assessmentTitle,
     required String shortLabel,
@@ -43,16 +44,41 @@ class ExamStatistics {
       final rate = 45 + ((number * 37 + seed * 13) % 55); // 45..99
       return QuestionStat(number: number, correctRate: rate);
     });
+    return ExamStatistics.fromQuestions(
+      assessmentTitle: assessmentTitle,
+      shortLabel: shortLabel,
+      className: className,
+      subject: subject,
+      questions: questions,
+    );
+  }
+
+  /// Calcula a média e a questão mais errada a partir do desempenho por
+  /// questão.
+  factory ExamStatistics.fromQuestions({
+    String assessmentId = '',
+    required String assessmentTitle,
+    required String shortLabel,
+    required String className,
+    required String subject,
+    required List<QuestionStat> questions,
+  }) {
     return ExamStatistics(
+      assessmentId: assessmentId,
       assessmentTitle: assessmentTitle,
       shortLabel: shortLabel,
       className: className,
       subject: subject,
       averageScore: _average(questions),
-      hardestQuestion: 'Q${_hardest(questions).number}',
+      hardestQuestion: questions.isEmpty
+          ? '-'
+          : 'Q${_hardest(questions).number}',
       questions: questions,
     );
   }
+
+  /// Id da avaliação no banco; vazio nas estatísticas de demonstração.
+  final String assessmentId;
 
   /// Título completo da avaliação (ex.: `Avaliação bimestral — Cap. 4`).
   final String assessmentTitle;
@@ -82,26 +108,28 @@ class ExamStatistics {
   }
 
   static QuestionStat _hardest(List<QuestionStat> questions) {
-    return questions.reduce(
-      (a, b) => a.correctRate <= b.correctRate ? a : b,
-    );
+    return questions.reduce((a, b) => a.correctRate <= b.correctRate ? a : b);
   }
 }
 
 /// Agrupa as provas de uma mesma turma para a tela de estatísticas gerais.
 class ClassStatistics {
   const ClassStatistics({
+    this.turmaId = '',
     required this.className,
     required this.subject,
     required this.exams,
   });
 
+  /// Id da turma no banco; vazio nas estatísticas de demonstração.
+  final String turmaId;
   final String className;
   final String subject;
   final List<ExamStatistics> exams;
 
   /// Nome exibido na lista (ex.: `3º Ano A - Matemática`).
-  String get displayName => '$className - $subject';
+  String get displayName =>
+      subject.isEmpty ? className : '$className - $subject';
 
   /// Média de acerto da turma considerando todas as provas cadastradas.
   int get averageScore {

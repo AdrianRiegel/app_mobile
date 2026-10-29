@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
+import '../models/turma.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 import 'assessments_screen.dart';
 import 'class_detail_screen.dart';
@@ -13,58 +15,65 @@ class ClassesScreen extends StatefulWidget {
 }
 
 class _ClassesScreenState extends State<ClassesScreen> {
-  final Color cardColor = Colors.white;
-  final Color borderColor = AppColors.border;
-  final Color textColor = AppColors.text;
-  final Color mutedColor = AppColors.muted;
-  final Color accentColor = AppColors.accent;
-  final Color accentLightColor = AppColors.accentLight;
-  final Color inputBgColor = const Color(0xFFFAFAFB);
+  static const _turmasPorPagina = 8;
+
+  final _repository = TurmaRepository();
   int _selectedIndex = 1;
   int _currentPage = 1;
-  static const int _pageSize = 5;
-  final TextEditingController _searchController = TextEditingController();
+  String _busca = '';
 
-  final List<_Turma> _turmas = [
-    _Turma('turma-3a', '3º Ano A - Matemática', '2026', '1º semestre', 28, false),
-    _Turma('turma-2b', '2º Ano B - Física', '2026', '1º semestre', 24, true),
-    _Turma('turma-1c', '1º Ano C - Química', '2026', '1º semestre', 31, false),
-    _Turma('turma-8a', '8º Ano A - Ciências', '2026', '1º semestre', 26, false),
-    _Turma('turma-9b', '9º Ano B - História', '2026', '1º semestre', 22, false),
-    _Turma('turma-7c', '7º Ano C - Geografia', '2026', '1º semestre', 25, false),
-    _Turma('turma-2a', '2º Ano A - Física', '2026', '2º semestre', 27, false),
-    _Turma('turma-3b', '3º Ano B - Matemática', '2026', '2º semestre', 29, false),
-    _Turma('turma-1a', '1º Ano A - Química', '2026', '2º semestre', 30, false),
-    _Turma('turma-6a', '6º Ano A - Ciências', '2026', '2º semestre', 21, false),
-    _Turma('turma-5b', '5º Ano B - Português', '2026', '2º semestre', 23, false),
-    _Turma('turma-4c', '4º Ano C - Matemática', '2026', '2º semestre', 20, false),
-  ];
+  List<Turma> _turmas = [];
+  bool _carregando = true;
+  bool _erro = false;
 
-  List<_Turma> get _filteredClasses {
-    final query = _searchController.text.trim().toLowerCase();
-    if (query.isEmpty) return _turmas;
+  List<Turma> get _turmasFiltradas {
+    final termo = _busca.trim().toLowerCase();
+    if (termo.isEmpty) return _turmas;
     return _turmas
-        .where((turma) => turma.titulo.toLowerCase().contains(query))
+        .where((turma) => turma.descricao.toLowerCase().contains(termo))
         .toList();
   }
 
-  int get _totalPages => (_filteredClasses.length / _pageSize).ceil().clamp(1, 999999).toInt();
+  int get _totalPages =>
+      (_turmasFiltradas.length / _turmasPorPagina).ceil().clamp(1, 999);
 
-  List<_Turma> get _visibleClasses {
-    final start = (_currentPage - 1) * _pageSize;
-    return _filteredClasses.skip(start).take(_pageSize).toList();
-  }
+  List<Turma> get _turmasDaPagina => _turmasFiltradas
+      .skip((_currentPage - 1) * _turmasPorPagina)
+      .take(_turmasPorPagina)
+      .toList();
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  Future<void> _carregar() async {
+    setState(() {
+      _carregando = true;
+      _erro = false;
+    });
+    try {
+      final turmas = await _repository.listar();
+      if (!mounted) return;
+      setState(() {
+        _turmas = turmas;
+        _currentPage = _currentPage.clamp(1, _totalPages);
+        _carregando = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _erro = true;
+        _carregando = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       floatingActionButtonLocation: const CustomMiniEndFloatLocation(),
       body: SafeArea(
         child: Column(
@@ -73,18 +82,12 @@ class _ClassesScreenState extends State<ClassesScreen> {
               padding: EdgeInsets.fromLTRB(16, 16, 16, 10),
               child: Row(
                 children: [
-                  IconButton(
-                    tooltip: 'Voltar',
-                    onPressed: () => Navigator.maybePop(context),
-                    icon: Icon(Icons.arrow_back, size: 20, color: AppColors.text),
-                    visualDensity: VisualDensity.compact,
-                  ),
                   Text(
                     'Turmas',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.text,
+                      color: context.colors.text,
                     ),
                   ),
                 ],
@@ -95,66 +98,15 @@ class _ClassesScreenState extends State<ClassesScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: Column(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: inputBgColor,
-                        border: Border.all(color: borderColor),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.search, size: 18, color: mutedColor),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              onChanged: (_) => setState(() => _currentPage = 1),
-                              style: TextStyle(fontSize: 13, color: textColor),
-                              decoration: InputDecoration(
-                                isDense: true,
-                                border: InputBorder.none,
-                                hintText: 'Buscar turma por nome',
-                                hintStyle: TextStyle(
-                                  fontSize: 13,
-                                  color: mutedColor,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    SearchField(
+                      hintText: 'Buscar turma por nome',
+                      onChanged: (value) => setState(() {
+                        _busca = value;
+                        _currentPage = 1;
+                      }),
                     ),
                     const SizedBox(height: 12),
-                    Expanded(
-                      child: GestureDetector(
-                        onHorizontalDragEnd: (details) {
-                          final velocity = details.primaryVelocity ?? 0;
-                          if (velocity < -250 && _currentPage < _totalPages) {
-                            setState(() => _currentPage++);
-                          } else if (velocity > 250 && _currentPage > 1) {
-                            setState(() => _currentPage--);
-                          }
-                        },
-                        child: _visibleClasses.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'Nenhuma turma encontrada',
-                                  style: TextStyle(color: mutedColor),
-                                ),
-                              )
-                            : ListView.separated(
-                                padding: EdgeInsets.zero,
-                                itemCount: _visibleClasses.length,
-                                separatorBuilder: (_, _) => const SizedBox(height: 8),
-                                itemBuilder: (context, index) =>
-                                    _buildTurmaItem(_visibleClasses[index]),
-                              ),
-                      ),
-                    ),
+                    Expanded(child: _buildLista()),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -166,7 +118,10 @@ class _ClassesScreenState extends State<ClassesScreen> {
                         ),
                         Text(
                           'Página $_currentPage de $_totalPages',
-                          style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: context.colors.muted,
+                          ),
                         ),
                         _pageButton(
                           'Próxima ›',
@@ -183,8 +138,8 @@ class _ClassesScreenState extends State<ClassesScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _openNovaTurmaSheet,
-        backgroundColor: AppColors.accent,
+        onPressed: () => _openNovaTurmaSheet(),
+        backgroundColor: context.colors.accent,
         elevation: 6,
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -220,89 +175,81 @@ class _ClassesScreenState extends State<ClassesScreen> {
     );
   }
 
-  Widget _buildTurmaItem(_Turma turma) {
-    return Material(
-      color: cardColor,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ClassDetailScreen(
-                titulo: turma.titulo,
-                classId: turma.id,
-                initialStudentCount: turma.studentCount,
-              ),
-            ),
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-          decoration: BoxDecoration(
-            border: Border.all(color: borderColor),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: accentLightColor,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Icon(Icons.people_outline, size: 18, color: accentColor),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      turma.titulo,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      turma.subtitulo,
-                      style: TextStyle(fontSize: 11, color: mutedColor),
-                    ),
-                  ],
-                ),
-              ),
-              PopupMenuButton<String>(
-                tooltip: 'Ações da turma',
-                onSelected: (action) {
-                  if (action == 'edit') _openEditClassSheet(turma);
-                  if (action == 'delete') _deleteClass(turma);
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Text('Editar turma'),
-                  ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    enabled: !turma.hasAppliedAssessments,
-                    child: Text(
-                      turma.hasAppliedAssessments
-                          ? 'Excluir (há provas aplicadas)'
-                          : 'Excluir turma',
-                    ),
-                  ),
-                ],
-                child: Icon(Icons.more_vert, size: 18, color: mutedColor),
-              ),
-            ],
-          ),
+  Widget _buildLista() {
+    if (_carregando) {
+      return Center(
+        child: CircularProgressIndicator(color: context.colors.accent),
+      );
+    }
+    if (_erro) {
+      return LoadErrorView(onRetry: _carregar);
+    }
+    final turmas = _turmasDaPagina;
+    if (turmas.isEmpty) {
+      return EmptyStateView(
+        icon: Icons.people_outline,
+        iconBackground: context.colors.accentLight,
+        iconColor: context.colors.accent,
+        title: _turmas.isEmpty
+            ? 'Nenhuma turma cadastrada'
+            : 'Nenhuma turma encontrada',
+        message: _turmas.isEmpty
+            ? 'Toque em + para criar a primeira turma.'
+            : 'Tente buscar por outro nome.',
+      );
+    }
+    return ListView.separated(
+      padding: EdgeInsets.zero,
+      itemCount: turmas.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      itemBuilder: (context, index) => _buildTurmaItem(turmas[index]),
+    );
+  }
+
+  Widget _buildTurmaItem(Turma turma) {
+    return AppListItemCard(
+      leading: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: context.colors.accentLight,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Icon(
+          Icons.people_outline,
+          size: 18,
+          color: context.colors.accent,
         ),
       ),
+      title: turma.descricao,
+      trailing: PopupMenuButton<String>(
+        tooltip: 'Ações da turma',
+        onSelected: (value) {
+          if (value == 'editar') {
+            _openNovaTurmaSheet(turma: turma);
+          } else {
+            _excluirTurma(turma);
+          }
+        },
+        itemBuilder: (_) => const [
+          PopupMenuItem(value: 'editar', child: Text('Editar turma')),
+          PopupMenuItem(value: 'excluir', child: Text('Excluir turma')),
+        ],
+      ),
+      subtitle: Text(
+        turma.resumo,
+        style: TextStyle(fontSize: 11, color: context.colors.muted),
+      ),
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ClassDetailScreen(turma: turma),
+          ),
+        );
+        // O total de alunos pode ter mudado dentro da turma.
+        _carregar();
+      },
     );
   }
 
@@ -318,80 +265,94 @@ class _ClassesScreenState extends State<ClassesScreen> {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w500,
-          color: enabled ? AppColors.accent : AppColors.muted.withValues(alpha: 0.4),
+          color: enabled
+              ? context.colors.accent
+              : context.colors.muted.withValues(alpha: 0.4),
         ),
       ),
     );
   }
 
-  void _openNovaTurmaSheet() {
-    _openClassSheet();
+  Future<void> _excluirTurma(Turma turma) async {
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir turma'),
+        content: Text(
+          'Excluir "${turma.descricao}" e seus alunos e rascunhos? Turmas com provas aplicadas não podem ser excluídas.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou != true || !mounted) return;
+    try {
+      await _repository.excluir(turma.id);
+      if (!mounted) return;
+      _carregar();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is TurmaComProvaAplicadaException
+                ? error.toString()
+                : 'Não foi possível excluir a turma',
+          ),
+        ),
+      );
+    }
   }
 
-  void _openEditClassSheet(_Turma turma) {
-    _openClassSheet(turma: turma);
-  }
-
-  void _openClassSheet({_Turma? turma}) {
+  void _openNovaTurmaSheet({Turma? turma}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => _NovaTurmaSheet(
-        initialClass: turma,
-        onSave: (descricao, ano, semestre) {
+        turma: turma,
+        onCreate: (descricao, semestre, ano) async {
+          final messenger = ScaffoldMessenger.of(context);
           Navigator.pop(sheetContext);
-          setState(() {
+          try {
             if (turma == null) {
-              _turmas.add(
-                _Turma(
-                  'turma-${DateTime.now().microsecondsSinceEpoch}',
-                  descricao,
-                  ano,
-                  semestre,
-                  0,
-                  false,
-                ),
+              await _repository.criar(
+                descricao: descricao,
+                semestre: semestre,
+                ano: ano,
               );
-              _currentPage = _totalPages;
             } else {
-              turma.titulo = descricao;
-              turma.ano = ano;
-              turma.semestre = semestre;
+              await _repository.editar(
+                id: turma.id,
+                descricao: descricao,
+                semestre: semestre,
+                ano: ano,
+              );
             }
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                turma == null ? 'Turma "$descricao" criada' : 'Turma atualizada',
+            if (!mounted) return;
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Turma "$descricao" ${turma == null ? "criada" : "atualizada"}',
+                ),
               ),
-            ),
-          );
+            );
+            _carregar();
+          } catch (_) {
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Não foi possível criar a turma')),
+            );
+          }
         },
       ),
-    );
-  }
-
-  Future<void> _deleteClass(_Turma turma) async {
-    if (turma.hasAppliedAssessments) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Excluir turma?'),
-        content: Text('A turma "${turma.titulo}" será removida desta demonstração.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Excluir')),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted || turma.hasAppliedAssessments) return;
-    setState(() {
-      _turmas.remove(turma);
-      if (_currentPage > _totalPages) _currentPage = _totalPages;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Turma "${turma.titulo}" excluída')),
     );
   }
 }
@@ -414,49 +375,36 @@ class CustomMiniEndFloatLocation extends FloatingActionButtonLocation {
   }
 }
 
-class _Turma {
-  _Turma(
-    this.id,
-    this.titulo,
-    this.ano,
-    this.semestre,
-    this.studentCount,
-    this.hasAppliedAssessments,
-  );
-
-  final String id;
-  String titulo;
-  String ano;
-  String semestre;
-  int studentCount;
-  final bool hasAppliedAssessments;
-
-  String get subtitulo => '$ano · $semestre · $studentCount alunos';
-}
-
 class _NovaTurmaSheet extends StatefulWidget {
-  const _NovaTurmaSheet({
-    this.initialClass,
-    required this.onSave,
-  });
+  const _NovaTurmaSheet({required this.onCreate, this.turma});
 
-  final _Turma? initialClass;
-  final void Function(String descricao, String ano, String semestre) onSave;
+  final Turma? turma;
+
+  final void Function(String descricao, int semestre, int ano) onCreate;
 
   @override
   State<_NovaTurmaSheet> createState() => _NovaTurmaSheetState();
 }
 
 class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
-  late final TextEditingController _descricaoController = TextEditingController(
-    text: widget.initialClass?.titulo,
+  final TextEditingController _descricaoController = TextEditingController();
+  final TextEditingController _semestreController = TextEditingController(
+    text: '1º semestre',
   );
-  late final TextEditingController _semestreController = TextEditingController(
-    text: widget.initialClass?.semestre ?? '1º semestre',
+  final TextEditingController _anoController = TextEditingController(
+    text: '${DateTime.now().year}',
   );
-  late final TextEditingController _anoController = TextEditingController(
-    text: widget.initialClass?.ano ?? '2026',
-  );
+
+  @override
+  void initState() {
+    super.initState();
+    final turma = widget.turma;
+    if (turma != null) {
+      _descricaoController.text = turma.descricao;
+      _semestreController.text = '${turma.semestre}º semestre';
+      _anoController.text = '${turma.ano}';
+    }
+  }
 
   @override
   void dispose() {
@@ -466,6 +414,32 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
     super.dispose();
   }
 
+  void _criar() {
+    final descricao = _descricaoController.text.trim();
+    // Aceita "1º semestre", "1" etc.: usa apenas os dígitos.
+    final semestre = int.tryParse(
+      _semestreController.text.replaceAll(RegExp(r'\D'), ''),
+    );
+    final ano = int.tryParse(_anoController.text.trim());
+
+    final String? erro;
+    if (descricao.isEmpty) {
+      erro = 'Informe a descrição da turma';
+    } else if (semestre == null || semestre < 1 || semestre > 2) {
+      erro = 'Informe o semestre (1 ou 2)';
+    } else if (ano == null || ano < 2000 || ano > 2100) {
+      erro = 'Informe um ano válido';
+    } else {
+      erro = null;
+    }
+
+    if (erro != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(erro)));
+      return;
+    }
+    widget.onCreate(descricao, semestre!, ano!);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -473,8 +447,8 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: context.colors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
@@ -488,17 +462,17 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(top: 4, bottom: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: context.colors.border,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
             Text(
-              widget.initialClass == null ? 'Nova turma' : 'Editar turma',
+              widget.turma == null ? 'Nova turma' : 'Editar turma',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppColors.text,
+                color: context.colors.text,
               ),
             ),
             const SizedBox(height: 14),
@@ -523,36 +497,21 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
             ),
             const SizedBox(height: 18),
             PrimaryButton(
-              label: widget.initialClass == null
-                  ? 'Criar turma'
-                  : 'Salvar alterações',
+              label: widget.turma == null ? 'Criar turma' : 'Salvar alterações',
               verticalPadding: 14,
               fontSize: 13,
-              onPressed: () {
-                final descricao = _descricaoController.text.trim();
-                final ano = _anoController.text.trim();
-                final semestre = _semestreController.text.trim();
-                if (descricao.isEmpty || ano.isEmpty || semestre.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Preencha descrição, semestre e ano'),
-                    ),
-                  );
-                  return;
-                }
-                widget.onSave(descricao, ano, semestre);
-              },
+              onPressed: _criar,
             ),
             const SizedBox(height: 10),
             Center(
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: const Text(
+                child: Text(
                   'Cancelar',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.accent,
+                    color: context.colors.accent,
                   ),
                 ),
               ),

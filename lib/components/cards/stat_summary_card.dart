@@ -23,19 +23,19 @@ class StatSummaryCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: showBorder ? Border.all(color: AppColors.border) : null,
+        color: context.colors.surface,
+        border: showBorder ? Border.all(color: context.colors.border) : null,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 11)),
+          Text(label, style: TextStyle(color: context.colors.muted, fontSize: 11)),
           const SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
-              color: AppColors.text,
+              color: context.colors.text,
               fontSize: valueFontSize,
               fontWeight: FontWeight.w700,
             ),

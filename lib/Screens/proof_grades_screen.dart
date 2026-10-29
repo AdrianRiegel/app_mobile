@@ -1,81 +1,139 @@
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
+import '../models/aluno.dart';
+import '../models/assessment.dart';
+import '../models/resultado.dart';
+import '../models/usuario.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 
-class ProofGradesScreen extends StatelessWidget {
-  const ProofGradesScreen({
-    super.key,
-    required this.proofTitle,
-    required this.className,
-  });
+class ProofGradesScreen extends StatefulWidget {
+  const ProofGradesScreen({super.key, required this.assessment});
 
-  final String proofTitle;
-  final String className;
+  final Assessment assessment;
+
+  @override
+  State<ProofGradesScreen> createState() => _ProofGradesScreenState();
+}
+
+class _ProofGradesScreenState extends State<ProofGradesScreen> {
+  List<(Aluno, Resultado)> _notas = [];
+  bool _carregando = true;
+  bool _erro = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  Future<void> _carregar() async {
+    setState(() {
+      _carregando = true;
+      _erro = false;
+    });
+    try {
+      final (alunos, resultados) = await (
+        AlunoRepository().listarPorTurma(widget.assessment.turmaId),
+        ResultadoRepository().listarPorAvaliacao(widget.assessment.id),
+      ).wait;
+      final resultadoPorAluno = {
+        for (final resultado in resultados) resultado.alunoId: resultado,
+      };
+      if (!mounted) return;
+      setState(() {
+        _notas = [
+          for (final aluno in alunos)
+            if (resultadoPorAluno[aluno.id] case final resultado?)
+              (aluno, resultado),
+        ];
+        _carregando = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _erro = true;
+        _carregando = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    const students = [
-      ('Ana Beatriz', 'AB', '9.0', '9 acertos de 10', true),
-      ('Carlos Dias', 'CD', '6.0', '6 acertos de 10', false),
-      ('Elisa Ferreira', 'EF', '8.0', '8 acertos de 10', true),
-    ];
-
+    final proofTitle = widget.assessment.title;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: StandardAppBar(
         title: 'Notas · ${proofTitle.replaceFirst('Avaliação ', '')}',
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: StatSummaryCard(
-                  label: 'Média da turma',
-                  value: '7.8',
-                  showBorder: false,
-                  valueFontSize: 24,
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 13),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: StatSummaryCard(
-                  label: 'Aplicadas',
-                  value: '28/28',
-                  showBorder: false,
-                  valueFontSize: 24,
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 13),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            '$className · $proofTitle',
-            style: const TextStyle(
-              color: AppColors.muted,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...students.map(
-            (student) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _studentCard(
-                name: student.$1,
-                initials: student.$2,
-                grade: student.$3,
-                detail: student.$4,
-                passing: student.$5,
+      body: _carregando
+          ? Center(
+              child: CircularProgressIndicator(color: context.colors.accent),
+            )
+          : _erro
+          ? LoadErrorView(onRetry: _carregar)
+          : _buildNotas(),
+    );
+  }
+
+  Widget _buildNotas() {
+    final media = _notas.isEmpty
+        ? 0.0
+        : _notas.fold<double>(0, (soma, nota) => soma + nota.$2.notaCalculada) /
+              _notas.length;
+    final proofTitle = widget.assessment.title;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: StatSummaryCard(
+                label: 'Média da turma',
+                value: media.toStringAsFixed(1),
+                showBorder: false,
+                valueFontSize: 24,
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 13),
               ),
             ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: StatSummaryCard(
+                label: 'Aplicadas',
+                value: '${_notas.length}/${widget.assessment.totalStudents}',
+                showBorder: false,
+                valueFontSize: 24,
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 13),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Text(
+          '${widget.assessment.className} · $proofTitle',
+          style: TextStyle(
+            color: context.colors.muted,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+        ..._notas.map(
+          (nota) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _studentCard(
+              name: nota.$1.nome,
+              initials: iniciaisDoNome(nota.$1.nome),
+              grade: nota.$2.notaCalculada.toStringAsFixed(1),
+              detail:
+                  '${nota.$2.totalAcertos} acertos de ${nota.$2.respostas.length}',
+              passing: nota.$2.aprovado,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -90,15 +148,15 @@ class ProofGradesScreen extends StatelessWidget {
       leading: Container(
         width: 38,
         height: 38,
-        decoration: const BoxDecoration(
-          color: AppColors.accentLight,
+        decoration: BoxDecoration(
+          color: context.colors.accentLight,
           shape: BoxShape.circle,
         ),
         alignment: Alignment.center,
         child: Text(
           initials,
-          style: const TextStyle(
-            color: AppColors.accent,
+          style: TextStyle(
+            color: context.colors.accent,
             fontSize: 12,
             fontWeight: FontWeight.w700,
           ),
@@ -106,11 +164,14 @@ class ProofGradesScreen extends StatelessWidget {
       ),
       title: name,
       titleFontSize: 14,
-      subtitle: Text(detail, style: const TextStyle(color: AppColors.muted, fontSize: 11)),
+      subtitle: Text(
+        detail,
+        style: TextStyle(color: context.colors.muted, fontSize: 11),
+      ),
       trailing: StatusBadge(
         label: grade,
-        background: passing ? AppColors.successLight : AppColors.neutralLight,
-        foreground: passing ? AppColors.success : AppColors.muted,
+        background: passing ? context.colors.successLight : context.colors.neutralLight,
+        foreground: passing ? context.colors.success : context.colors.muted,
         fontSize: 12,
         fontWeight: FontWeight.w700,
         horizontalPadding: 9,

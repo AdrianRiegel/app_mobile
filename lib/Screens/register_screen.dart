@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/mock_auth_service.dart';
+
 import '../components/components.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -11,25 +12,59 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-
-  final Color primaryAccent = const Color(0xFF4F5BD5);
-  final Color textColor = const Color(0xFF1B1D22);
-  final Color mutedColor = const Color(0xFF6B7078);
-  final Color borderColor = const Color(0xFFE2E4E9);
-  final Color inputBgColor = const Color(0xFFFAFAFB);
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  final _nomeController = TextEditingController();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmationController = TextEditingController();
+  final _senhaController = TextEditingController();
+  final _confirmarSenhaController = TextEditingController();
+  bool _cadastrando = false;
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _nomeController.dispose();
     _emailController.dispose();
-    _passwordController.dispose();
-    _confirmationController.dispose();
+    _senhaController.dispose();
+    _confirmarSenhaController.dispose();
     super.dispose();
+  }
+
+  Future<void> _cadastrar() async {
+    final nome = _nomeController.text.trim();
+    final email = _emailController.text.trim();
+    final senha = _senhaController.text;
+
+    if (nome.isEmpty || email.isEmpty || senha.isEmpty) {
+      _mostrarMensagem('Preencha nome, e-mail e senha');
+      return;
+    }
+    if (senha != _confirmarSenhaController.text) {
+      _mostrarMensagem('As senhas não conferem');
+      return;
+    }
+
+    setState(() => _cadastrando = true);
+    try {
+      await Database.auth.cadastrar(nome: nome, email: email, senha: senha);
+      // O Firebase já entra na conta nova; o fluxo pede um login explícito.
+      await Database.auth.sair();
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.pop(context);
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Cadastro concluído. Entre com sua nova conta.'),
+        ),
+      );
+    } on AuthException catch (e) {
+      _mostrarMensagem(e.message);
+    } finally {
+      if (mounted) setState(() => _cadastrando = false);
+    }
+  }
+
+  void _mostrarMensagem(String mensagem) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(mensagem)));
   }
 
   @override
@@ -40,128 +75,65 @@ class _RegisterScreenState extends State<RegisterScreen> {
         top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 32),
-
-              // Campos
-              _buildFieldLabel('Nome completo'),
-              const SizedBox(height: 6),
-              _buildTextField(controller: _nameController, hintText: 'Maria Silva', validator: (value) => (value?.trim().isEmpty ?? true) ? 'Informe seu nome' : null),
+              LabeledTextField(
+                label: 'Nome completo',
+                controller: _nomeController,
+                hintText: 'Maria Silva',
+              ),
               const SizedBox(height: 16),
-
-              _buildFieldLabel('E-mail'),
-              const SizedBox(height: 6),
-              _buildTextField(controller: _emailController, hintText: 'nome@escola.com', keyboardType: TextInputType.emailAddress, validator: (value) {
-                final email = value?.trim() ?? '';
-                if (email.isEmpty) return 'Informe seu e-mail';
-                if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) return 'Informe um e-mail válido';
-                return null;
-              }),
+              LabeledTextField(
+                label: 'E-mail',
+                controller: _emailController,
+                hintText: 'nome@escola.com',
+                keyboardType: TextInputType.emailAddress,
+              ),
               const SizedBox(height: 16),
-
-              _buildFieldLabel('Senha'),
-              const SizedBox(height: 6),
-              _buildTextField(controller: _passwordController, hintText: '••••••••', obscureText: true, validator: (value) {
-                if ((value?.length ?? 0) < 6) return 'A senha deve ter pelo menos 6 caracteres';
-                return null;
-              }),
+              LabeledTextField(
+                label: 'Senha',
+                controller: _senhaController,
+                hintText: '••••••••',
+                obscureText: true,
+              ),
               const SizedBox(height: 16),
-
-              _buildFieldLabel('Confirmar senha'),
-              const SizedBox(height: 6),
-              _buildTextField(controller: _confirmationController, hintText: '••••••••', obscureText: true, validator: (value) => value != _passwordController.text ? 'As senhas não conferem' : null),
+              LabeledTextField(
+                label: 'Confirmar senha',
+                controller: _confirmarSenhaController,
+                hintText: '••••••••',
+                obscureText: true,
+              ),
               const SizedBox(height: 24),
-
-              // Botão Cadastrar
-              ElevatedButton(
-                onPressed: _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryAccent,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  'Cadastrar',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                ),
+              PrimaryButton(
+                label: _cadastrando ? 'Cadastrando...' : 'Cadastrar',
+                onPressed: _cadastrando ? null : _cadastrar,
               ),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     'Já tem conta? ',
-                    style: TextStyle(fontSize: 13, color: AppColors.muted),
+                    style: TextStyle(fontSize: 13, color: context.colors.muted),
                   ),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: const Text(
+                    child: Text(
                       'Entrar',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.accent,
+                        color: context.colors.accent,
                       ),
                     ),
                   ),
                 ],
               ),
             ],
-            ),
           ),
         ),
       ),
     );
-  }
-  Widget _buildFieldLabel(String text) {
-    return Text(
-      text,
-      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: mutedColor),
-    );
-  }
-
-  Widget _buildTextField({required TextEditingController controller, required String hintText, bool obscureText = false, TextInputType? keyboardType, String? Function(String?)? validator}) {
-    return TextFormField(
-      controller: controller,
-      validator: validator,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      style: TextStyle(fontSize: 14, color: textColor),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: TextStyle(color: mutedColor.withValues(alpha: 0.6)),
-        filled: true,
-        fillColor: inputBgColor,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: borderColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: primaryAccent, width: 1.5),
-        ),
-      ),
-    );
-  }
-
-  void _submit() {
-    if (!_formKey.currentState!.validate()) return;
-    final error = MockAuthService.register(_emailController.text, _passwordController.text);
-    if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
-      return;
-    }
-    final messenger = ScaffoldMessenger.of(context);
-    Navigator.pop(context);
-    messenger.showSnackBar(const SnackBar(content: Text('Cadastro concluído. Entre com sua nova conta.')));
   }
 }

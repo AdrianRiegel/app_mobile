@@ -1,14 +1,23 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
-import '../data/mock_assessments.dart'; // ADICIONADO: Para puxar as avaliações reais
+import '../models/aluno.dart';
 import '../models/assessment.dart';
+import '../models/resultado.dart';
+import '../services/omr/omr_processor.dart';
+import 'omr_review_screen.dart';
+import '../services/camera_service.dart';
+import 'camera_capture_screen.dart';
+import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 
 class CorrectionStartScreen extends StatefulWidget {
-  const CorrectionStartScreen({super.key, required this.assessment});
+  const CorrectionStartScreen({super.key, this.assessment});
 
-  final Assessment assessment;
+  /// Avaliação pré-selecionada; sem ela, o professor escolhe na lista.
+  final Assessment? assessment;
 
   @override
   State<CorrectionStartScreen> createState() => _CorrectionStartScreenState();
@@ -20,51 +29,118 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
   bool _readSuccess = false;
   bool _showGabarito = false;
 
-  // ADICIONADO: Variáveis tipadas com seus Models
-  late List<Assessment> _availableAssessments;
-  Assessment? _selectedAssessment;
-  String? _selectedStudent;
+  final _random = Random();
 
-  // ADICIONADO: Dicionário simulando banco de dados (Turma -> Lista de Alunos)
-  final Map<String, List<String>> _studentsByClass = {
-    '3º Ano A': ['Ana Beatriz', 'Carlos Dias', 'Elisa Ferreira', 'João da Silva'],
-    '2º Ano B': ['Lucas Mendes', 'Mariana Costa', 'Pedro Alves'],
-    '1º Ano C': ['Julia Santos', 'Rafael Souza', 'Sofia Lima', 'Thiago Gomes'],
-  };
+  List<Assessment> _availableAssessments = [];
+  bool _carregando = true;
+  bool _erro = false;
+  Assessment? _selectedAssessment;
+
+  List<Aluno> _alunos = [];
+  bool _carregandoAlunos = false;
+  Aluno? _selectedStudent;
+
+  List<String?> _respostasLidas = [];
+  Resultado? _resultado;
+  bool _salvando = false;
 
   @override
   void initState() {
     super.initState();
-    // Carrega a lista do mock
-    _availableAssessments = List.from(mockAssessments);
-
-    // Garante que a avaliação que veio da tela anterior esteja na lista (caso seja um rascunho novo)
-    if (!_availableAssessments.any((a) => a.title == widget.assessment.title)) {
-      _availableAssessments.insert(0, widget.assessment);
-    }
-
-    // Pré-seleciona a avaliação que foi clicada na tela anterior
-    _selectedAssessment = _availableAssessments.firstWhere(
-          (a) => a.title == widget.assessment.title,
-      orElse: () => _availableAssessments.first,
-    );
+    _carregarAvaliacoes();
   }
 
-  // ADICIONADO: Getter que retorna os alunos exatos da turma da avaliação selecionada
-  List<String> get _currentClassStudents {
-    if (_selectedAssessment == null) return [];
+  /// Só avaliações com gabarito completo podem ser corrigidas.
+  Future<void> _carregarAvaliacoes() async {
+    setState(() {
+      _carregando = true;
+      _erro = false;
+    });
+    try {
+      final avaliacoes = await AvaliacaoRepository().listar();
+      if (!mounted) return;
+      setState(() {
+        _availableAssessments = avaliacoes
+            .where((avaliacao) => avaliacao.gabaritoConfigurado)
+            .toList();
+        _selectedAssessment = _availableAssessments
+            .where((avaliacao) => avaliacao.id == widget.assessment?.id)
+            .firstOrNull;
+        _carregando = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _erro = true;
+        _carregando = false;
+      });
+    }
+  }
 
-    // Pega o prefixo da turma (ex: "3º Ano A" tirando o " - Matemática" se houver)
-    final className = _selectedAssessment!.className.split(' - ').first;
+  Future<void> _irParaAlunos() async {
+    setState(() {
+      _currentStage = 1;
+      _carregandoAlunos = true;
+    });
+    try {
+      final alunos = await AlunoRepository().listarPorTurma(
+        _selectedAssessment!.turmaId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _alunos = alunos;
+        _carregandoAlunos = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _currentStage = 0;
+        _carregandoAlunos = false;
+      });
+      _mostrarMensagem('Não foi possível carregar os alunos da turma');
+    }
+  }
 
-    // Retorna a lista da turma ou uma lista genérica de fallback
-    return _studentsByClass[className] ?? ['Aluno Genérico 1', 'Aluno Genérico 2'];
+  Future<void> _salvarResultado() async {
+    setState(() => _salvando = true);
+    try {
+      final resultado = await ResultadoRepository().salvar(
+        avaliacao: _selectedAssessment!,
+        aluno: _selectedStudent!,
+        respostas: _respostasLidas,
+      );
+      if (!mounted) return;
+      setState(() {
+        _resultado = resultado;
+        _currentStage = 3;
+        _salvando = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _salvando = false);
+      _mostrarMensagem('Não foi possível salvar a correção');
+    }
+  }
+
+  void _corrigirProximoAluno() {
+    setState(() {
+      _currentStage = 1;
+      _selectedStudent = null;
+      _readSuccess = false;
+      _showGabarito = false;
+      _resultado = null;
+    });
+  }
+
+  void _mostrarMensagem(String mensagem) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(mensagem)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: StandardAppBar(
         title: 'Iniciar correção',
         onBack: () {
@@ -90,10 +166,10 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
 
             // Só exibe o card resumo se a avaliação já foi escolhida (Etapa 1 em diante)
             if (_currentStage > 0 && _selectedAssessment != null) ...[
-              const Text(
+              Text(
                 'Avaliação selecionada',
                 style: TextStyle(
-                  color: AppColors.muted,
+                  color: context.colors.muted,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
@@ -102,8 +178,8 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
               Container(
                 padding: const EdgeInsets.all(13),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border.all(color: AppColors.border),
+                  color: context.colors.surface,
+                  border: Border.all(color: context.colors.border),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -112,13 +188,13 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: AppColors.accentLight,
+                        color: context.colors.accentLight,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.description_outlined,
                         size: 19,
-                        color: AppColors.accent,
+                        color: context.colors.accent,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -128,8 +204,8 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                         children: [
                           Text(
                             _selectedAssessment!.title,
-                            style: const TextStyle(
-                              color: AppColors.text,
+                            style: TextStyle(
+                              color: context.colors.text,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -137,8 +213,8 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                           const SizedBox(height: 3),
                           Text(
                             '${_selectedAssessment!.className} · ${_selectedAssessment!.totalQuestions} questões',
-                            style: const TextStyle(
-                              color: AppColors.muted,
+                            style: TextStyle(
+                              color: context.colors.muted,
                               fontSize: 10,
                             ),
                           ),
@@ -192,7 +268,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                       height: 2,
                       color: index == 0
                           ? Colors.transparent
-                          : (active ? AppColors.accent : AppColors.border),
+                          : (active ? context.colors.accent : context.colors.border),
                     ),
                   ),
                   Container(
@@ -200,16 +276,16 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                     height: 25,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: active ? AppColors.accent : AppColors.surface,
+                      color: active ? context.colors.accent : context.colors.surface,
                       border: Border.all(
-                        color: active ? AppColors.accent : AppColors.border,
+                        color: active ? context.colors.accent : context.colors.border,
                       ),
                       shape: BoxShape.circle,
                     ),
                     child: Text(
                       '${index + 1}',
                       style: TextStyle(
-                        color: active ? Colors.white : AppColors.muted,
+                        color: active ? Colors.white : context.colors.muted,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                       ),
@@ -220,7 +296,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                       height: 2,
                       color: index == labels.length - 1
                           ? Colors.transparent
-                          : (passed ? AppColors.accent : AppColors.border),
+                          : (passed ? context.colors.accent : context.colors.border),
                     ),
                   ),
                 ],
@@ -229,7 +305,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
               Text(
                 labels[index],
                 style: TextStyle(
-                  color: active ? AppColors.accent : AppColors.muted,
+                  color: active ? context.colors.accent : context.colors.muted,
                   fontSize: 9,
                   fontWeight: active ? FontWeight.w600 : FontWeight.w400,
                 ),
@@ -243,39 +319,74 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
 
   // ETAPA 0: Selecionar Avaliação (Vinculado ao model Assessment)
   Widget _selectAssessmentContent() {
+    if (_carregando) {
+      return Padding(
+        key: ValueKey('loadingAssessments'),
+        padding: EdgeInsets.only(top: 40),
+        child: Center(
+          child: CircularProgressIndicator(color: context.colors.accent),
+        ),
+      );
+    }
+    if (_erro) {
+      return LoadErrorView(
+        key: const ValueKey('errorAssessments'),
+        onRetry: _carregarAvaliacoes,
+      );
+    }
+    if (_availableAssessments.isEmpty) {
+      return EmptyStateView(
+        key: ValueKey('emptyAssessments'),
+        icon: Icons.assignment_outlined,
+        iconBackground: context.colors.accentLight,
+        iconColor: context.colors.accent,
+        title: 'Nenhuma avaliação pronta',
+        message: 'Configure o gabarito de uma avaliação para poder corrigi-la.',
+      );
+    }
     return Column(
       key: const ValueKey('selectAssessment'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Identificação da Avaliação',
-          style: TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: context.colors.text,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 6),
-        const Text(
+        Text(
           'Selecione a avaliação que você irá corrigir agora.',
-          style: TextStyle(color: AppColors.muted, fontSize: 11),
+          style: TextStyle(color: context.colors.muted, fontSize: 11),
         ),
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.border),
+            color: context.colors.surface,
+            border: Border.all(color: context.colors.border),
             borderRadius: BorderRadius.circular(10),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<Assessment>(
               isExpanded: true,
-              hint: const Text('Selecione uma avaliação...', style: TextStyle(fontSize: 13)),
+              hint: const Text(
+                'Selecione uma avaliação...',
+                style: TextStyle(fontSize: 13),
+              ),
               value: _selectedAssessment,
-              icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.muted),
+              icon: Icon(
+                Icons.keyboard_arrow_down,
+                color: context.colors.muted,
+              ),
               items: _availableAssessments.map((Assessment assessment) {
                 return DropdownMenuItem<Assessment>(
                   value: assessment,
                   child: Text(
                     '${assessment.title} (${assessment.className})',
-                    style: const TextStyle(fontSize: 13, color: AppColors.text),
+                    style: TextStyle(fontSize: 13, color: context.colors.text),
                     overflow: TextOverflow.ellipsis,
                   ),
                 );
@@ -293,9 +404,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         PrimaryButton(
           label: 'Continuar para identificação do aluno',
           verticalPadding: 14,
-          onPressed: _selectedAssessment == null
-              ? null
-              : () => setState(() => _currentStage = 1),
+          onPressed: _selectedAssessment == null ? null : _irParaAlunos,
         ),
       ],
     );
@@ -303,40 +412,74 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
 
   // ETAPA 1: Selecionar Aluno (Vinculado a _currentClassStudents)
   Widget _selectStudentContent() {
+    if (_carregandoAlunos) {
+      return Padding(
+        key: ValueKey('loadingStudents'),
+        padding: EdgeInsets.only(top: 40),
+        child: Center(
+          child: CircularProgressIndicator(color: context.colors.accent),
+        ),
+      );
+    }
+    if (_alunos.isEmpty) {
+      return EmptyStateView(
+        key: const ValueKey('emptyStudents'),
+        icon: Icons.person_outline,
+        iconBackground: context.colors.accentLight,
+        iconColor: context.colors.accent,
+        title: 'Turma sem alunos',
+        message:
+            'Cadastre os alunos da turma ${_selectedAssessment!.className} para corrigir as provas.',
+      );
+    }
     return Column(
       key: const ValueKey('selectStudent'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Identificação do Aluno',
-          style: TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: context.colors.text,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
           'Selecione o aluno da turma ${_selectedAssessment!.className}.',
-          style: const TextStyle(color: AppColors.muted, fontSize: 11),
+          style: TextStyle(color: context.colors.muted, fontSize: 11),
         ),
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.border),
+            color: context.colors.surface,
+            border: Border.all(color: context.colors.border),
             borderRadius: BorderRadius.circular(10),
           ),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
+            child: DropdownButton<Aluno>(
               isExpanded: true,
-              hint: const Text('Selecione um aluno...', style: TextStyle(fontSize: 13)),
+              hint: const Text(
+                'Selecione um aluno...',
+                style: TextStyle(fontSize: 13),
+              ),
               value: _selectedStudent,
-              icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.muted),
-              items: _currentClassStudents.map((String aluno) {
-                return DropdownMenuItem<String>(
+              icon: Icon(
+                Icons.keyboard_arrow_down,
+                color: context.colors.muted,
+              ),
+              items: _alunos.map((Aluno aluno) {
+                return DropdownMenuItem<Aluno>(
                   value: aluno,
-                  child: Text(aluno, style: const TextStyle(fontSize: 13, color: AppColors.text)),
+                  child: Text(
+                    '${aluno.nome} (${aluno.matricula})',
+                    style: TextStyle(fontSize: 13, color: context.colors.text),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 );
               }).toList(),
-              onChanged: (String? newValue) {
+              onChanged: (Aluno? newValue) {
                 setState(() {
                   _selectedStudent = newValue;
                 });
@@ -365,29 +508,46 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           width: 170,
           height: 170,
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.accent, width: 2),
+            color: context.colors.surface,
+            border: Border.all(color: context.colors.accent, width: 2),
             borderRadius: BorderRadius.circular(18),
           ),
           child: _reading
-              ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
-              : const Icon(Icons.document_scanner_outlined, color: AppColors.accent, size: 74),
+              ? Center(
+                  child: CircularProgressIndicator(color: context.colors.accent),
+                )
+              : Icon(
+                  Icons.document_scanner_outlined,
+                  color: context.colors.accent,
+                  size: 74,
+                ),
         ),
         const SizedBox(height: 18),
         Text(
           _reading ? 'Lendo...' : 'Folha de respostas',
-          style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: context.colors.text,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 5),
-        const Text(
+        Text(
           'Enquadre a folha inteira na câmera\nEsta etapa é uma simulação visual.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.muted, fontSize: 11),
+          style: TextStyle(color: context.colors.muted, fontSize: 11),
         ),
         const SizedBox(height: 22),
         PrimaryButton(
-          label: 'Simular leitura da Folha',
+          label: 'Abrir câmera e fotografar',
           icon: Icons.camera_alt_outlined,
+          verticalPadding: 14,
+          onPressed: _reading ? null : _abrirCamera,
+        ),
+        const SizedBox(height: 10),
+        SecondaryButton(
+          label: 'Simular leitura da Folha',
+          icon: Icons.refresh,
           verticalPadding: 14,
           onPressed: _reading ? null : _simulateRead,
         ),
@@ -401,8 +561,8 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
+        color: context.colors.surface,
+        border: Border.all(color: context.colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -410,41 +570,49 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           Container(
             width: 54,
             height: 54,
-            decoration: const BoxDecoration(color: AppColors.successLight, shape: BoxShape.circle),
-            child: const Icon(Icons.check_rounded, color: AppColors.success, size: 30),
+            decoration: BoxDecoration(
+              color: context.colors.successLight,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.check_rounded,
+              color: context.colors.success,
+              size: 30,
+            ),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Folha lida com sucesso',
-            style: TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: context.colors.text,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'A correção foi processada. A próxima etapa será o resultado.',
+          Text(
+            'Ao continuar, a correção será salva e o resultado exibido.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.muted, fontSize: 11, height: 1.4),
+            style: TextStyle(color: context.colors.muted, fontSize: 11, height: 1.4),
           ),
           const SizedBox(height: 18),
           PrimaryButton(
-            label: 'Continuar para resultado',
+            label: _salvando ? 'Salvando...' : 'Continuar para resultado',
             verticalPadding: 14,
-            onPressed: () => setState(() => _currentStage = 3),
+            onPressed: _salvando ? null : _salvarResultado,
           ),
         ],
       ),
     );
   }
 
-  // ETAPA 3: Resultado (Cálculo usa as informações reais da Avaliação)
+  // ETAPA 3: Resultado salvo no banco
   Widget _resultSummaryPage() {
-    // ADICIONADO: Utiliza a quantidade de questões real da avaliação selecionada
-    final int totalQuestoes = _selectedAssessment?.totalQuestions ?? 10;
-
-    // Simulação do resultado (Exemplo estático. Na vida real viria do backend)
-    final int acertos = (totalQuestoes * 0.7).round(); // Ex: simula 70% de acerto
-    final double valorPorQuestao = 10.0 / totalQuestoes;
-    final double nota = acertos * valorPorQuestao;
-    final bool aprovado = nota >= 6.0;
+    final resultado = _resultado!;
+    final int totalQuestoes = resultado.respostas.length;
+    final int acertos = resultado.totalAcertos;
+    final double nota = resultado.notaCalculada;
+    final bool aprovado = resultado.aprovado;
 
     return Column(
       key: const ValueKey('resultSummary'),
@@ -453,22 +621,31 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: aprovado ? Colors.green[300]! : Colors.red[300]!),
+            color: context.colors.surface,
+            border: Border.all(
+              color: aprovado ? context.colors.success : context.colors.danger,
+            ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Aluno avaliado', style: TextStyle(color: AppColors.muted, fontSize: 11)),
+              Text(
+                'Aluno avaliado',
+                style: TextStyle(color: context.colors.muted, fontSize: 11),
+              ),
               const SizedBox(height: 2),
               Text(
-                _selectedStudent ?? 'Aluno',
-                style: const TextStyle(color: AppColors.text, fontSize: 15, fontWeight: FontWeight.bold),
+                _selectedStudent?.nome ?? 'Aluno',
+                style: TextStyle(
+                  color: context.colors.text,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
-                child: Divider(height: 1, color: AppColors.border),
+                child: Divider(height: 1, color: context.colors.border),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -476,27 +653,52 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Acertos', style: TextStyle(color: AppColors.muted, fontSize: 11)),
-                      Text('$acertos/$totalQuestoes', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      Text(
+                        'Acertos',
+                        style: TextStyle(color: context.colors.muted, fontSize: 11),
+                      ),
+                      Text(
+                        '$acertos/$totalQuestoes',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
                     ],
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Nota Final', style: TextStyle(color: AppColors.muted, fontSize: 11)),
-                      Text(nota.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      Text(
+                        'Nota Final',
+                        style: TextStyle(color: context.colors.muted, fontSize: 11),
+                      ),
+                      Text(
+                        nota.toStringAsFixed(1),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
                     ],
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: aprovado ? Colors.green[50] : Colors.red[50],
+                      color: aprovado
+                          ? context.colors.successLight
+                          : context.colors.dangerLight,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       aprovado ? 'Na Média' : 'Abaixo da Média',
                       style: TextStyle(
-                        color: aprovado ? Colors.green[700] : Colors.red[700],
+                        color: aprovado
+                            ? context.colors.success
+                            : context.colors.danger,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -511,8 +713,14 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         SecondaryButton(
           label: 'Ver gabarito detalhado',
           verticalPadding: 14,
-          borderColor: AppColors.accent,
+          borderColor: context.colors.accent,
           onPressed: () => setState(() => _showGabarito = true),
+        ),
+        const SizedBox(height: 10),
+        PrimaryButton(
+          label: 'Corrigir próximo aluno',
+          verticalPadding: 14,
+          onPressed: _corrigirProximoAluno,
         ),
       ],
     );
@@ -526,53 +734,54 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Gabarito', style: TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
+            Text(
+              'Gabarito',
+              style: TextStyle(
+                color: context.colors.text,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             TextButton(
               onPressed: () => setState(() => _showGabarito = false),
-              child: const Text('Voltar ao resultado', style: TextStyle(fontSize: 12)),
-            )
+              child: const Text(
+                'Voltar ao resultado',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
           ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Alternativa marcada pelo aluno: verde = acerto, vermelho = erro.',
+          style: TextStyle(color: context.colors.muted, fontSize: 11),
         ),
         const SizedBox(height: 8),
         _buildGabaritoGrid(),
-        const SizedBox(height: 24),
-
-        // Mantive os cards de questões apenas visualmente
-        const Text('Questões', style: TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 12),
-        _buildQuestionCard(
-          1,
-          'Qual é o resultado de 7 × 8?',
-          [
-            {'letter': 'a', 'text': '54', 'status': 'wrong'},
-            {'letter': 'b', 'text': '56', 'status': 'correct'},
-            {'letter': 'c', 'text': '58', 'status': 'normal'},
-          ],
-        ),
       ],
     );
   }
 
   Widget _buildGabaritoGrid() {
-    // ADICIONADO: Renderiza as bolinhas com base no número real de questões da Avaliação
-    final int questions = _selectedAssessment?.totalQuestions ?? 10;
+    final respostas = _resultado!.respostas;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F1F5),
+        color: context.colors.background,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
-        children: List.generate(questions, (index) {
-          // Lógica de simulação de erro na correção
-          final isCorrect = index % 3 != 0;
-          final letter = String.fromCharCode(65 + (index % 5)); // A, B, C, D, E...
-
-          return _answerBadge('${index + 1}', letter, isCorrect: isCorrect);
-        }),
+        children: [
+          for (final resposta in respostas)
+            _answerBadge(
+              '${resposta.questao}',
+              resposta.alternativaMarcada ?? '–',
+              isCorrect: resposta.correta,
+            ),
+        ],
       ),
     );
   }
@@ -587,64 +796,76 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       ),
       child: Column(
         children: [
-          Text(number, style: const TextStyle(color: Colors.white, fontSize: 9)),
-          Text(letter, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(
+            number,
+            style: const TextStyle(color: Colors.white, fontSize: 9),
+          ),
+          Text(
+            letter,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildQuestionCard(int number, String question, List<Map<String, String>> options) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('$number. $question', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-          const SizedBox(height: 12),
-          ...options.map((opt) {
-            Color iconColor = Colors.grey[300]!;
-            Widget? extraText;
-
-            if (opt['status'] == 'correct') {
-              iconColor = const Color(0xFF28A745);
-              extraText = const Text(' correta', style: TextStyle(color: Colors.black, fontSize: 13));
-            } else if (opt['status'] == 'wrong') {
-              iconColor = const Color(0xFFDC3545);
-              extraText = const Text(' assinalado', style: TextStyle(color: Color(0xFFDC3545), fontSize: 13));
-            }
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Row(
-                children: [
-                  Icon(
-                    opt['status'] == 'normal' ? Icons.radio_button_unchecked : Icons.circle,
-                    color: iconColor,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text('${opt['letter']}) ${opt['text']}', style: TextStyle(color: Colors.grey[700], fontSize: 12)),
-                  if (extraText != null) extraText,
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
+  Future<void> _abrirCamera() async {
+    final image = await Navigator.push<CapturedImage>(
+      context,
+      MaterialPageRoute(builder: (_) => const CameraCaptureScreen()),
     );
+    if (image == null || !mounted) return;
+    await _simulateRead();
   }
 
-  Future<void> _simulateRead() async {
+  /// Simula a leitura óptica da folha: cada questão tem 70% de chance de vir
+  /// com a alternativa correta do gabarito.
+  Future<void> _simulateRead({bool simularAmbiguidade = false}) async {
     setState(() => _reading = true);
     await Future<void>.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
+
+    const alternativas = ['A', 'B', 'C', 'D', 'E'];
+    final rawRespostas = [
+      for (final questao in _selectedAssessment!.gabarito)
+        _random.nextDouble() < 0.7
+            ? questao.alternativaCorreta
+            : alternativas[_random.nextInt(alternativas.length)],
+    ];
+
+    final matrix = OmrProcessor.createDensityMatrix(
+      answers: rawRespostas,
+      ambiguousQuestions: simularAmbiguidade && rawRespostas.isNotEmpty
+          ? {1}
+          : null,
+    );
+
+    final omrResult = OmrProcessor.processDensityMatrix(matrix);
+    List<String?> respostasFinais = omrResult.formattedAnswers;
+
+    if (omrResult.needsManualReview) {
+      final revisadas = await Navigator.push<List<String?>>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OmrReviewScreen(
+            result: omrResult,
+            studentName: _selectedStudent?.nome ?? 'Aluno',
+          ),
+        ),
+      );
+      if (revisadas == null || !mounted) {
+        setState(() => _reading = false);
+        return;
+      }
+      respostasFinais = revisadas;
+    }
+
     setState(() {
+      _respostasLidas = respostasFinais;
       _reading = false;
       _readSuccess = true;
     });

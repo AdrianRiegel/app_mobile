@@ -1,26 +1,78 @@
 import 'package:app_mobile/Screens/exam_statistics_screen.dart';
-import 'package:app_mobile/Screens/report_screen.dart';
 import 'package:app_mobile/Screens/statistics_screen.dart';
 import 'package:app_mobile/models/statistics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/fake_database.dart';
+
 void main() {
-  testWidgets('estatísticas gerais listam turmas e abrem a prova', (
+  testWidgets('estatísticas gerais calculam o acerto a partir dos resultados', (
     tester,
   ) async {
+    final firestore = await configurarBancoFalso();
+    // Q1 e Q2: 100% de acerto; Q3 e Q4: 50%.
+    await adicionarResultado(
+      firestore,
+      alunoId: 'aluno-1',
+      acertos: [true, true, true, true],
+    );
+    await adicionarResultado(
+      firestore,
+      alunoId: 'aluno-2',
+      acertos: [true, true, false, false],
+    );
+
     await tester.pumpWidget(const MaterialApp(home: StatisticsScreen()));
+    await tester.pumpAndSettle();
 
     expect(find.text('3º Ano A - Matemática'), findsOneWidget);
-    expect(find.text('2º Ano B - Física'), findsOneWidget);
-
     await tester.tap(find.text('Avaliação bimestral — Cap. 4'));
     await tester.pumpAndSettle();
 
     expect(find.text('Estatísticas · Cap. 4'), findsOneWidget);
-    expect(find.text('Acerto médio'), findsOneWidget);
-    expect(find.text('76%'), findsOneWidget);
-    expect(find.text('Questão mais errada'), findsOneWidget);
+    expect(find.text('75%'), findsOneWidget);
+    expect(find.text('Q3'), findsNWidgets(2)); // card e linha da questão
+  });
+
+  testWidgets('estatísticas mostram estado vazio sem correções', (
+    tester,
+  ) async {
+    await configurarBancoFalso();
+    await tester.pumpWidget(const MaterialApp(home: StatisticsScreen()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ainda não há estatísticas'), findsOneWidget);
+  });
+
+  testWidgets('botão de voltar das estatísticas retorna à tela anterior', (
+    tester,
+  ) async {
+    await configurarBancoFalso();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StatisticsScreen()),
+              ),
+              child: const Text('Abrir estatísticas'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Abrir estatísticas'));
+    await tester.pumpAndSettle();
+    expect(find.byType(StatisticsScreen), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    expect(find.byType(StatisticsScreen), findsNothing);
+    expect(find.text('Abrir estatísticas'), findsOneWidget);
   });
 
   testWidgets('tela da prova mostra uma barra por questão', (tester) async {
@@ -41,18 +93,5 @@ void main() {
     expect(find.byType(FractionallySizedBox), findsNWidgets(6));
   });
 
-  testWidgets('relatório gera a prévia ao tocar em Gerar e baixar PDF', (
-    tester,
-  ) async {
-    await tester.pumpWidget(const MaterialApp(home: ReportScreen()));
-
-    expect(find.text('Prévia do relatório em PDF'), findsOneWidget);
-
-    await tester.tap(find.text('Gerar e baixar PDF'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Prévia do relatório em PDF'), findsNothing);
-    expect(find.text('Relatório de desempenho'), findsOneWidget);
-    expect(find.text('Provas incluídas'), findsOneWidget);
-  });
+  // A geração do PDF da tela de relatório é testada em relatorio_pdf_test.dart.
 }

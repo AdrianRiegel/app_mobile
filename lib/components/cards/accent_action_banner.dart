@@ -25,7 +25,7 @@ class AccentActionBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.accent,
+      color: context.colors.accent,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -50,8 +50,8 @@ class AccentActionBanner extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        color: AppColors.onAccentMuted,
+                      style: TextStyle(
+                        color: context.colors.onAccentMuted,
                         fontSize: 10,
                       ),
                     ),

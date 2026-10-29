@@ -19,19 +19,19 @@ class AppBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        border: Border(top: BorderSide(color: context.colors.border, width: 1)),
       ),
       child: SafeArea(
         child: BottomNavigationBar(
           currentIndex: currentIndex,
           onTap: onTap,
-          selectedItemColor: AppColors.accent,
-          unselectedItemColor: AppColors.muted,
+          selectedItemColor: context.colors.accent,
+          unselectedItemColor: context.colors.muted,
           showUnselectedLabels: true,
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
+          backgroundColor: context.colors.surface,
           elevation: 0,
           selectedFontSize: 10,
           unselectedFontSize: 10,

@@ -10,6 +10,13 @@
 # Environment variables (segredos locais, nunca commitar)
 .env
 
+# Configurações do Firebase (geradas localmente pelo `flutterfire configure`)
+firebase.json
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+
 
 
 # Flutter repo-specific
@@ -120,3 +127,8 @@ app.*.symbols
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
+# Variáveis de ambiente
+.env
+
+# ChromeDriver local para testes de integração no Chrome
+/chromedriver/

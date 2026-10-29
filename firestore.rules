@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Regra base: o usuário precisa estar autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // O professor só pode acessar/alterar seus próprios registros
+    function isOwner(professorId) {
+      return isAuthenticated() && request.auth.uid == professorId;
+    }
+
+    // Perfil do professor
+    match /usuarios/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Turmas
+    match /turmas/{turmaId} {
+      allow read: if isAuthenticated() && resource.data.professorId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.professorId == request.auth.uid
+        && request.resource.data.descricao is string
+        && request.resource.data.semestre is number
+        && request.resource.data.ano is number;
+      allow update: if isAuthenticated() && resource.data.professorId == request.auth.uid
+        && request.resource.data.professorId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.professorId == request.auth.uid;
+    }
+
+    // Alunos
+    match /alunos/{alunoId} {
+      allow read: if isAuthenticated() && resource.data.professorId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.professorId == request.auth.uid
+        && request.resource.data.turmaId is string
+        && request.resource.data.nome is string
+        && request.resource.data.matricula is string;
+      allow update: if isAuthenticated() && resource.data.professorId == request.auth.uid
+        && request.resource.data.professorId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.professorId == request.auth.uid;
+    }
+
+    // Avaliações
+    match /avaliacoes/{avaliacaoId} {
+      allow read: if isAuthenticated() && resource.data.professorId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.professorId == request.auth.uid
+        && request.resource.data.turmaId is string
+        && request.resource.data.titulo is string
+        && request.resource.data.status is string;
+      allow update: if isAuthenticated() && resource.data.professorId == request.auth.uid
+        && request.resource.data.professorId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.professorId == request.auth.uid;
+    }
+
+    // Resultados
+    match /resultados/{resultadoId} {
+      allow read: if isAuthenticated() && resource.data.professorId == request.auth.uid;
+      allow create, update: if isAuthenticated() && request.resource.data.professorId == request.auth.uid
+        && request.resource.data.avaliacaoId is string
+        && request.resource.data.alunoId is string
+        && request.resource.data.notaCalculada is number
+        && request.resource.data.totalAcertos is number;
+      allow delete: if isAuthenticated() && resource.data.professorId == request.auth.uid;
+    }
+  }
+}

@@ -1,152 +1,170 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-import '../components/components.dart';
-import '../data/mock_assessments.dart';
-import '../models/assessment.dart';
-import '../theme/app_colors.dart';
 import '../services/proof_qr_payload.dart';
+
+import '../components/components.dart';
+import '../components/inputs/csv_file_picker.dart';
+import '../models/aluno.dart';
+import '../models/assessment.dart';
+import '../models/turma.dart';
+import '../services/csv_import_service.dart';
+import '../services/database/database.dart';
+import '../theme/app_colors.dart';
 import 'assessment_detail_screen.dart';
 import 'new_proof_screen.dart';
 import 'proof_grades_screen.dart';
 
 class ClassDetailScreen extends StatefulWidget {
-  const ClassDetailScreen({
-    super.key,
-    required this.titulo,
-    this.classId = 'turma-3a',
-    this.initialStudentCount = 12,
-  });
+  const ClassDetailScreen({super.key, required this.turma});
 
-  final String titulo;
-  final String classId;
-  final int initialStudentCount;
+  final Turma turma;
 
   @override
   State<ClassDetailScreen> createState() => _ClassDetailScreenState();
 }
 
 class _ClassDetailScreenState extends State<ClassDetailScreen> {
-  final Color cardColor = Colors.white;
-  final Color borderColor = AppColors.border;
-  final Color textColor = AppColors.text;
-  final Color mutedColor = AppColors.muted;
-  final Color accentColor = AppColors.accent;
-  final Color accentLightColor = AppColors.accentLight;
+  final _alunoRepository = AlunoRepository();
+  final _avaliacaoRepository = AvaliacaoRepository();
   int _tabIndex = 0;
-  int _studentPage = 1;
-  static const int _studentPageSize = 5;
+  static const _alunosPorPagina = 8;
+  int _paginaAlunos = 1;
 
-  List<_Aluno> get _visibleStudents => _alunos.skip((_studentPage - 1) * _studentPageSize).take(_studentPageSize).toList();
-  int get _studentPageCount => (_alunos.length / _studentPageSize).ceil().clamp(1, 999999).toInt();
+  int get _totalPaginasAlunos =>
+      (_alunos.length / _alunosPorPagina).ceil().clamp(1, 999999);
+  List<Aluno> get _alunosDaPagina => _alunos
+      .skip((_paginaAlunos - 1) * _alunosPorPagina)
+      .take(_alunosPorPagina)
+      .toList();
 
-  final List<_Aluno> _alunos = [];
-
-  static const _sampleStudents = [
-    'Ana Beatriz', 'Carlos Dias', 'Elisa Ferreira', 'João da Silva',
-    'Mariana Costa', 'Lucas Mendes', 'Julia Santos', 'Rafael Souza',
-    'Sofia Lima', 'Thiago Gomes', 'Beatriz Alves', 'Pedro Henrique',
-  ];
+  List<Aluno> _alunos = [];
+  List<Assessment> _provas = [];
+  bool _carregando = true;
+  bool _erro = false;
 
   @override
   void initState() {
     super.initState();
-    _provas = mockAssessments
-        .where((assessment) => assessment.classId == widget.classId)
-        .map(
-          (assessment) => _Prova(
-            assessment.title,
-            '${assessment.totalQuestions} questões · ${assessment.dateLabel}',
-            assessment.status == AssessmentStatus.completed
-                ? 'Aplicada'
-                : assessment.statusLabel,
-            assessment: assessment,
-          ),
-        )
-        .toList();
-    for (var index = 0; index < widget.initialStudentCount; index++) {
-      final number = 2026041 + index;
-      final name = index < _sampleStudents.length ? _sampleStudents[index] : 'Aluno ${index + 1}';
-      _alunos.add(_Aluno('aluno-$number', name, 'Matrícula $number'));
-    }
+    _carregar();
   }
 
-  late final List<_Prova> _provas;
+  Future<void> _carregar() async {
+    setState(() {
+      _carregando = true;
+      _erro = false;
+    });
+    try {
+      final (alunos, provas) = await (
+        _alunoRepository.listarPorTurma(widget.turma.id),
+        _avaliacaoRepository.listar(turmaId: widget.turma.id),
+      ).wait;
+      if (!mounted) return;
+      setState(() {
+        _alunos = alunos;
+        _paginaAlunos = _paginaAlunos.clamp(1, _totalPaginasAlunos);
+        _provas = provas;
+        _carregando = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _erro = true;
+        _carregando = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: StandardAppBar(
         title: _tabIndex == 1
-            ? 'Provas · ${widget.titulo.split(' - ').first}'
-            : widget.titulo,
+            ? 'Provas · ${widget.turma.nome}'
+            : widget.turma.descricao,
         showDivider: false,
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: Icon(Icons.more_vert, size: 18, color: AppColors.muted),
-          ),
-        ],
       ),
       body: SafeArea(
         top: false,
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
               child: Row(
                 children: [
-                  _tab('Alunos', 0),
-                  const SizedBox(width: 18),
-                  _tab('Provas', 1),
+                  _tabButton('Alunos', 0),
+                  const SizedBox(width: 8),
+                  _tabButton('Provas', 1),
                 ],
               ),
             ),
-            Container(height: 1, color: AppColors.border),
+            Container(height: 1, color: context.colors.border),
             Expanded(
               child: GestureDetector(
                 onHorizontalDragEnd: (details) {
                   final velocity = details.primaryVelocity ?? 0;
-                  if (velocity < -250 && _tabIndex == 0) setState(() => _tabIndex = 1);
-                  if (velocity > 250 && _tabIndex == 1) setState(() => _tabIndex = 0);
+                  if (velocity.abs() > 200) {
+                    setState(() => _tabIndex = velocity < 0 ? 1 : 0);
+                  }
                 },
-                child: _tabIndex == 0 ? _buildAlunosTab() : _buildProvasTab(),
+                child: _buildConteudo(),
               ),
             ),
           ],
         ),
       ),
+      // No Scaffold (e não num Stack do corpo) o botão sobe quando aparece
+      // um SnackBar, em vez de ficar coberto por ele.
+      floatingActionButton: _tabIndex == 1 && !_carregando && !_erro
+          ? FloatingActionButton(
+              onPressed: _createAssessment,
+              backgroundColor: context.colors.accent,
+              elevation: 4,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
     );
   }
 
-  Widget _tab(String label, int index) {
+  Widget _tabButton(String label, int index) {
     final active = _tabIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _tabIndex = index),
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _tabIndex = index),
         child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: active ? AppColors.accent : Colors.transparent,
-                width: 2,
-              ),
+            color: active ? context.colors.surface : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: active ? context.colors.border : Colors.transparent,
             ),
           ),
-          padding: const EdgeInsets.only(bottom: 6),
+          alignment: Alignment.center,
           child: Text(
             label,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: active ? AppColors.accent : AppColors.muted,
+              color: active ? context.colors.accent : context.colors.muted,
             ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildConteudo() {
+    if (_carregando) {
+      return Center(
+        child: CircularProgressIndicator(color: context.colors.accent),
+      );
+    }
+    if (_erro) {
+      return LoadErrorView(onRetry: _carregar);
+    }
+    return _tabIndex == 0 ? _buildAlunosTab() : _buildProvasTab();
   }
 
   Widget _buildAlunosTab() {
@@ -161,58 +179,54 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                 children: [
                   Text(
                     '${_alunos.length} alunos',
-                    style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                    style: TextStyle(fontSize: 11, color: context.colors.muted),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
-                    spacing: 8,
                     children: [
                       ElevatedButton.icon(
                         onPressed: _openNovoAlunoSheet,
-                        icon: const Icon(Icons.person, size: 16, color: AppColors.accent),
-                        label: const Text(
+                        icon: Icon(
+                          Icons.person_add_alt,
+                          size: 15,
+                          color: context.colors.accent,
+                        ),
+                        label: Text(
                           'Adicionar',
-                          style: TextStyle(fontSize: 12.0, color: AppColors.accent),
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            color: context.colors.accent,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          fixedSize: const Size(90, 20),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 2,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                         ),
                       ),
+                      const SizedBox(width: 4),
                       ElevatedButton.icon(
-                        onPressed: () => {},
-                        icon: const Icon(
-                          Icons.import_export,
-                          size: 16,
-                          color: AppColors.accent,
+                        onPressed: _openImportarCsvSheet,
+                        icon: Icon(
+                          Icons.file_upload_outlined,
+                          size: 15,
+                          color: context.colors.accent,
                         ),
-                        label: const Text(
-                          'Importar',
-                          style: TextStyle(fontSize: 12.0, color: AppColors.accent),
+                        label: Text(
+                          'Importar CSV',
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            color: context.colors.accent,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          fixedSize: const Size(80, 20),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 2,
-                            vertical: 2,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                         ),
                       ),
                     ],
@@ -220,21 +234,51 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              ..._visibleStudents.map(_buildAlunoItem),
-              if (_studentPageCount > 1) ...[
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(onPressed: _studentPage > 1 ? () => setState(() => _studentPage--) : null, child: const Text('‹ Anterior')),
-                    Text('Página $_studentPage de $_studentPageCount', style: TextStyle(fontSize: 11, color: mutedColor)),
-                    TextButton(onPressed: _studentPage < _studentPageCount ? () => setState(() => _studentPage++) : null, child: const Text('Próxima ›')),
-                  ],
+              if (_alunos.isEmpty)
+                Padding(
+                  padding: EdgeInsets.only(top: 32),
+                  child: Center(
+                    child: Text(
+                      'Nenhum aluno cadastrado nesta turma',
+                      style: TextStyle(
+                        color: context.colors.muted,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                ..._alunosDaPagina.map(
+                  (aluno) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _buildAlunoItem(aluno),
+                  ),
                 ),
-              ],
             ],
           ),
         ),
+        if (_alunos.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: _paginaAlunos > 1
+                      ? () => setState(() => _paginaAlunos--)
+                      : null,
+                  child: const Text('‹ Anterior'),
+                ),
+                Text('Página $_paginaAlunos de $_totalPaginasAlunos'),
+                TextButton(
+                  onPressed: _paginaAlunos < _totalPaginasAlunos
+                      ? () => setState(() => _paginaAlunos++)
+                      : null,
+                  child: const Text('Próxima ›'),
+                ),
+              ],
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: PrimaryButton(
@@ -250,153 +294,110 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   }
 
   Widget _buildProvasTab() {
-    return Stack(
-      children: [
-        ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
-          itemCount: _provas.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 8),
-          itemBuilder: (context, index) => _buildProvaItem(_provas[index]),
+    if (_provas.isEmpty) {
+      return Center(
+        child: Text(
+          'Nenhuma avaliação cadastrada para esta turma',
+          style: TextStyle(color: context.colors.muted, fontSize: 13),
         ),
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton(
-            onPressed: _createAssessment,
-            backgroundColor: AppColors.accent,
-            elevation: 4,
-            child: const Icon(Icons.add, color: Colors.white),
-          ),
-        ),
-      ],
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
+      itemCount: _provas.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      itemBuilder: (context, index) => _buildProvaItem(_provas[index]),
     );
   }
 
-  Widget _buildAlunoItem(_Aluno aluno) {
+  Widget _buildAlunoItem(Aluno aluno) {
     return AppListItemCard(
       leading: _avatar(aluno.nome),
       title: aluno.nome,
       subtitle: Text(
-        aluno.matricula,
-        style: const TextStyle(fontSize: 11, color: AppColors.muted),
+        'Matrícula ${aluno.matricula}',
+        style: TextStyle(fontSize: 11, color: context.colors.muted),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: Icon(
+              Icons.edit_outlined,
+              size: 18,
+              color: context.colors.accent,
+            ),
+            tooltip: 'Editar aluno',
+            onPressed: () => _openEditarAlunoSheet(aluno),
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.delete_outline,
+              size: 18,
+              color: context.colors.danger,
+            ),
+            tooltip: 'Excluir aluno',
+            onPressed: () => _confirmarExclusaoAluno(aluno),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildProvaItem(_Prova prova) {
-    final aplicada = prova.status == 'Aplicada';
-    final assessment = prova.assessment ?? Assessment(
-      id: 'prova-${prova.titulo.hashCode.abs()}',
-      classId: widget.classId,
-      title: prova.titulo,
-      subject: 'Matemática',
-      className: widget.titulo.split(' - ').first,
-      dateLabel: 'Sem data',
-      status: AssessmentStatus.draft,
-      totalQuestions: 10,
-      correctedStudents: 0,
-      totalStudents: _alunos.length,
-    );
-    return Material(
-      color: cardColor,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: () {
-          if (aplicada) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ProofGradesScreen(
-                  proofTitle: assessment.title,
-                  className: widget.titulo.split(' - ').first,
-                ),
-              ),
-            );
-          } else {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => AssessmentDetailScreen(assessment: assessment),
-              ),
-            );
-          }
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-          decoration: BoxDecoration(
-            border: Border.all(color: borderColor),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: accentLightColor,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Icon(
-                  Icons.description_outlined,
-                  size: 18,
-                  color: accentColor,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      prova.titulo,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      prova.info,
-                      style: TextStyle(fontSize: 11, color: mutedColor),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: aplicada
-                      ? const Color(0xFFE4F6ED)
-                      : const Color(0xFFEEF0F3),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  prova.status,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: aplicada ? const Color(0xFF1F9D6E) : mutedColor,
-                  ),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Gerar QR Code por aluno',
-                onPressed: () => _showStudentQr(assessment),
-                icon: Icon(Icons.qr_code_2, size: 21, color: accentColor),
-                visualDensity: VisualDensity.compact,
-              ),
-            ],
-          ),
+  Widget _buildProvaItem(Assessment prova) {
+    final concluida = prova.isCompleted;
+    return AppListItemCard(
+      leading: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: context.colors.accentLight,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Icon(
+          Icons.description_outlined,
+          size: 18,
+          color: context.colors.accent,
         ),
       ),
+      title: prova.title,
+      subtitle: Text(
+        '${prova.totalQuestions} questões · ${prova.dateLabel}',
+        style: TextStyle(fontSize: 11, color: context.colors.muted),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          StatusBadge.assessment(prova.status),
+          IconButton(
+            tooltip: 'Gerar QR Code por aluno',
+            onPressed: () => _showStudentQr(prova),
+            icon: Icon(Icons.qr_code_2, color: context.colors.accent),
+          ),
+        ],
+      ),
+      onTap: () async {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => concluida
+                ? ProofGradesScreen(assessment: prova)
+                : AssessmentDetailScreen(assessment: prova),
+          ),
+        );
+        _carregar();
+      },
     );
   }
 
   void _showStudentQr(Assessment assessment) {
     if (_alunos.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cadastre ao menos um aluno para gerar o QR Code')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cadastre ao menos um aluno para gerar o QR Code'),
+        ),
+      );
       return;
     }
     var selectedStudentId = _alunos.first.id;
@@ -404,9 +405,11 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
-          final student = _alunos.firstWhere((item) => item.id == selectedStudentId);
+          final student = _alunos.firstWhere(
+            (item) => item.id == selectedStudentId,
+          );
           final payload = ProofQrPayload(
-            classId: widget.classId,
+            classId: widget.turma.id,
             proofId: assessment.id,
             studentId: student.id,
           ).encode();
@@ -415,32 +418,50 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
             content: SizedBox(
               width: 280,
               child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButton<String>(
-                  isExpanded: true,
-                  value: selectedStudentId,
-                  items: _alunos.map((item) => DropdownMenuItem(value: item.id, child: Text(item.nome))).toList(),
-                  onChanged: (value) {
-                    if (value != null) setDialogState(() => selectedStudentId = value);
-                  },
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: 210,
-                  height: 210,
-                  child: QrImageView(data: payload, size: 210, backgroundColor: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Turma ${widget.classId} · Prova ${assessment.id} · Aluno ${student.id}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 11),
-                ),
-              ],
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButton<String>(
+                    isExpanded: true,
+                    value: selectedStudentId,
+                    items: _alunos
+                        .map(
+                          (item) => DropdownMenuItem(
+                            value: item.id,
+                            child: Text(item.nome),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => selectedStudentId = value);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: 210,
+                    height: 210,
+                    child: QrImageView(
+                      data: payload,
+                      size: 210,
+                      backgroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Turma ${widget.turma.id} · Prova ${assessment.id} · Aluno ${student.id}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ],
               ),
             ),
-            actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Fechar'))],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Fechar'),
+              ),
+            ],
           );
         },
       ),
@@ -448,33 +469,16 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   }
 
   Future<void> _createAssessment() async {
-    final assessment = await Navigator.push<Assessment>(
+    // O aviso desta tela (ex.: alunos importados) seguiria para a próxima e
+    // cobriria o botão "Salvar prova".
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    final criada = await Navigator.push<Assessment>(
       context,
-      MaterialPageRoute(
-        builder: (_) => NewProofScreen(
-          className: widget.titulo.split(' - ').first,
-          classId: widget.classId,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => NewProofScreen(turma: widget.turma)),
     );
-    if (assessment == null || !mounted) {
-      return;
+    if (criada != null && mounted) {
+      _carregar();
     }
-
-    setState(() {
-      _provas.insert(
-        0,
-        _Prova(
-          assessment.title,
-          '${assessment.totalQuestions} questões',
-          'Rascunho',
-          assessment: assessment,
-        ),
-      );
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Avaliação criada como rascunho')),
-    );
   }
 
   Widget _avatar(String nome) {
@@ -485,35 +489,37 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     return Container(
       width: 36,
       height: 36,
-      decoration: const BoxDecoration(
-        color: AppColors.accentLight,
+      decoration: BoxDecoration(
+        color: context.colors.accentLight,
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
       child: Text(
         initials.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: AppColors.accent,
+          color: context.colors.accent,
         ),
       ),
     );
   }
 
   void _openNovoAlunoSheet() {
-    final messenger = ScaffoldMessenger.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => _NovoAlunoSheet(
-        onCreate: (nome, matricula) {
+      builder: (sheetContext) => _AlunoFormSheet(
+        titulo: 'Novo aluno(a)',
+        botaoTexto: 'Adicionar aluno',
+        onSubmit: (nome, matricula) async {
           final nomeLimpo = nome.trim();
           final matriculaLimpa = matricula.trim();
+          final messenger = ScaffoldMessenger.of(context);
+          Navigator.pop(sheetContext);
 
           if (nomeLimpo.isEmpty || matriculaLimpa.isEmpty) {
-            Navigator.pop(sheetContext);
             messenger.showSnackBar(
               const SnackBar(
                 content: Text('Preencha nome e matrícula do aluno'),
@@ -522,40 +528,235 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
             return;
           }
 
-          if (_alunos.any((aluno) => aluno.id == 'aluno-$matriculaLimpa')) {
-            Navigator.pop(sheetContext);
+          try {
+            final aluno = await _alunoRepository.adicionar(
+              turmaId: widget.turma.id,
+              nome: nomeLimpo,
+              matricula: matriculaLimpa,
+            );
+            if (!mounted) return;
+            setState(() => _alunos.insert(0, aluno));
             messenger.showSnackBar(
-              const SnackBar(content: Text('Já existe um aluno com essa matrícula')),
+              SnackBar(content: Text('Aluno(a) "$nomeLimpo" adicionado(a)')),
+            );
+          } on MatriculaDuplicadaException catch (e) {
+            messenger.showSnackBar(SnackBar(content: Text(e.message)));
+          } catch (_) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Não foi possível adicionar o aluno'),
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  void _openEditarAlunoSheet(Aluno aluno) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _AlunoFormSheet(
+        titulo: 'Editar aluno(a)',
+        botaoTexto: 'Salvar alterações',
+        nomeInicial: aluno.nome,
+        matriculaInicial: aluno.matricula,
+        onSubmit: (nome, matricula) async {
+          final nomeLimpo = nome.trim();
+          final matriculaLimpa = matricula.trim();
+          final messenger = ScaffoldMessenger.of(context);
+          Navigator.pop(sheetContext);
+
+          if (nomeLimpo.isEmpty || matriculaLimpa.isEmpty) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Preencha nome e matrícula do aluno'),
+              ),
             );
             return;
           }
 
+          try {
+            final atualizado = await _alunoRepository.editar(
+              id: aluno.id,
+              turmaId: widget.turma.id,
+              nome: nomeLimpo,
+              matricula: matriculaLimpa,
+            );
+            if (!mounted) return;
+            setState(() {
+              final idx = _alunos.indexWhere((a) => a.id == aluno.id);
+              if (idx != -1) _alunos[idx] = atualizado;
+            });
+            messenger.showSnackBar(
+              SnackBar(content: Text('Aluno(a) "$nomeLimpo" atualizado(a)')),
+            );
+          } on MatriculaDuplicadaException catch (e) {
+            messenger.showSnackBar(SnackBar(content: Text(e.message)));
+          } catch (_) {
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Não foi possível editar o aluno')),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _confirmarExclusaoAluno(Aluno aluno) async {
+    final temProva = await _alunoRepository.turmaTemProvaAplicada(
+      widget.turma.id,
+    );
+    if (!mounted) return;
+
+    if (temProva) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Exclusão não permitida'),
+          content: const Text(
+            'Não é possível excluir o aluno pois a turma já possui prova aplicada.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Entendi'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final confirma = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir aluno'),
+        content: Text('Deseja realmente excluir o aluno "${aluno.nome}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: context.colors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirma == true && mounted) {
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        await _alunoRepository.excluir(
+          alunoId: aluno.id,
+          turmaId: widget.turma.id,
+        );
+        if (!mounted) return;
+        setState(() {
+          _alunos.removeWhere((a) => a.id == aluno.id);
+          _paginaAlunos = _paginaAlunos.clamp(1, _totalPaginasAlunos);
+        });
+        messenger.showSnackBar(
+          SnackBar(content: Text('Aluno "${aluno.nome}" removido')),
+        );
+      } on AlunoComProvaAplicadaException catch (e) {
+        messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      } catch (_) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Não foi possível excluir o aluno')),
+        );
+      }
+    }
+  }
+
+  void _openImportarCsvSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _ImportarAlunosCsvSheet(
+        onImport: (conteudoCsv) async {
+          final messenger = ScaffoldMessenger.of(context);
           Navigator.pop(sheetContext);
-          setState(() {
-            _alunos.insert(0, _Aluno('aluno-$matriculaLimpa', nomeLimpo, 'Matrícula $matriculaLimpa'));
-            _studentPage = 1;
-          });
-          messenger.showSnackBar(
-            SnackBar(content: Text('Aluno(a) "$nomeLimpo" adicionado(a)')),
-          );
+
+          final resultado = CsvImportService.parseStudents(conteudoCsv);
+          if (!resultado.temAlunos) {
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  resultado.erros.isNotEmpty
+                      ? resultado.erros.first
+                      : 'Nenhum aluno identificado no texto CSV informado',
+                ),
+              ),
+            );
+            return;
+          }
+
+          try {
+            final adicionados = await _alunoRepository.importarAlunos(
+              turmaId: widget.turma.id,
+              novosAlunos: [
+                for (final row in resultado.alunos)
+                  (nome: row.nome, matricula: row.matricula),
+              ],
+            );
+            if (!mounted) return;
+            _carregar();
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  '$adicionados alunos importados com sucesso!'
+                  '${resultado.erros.isNotEmpty ? ' (${resultado.erros.length} erros)' : ''}',
+                ),
+              ),
+            );
+          } catch (_) {
+            if (!mounted) return;
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Erro ao importar alunos do CSV')),
+            );
+          }
         },
       ),
     );
   }
 }
 
-class _NovoAlunoSheet extends StatefulWidget {
-  const _NovoAlunoSheet({required this.onCreate});
+class _AlunoFormSheet extends StatefulWidget {
+  const _AlunoFormSheet({
+    required this.titulo,
+    required this.botaoTexto,
+    required this.onSubmit,
+    this.nomeInicial = '',
+    this.matriculaInicial = '',
+  });
 
-  final void Function(String nome, String matricula) onCreate;
+  final String titulo;
+  final String botaoTexto;
+  final String nomeInicial;
+  final String matriculaInicial;
+  final void Function(String nome, String matricula) onSubmit;
 
   @override
-  State<_NovoAlunoSheet> createState() => _NovoAlunoSheetState();
+  State<_AlunoFormSheet> createState() => _AlunoFormSheetState();
 }
 
-class _NovoAlunoSheetState extends State<_NovoAlunoSheet> {
-  final TextEditingController _nomeController = TextEditingController();
-  final TextEditingController _matriculaController = TextEditingController();
+class _AlunoFormSheetState extends State<_AlunoFormSheet> {
+  late final TextEditingController _nomeController;
+  late final TextEditingController _matriculaController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nomeController = TextEditingController(text: widget.nomeInicial);
+    _matriculaController = TextEditingController(text: widget.matriculaInicial);
+  }
 
   @override
   void dispose() {
@@ -571,8 +772,8 @@ class _NovoAlunoSheetState extends State<_NovoAlunoSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: context.colors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
@@ -586,17 +787,17 @@ class _NovoAlunoSheetState extends State<_NovoAlunoSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(top: 4, bottom: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: context.colors.border,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
-            const Text(
-              'Novo aluno(a)',
+            Text(
+              widget.titulo,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppColors.text,
+                color: context.colors.text,
               ),
             ),
             const SizedBox(height: 14),
@@ -615,11 +816,11 @@ class _NovoAlunoSheetState extends State<_NovoAlunoSheet> {
             ),
             const SizedBox(height: 18),
             PrimaryButton(
-              label: 'Adicionar aluno',
+              label: widget.botaoTexto,
               verticalPadding: 14,
               fontSize: 13,
               onPressed: () {
-                widget.onCreate(
+                widget.onSubmit(
                   _nomeController.text,
                   _matriculaController.text,
                 );
@@ -629,12 +830,12 @@ class _NovoAlunoSheetState extends State<_NovoAlunoSheet> {
             Center(
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: const Text(
+                child: Text(
                   'Cancelar',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.accent,
+                    color: context.colors.accent,
                   ),
                 ),
               ),
@@ -646,18 +847,113 @@ class _NovoAlunoSheetState extends State<_NovoAlunoSheet> {
   }
 }
 
-class _Aluno {
-  final String id;
-  final String nome;
-  final String matricula;
-  const _Aluno(this.id, this.nome, this.matricula);
+class _ImportarAlunosCsvSheet extends StatefulWidget {
+  const _ImportarAlunosCsvSheet({required this.onImport});
+
+  final void Function(String conteudoCsv) onImport;
+
+  @override
+  State<_ImportarAlunosCsvSheet> createState() =>
+      _ImportarAlunosCsvSheetState();
 }
 
-class _Prova {
-  final String titulo;
-  final String info;
-  final String status;
-  final Assessment? assessment;
+class _ImportarAlunosCsvSheetState extends State<_ImportarAlunosCsvSheet> {
+  final _controller = TextEditingController();
 
-  const _Prova(this.titulo, this.info, this.status, {this.assessment});
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(top: 4, bottom: 12),
+                decoration: BoxDecoration(
+                  color: context.colors.border,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            Text(
+              'Importar Alunos via Planilha (CSV)',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: context.colors.text,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Selecione um arquivo .csv ou cole o conteúdo com as colunas "nome" e "matricula" (separadas por vírgula ou ponto-e-vírgula):',
+              style: TextStyle(fontSize: 12, color: context.colors.muted),
+            ),
+            const SizedBox(height: 10),
+            CsvFilePicker(
+              onChanged: (file) => _controller.text = file?.content ?? '',
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _controller,
+              maxLines: 6,
+              style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+              decoration: InputDecoration(
+                hintText: "nome,matricula\nLucas Pereira,2026101\nFernanda Lima,2026102",
+                hintStyle: TextStyle(color: context.colors.muted, fontSize: 11),
+                filled: true,
+                fillColor: context.colors.input,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: context.colors.border),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            PrimaryButton(
+              label: 'Processar e Importar',
+              verticalPadding: 14,
+              fontSize: 13,
+              onPressed: () {
+                if (_controller.text.trim().isNotEmpty) {
+                  widget.onImport(_controller.text);
+                }
+              },
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Text(
+                  'Cancelar',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: context.colors.accent,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
