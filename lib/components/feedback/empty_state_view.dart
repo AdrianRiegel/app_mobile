@@ -42,8 +42,8 @@ class EmptyStateView extends StatelessWidget {
             const SizedBox(height: 18),
             Text(
               title,
-              style: const TextStyle(
-                color: AppColors.text,
+              style: TextStyle(
+                color: context.colors.text,
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),
@@ -52,7 +52,7 @@ class EmptyStateView extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.muted, fontSize: 11, height: 1.4),
+              style: TextStyle(color: context.colors.muted, fontSize: 11, height: 1.4),
             ),
             if (action != null) ...[
               const SizedBox(height: 20),

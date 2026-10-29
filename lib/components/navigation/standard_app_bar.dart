@@ -24,27 +24,27 @@ class StandardAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.surface,
-      surfaceTintColor: AppColors.surface,
+      backgroundColor: context.colors.surface,
+      surfaceTintColor: context.colors.surface,
       elevation: 0,
       leading: IconButton(
         onPressed: onBack ?? () => Navigator.pop(context),
         icon: const Icon(Icons.arrow_back, size: 20),
-        color: AppColors.text,
+        color: context.colors.text,
       ),
       title: Text(
         title,
-        style: const TextStyle(
-          color: AppColors.text,
+        style: TextStyle(
+          color: context.colors.text,
           fontSize: 17,
           fontWeight: FontWeight.w600,
         ),
       ),
       actions: actions,
       bottom: showDivider
-          ? const PreferredSize(
+          ? PreferredSize(
               preferredSize: Size.fromHeight(1),
-              child: Divider(height: 1, color: AppColors.border),
+              child: Divider(height: 1, color: context.colors.border),
             )
           : null,
     );

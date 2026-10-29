@@ -16,24 +16,11 @@ class NewProofScreen extends StatefulWidget {
 }
 
 class _NewProofScreenState extends State<NewProofScreen> {
-  final _titleController = TextEditingController(
-    text: 'Avaliação bimestral — Cap. 4',
-  );
-  DateTime _dataAplicacao = DateTime.now();
+  final _titleController = TextEditingController();
+  DateTime? _dataAplicacao;
   bool _salvando = false;
 
-  final List<Question> _questions = [
-    const Question(
-      statement: 'Qual é o resultado de 7 × 8?',
-      options: ['54', '56', '58', '60'],
-      correctIndex: 1,
-    ),
-    const Question(
-      statement: 'Qual fração equivale a 0,5?',
-      options: ['1/2', '1/4', '2/3', '3/4'],
-      correctIndex: 0,
-    ),
-  ];
+  final List<Question> _questions = [];
 
   @override
   void dispose() {
@@ -44,7 +31,7 @@ class _NewProofScreenState extends State<NewProofScreen> {
   Future<void> _selecionarData() async {
     final escolhida = await showDatePicker(
       context: context,
-      initialDate: _dataAplicacao,
+      initialDate: _dataAplicacao ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
     );
@@ -56,17 +43,17 @@ class _NewProofScreenState extends State<NewProofScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: const StandardAppBar(title: 'Nova prova'),
       body: SafeArea(
         top: false,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
           children: [
-            const Text(
+            Text(
               'Título da prova',
               style: TextStyle(
-                color: AppColors.muted,
+                color: context.colors.muted,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -74,13 +61,15 @@ class _NewProofScreenState extends State<NewProofScreen> {
             const SizedBox(height: 6),
             TextField(
               controller: _titleController,
-              decoration: _inputDecoration(),
+              decoration: _inputDecoration(
+                hint: 'Ex: Avaliação bimestral — Cap. 4',
+              ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Data de aplicação',
               style: TextStyle(
-                color: AppColors.muted,
+                color: context.colors.muted,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -95,24 +84,28 @@ class _NewProofScreenState extends State<NewProofScreen> {
                   vertical: 14,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.input,
+                  color: context.colors.input,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: context.colors.border),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      AvaliacaoRepository.formatarData(_dataAplicacao),
-                      style: const TextStyle(
+                      _dataAplicacao == null
+                          ? 'Selecionar data'
+                          : AvaliacaoRepository.formatarData(_dataAplicacao!),
+                      style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.text,
+                        color: _dataAplicacao == null
+                            ? context.colors.muted
+                            : context.colors.text,
                       ),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.calendar_today_outlined,
                       size: 18,
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                     ),
                   ],
                 ),
@@ -122,50 +115,70 @@ class _NewProofScreenState extends State<NewProofScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Questões adicionadas',
                   style: TextStyle(
-                    color: AppColors.text,
+                    color: context.colors.text,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
-                  '${_questions.length} questões',
-                  style: const TextStyle(color: AppColors.muted, fontSize: 11),
+                  '${_questions.length} '
+                  '${_questions.length == 1 ? 'questão' : 'questões'}',
+                  style: TextStyle(color: context.colors.muted, fontSize: 11),
                 ),
               ],
             ),
             const SizedBox(height: 10),
+            if (_questions.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Nenhuma questão adicionada. Use o botão abaixo para '
+                  'montar a prova.',
+                  style: TextStyle(color: context.colors.muted, fontSize: 12),
+                ),
+              ),
             ..._questions.asMap().entries.map(
               (entry) => _questionCard(entry.key + 1, entry.key, entry.value),
             ),
             const SizedBox(height: 14),
             OutlinedButton.icon(
               onPressed: _openAddQuestionSheet,
-              icon: const Icon(Icons.add, size: 18, color: AppColors.accent),
-              label: const Text(
+              icon: Icon(Icons.add, size: 18, color: context.colors.accent),
+              label: Text(
                 'Adicionar questão',
                 style: TextStyle(
-                  color: AppColors.accent,
+                  color: context.colors.accent,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.accent, width: 1.2),
+                side: BorderSide(color: context.colors.accent, width: 1.2),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 13),
               ),
             ),
-            const SizedBox(height: 14),
-            PrimaryButton(
+          ],
+        ),
+      ),
+      // Como bottomNavigationBar, os SnackBars (ex.: "Questão adicionada")
+      // aparecem acima do botão em vez de cobri-lo.
+      bottomNavigationBar: Container(
+        color: context.colors.surface,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: PrimaryButton(
               label: _salvando ? 'Salvando...' : 'Salvar prova',
               onPressed: _salvando ? null : _save,
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -176,8 +189,8 @@ class _NewProofScreenState extends State<NewProofScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
+        color: context.colors.surface,
+        border: Border.all(color: context.colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -189,8 +202,8 @@ class _NewProofScreenState extends State<NewProofScreen> {
               Expanded(
                 child: Text(
                   '$number. ${question.statement}',
-                  style: const TextStyle(
-                    color: AppColors.text,
+                  style: TextStyle(
+                    color: context.colors.text,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -199,13 +212,13 @@ class _NewProofScreenState extends State<NewProofScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.successLight,
+                  color: context.colors.successLight,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   'Correta: ${question.correctLetter}',
-                  style: const TextStyle(
-                    color: AppColors.success,
+                  style: TextStyle(
+                    color: context.colors.success,
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
@@ -213,15 +226,26 @@ class _NewProofScreenState extends State<NewProofScreen> {
               ),
               const SizedBox(width: 4),
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.edit_outlined,
                   size: 18,
-                  color: AppColors.accent,
+                  color: context.colors.accent,
                 ),
                 tooltip: 'Editar questão',
                 constraints: const BoxConstraints(),
                 padding: const EdgeInsets.all(4),
                 onPressed: () => _openEditQuestionSheet(index),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 18,
+                  color: context.colors.danger,
+                ),
+                tooltip: 'Remover questão',
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(4),
+                onPressed: () => _removerQuestao(index),
               ),
             ],
           ),
@@ -237,8 +261,8 @@ class _NewProofScreenState extends State<NewProofScreen> {
                         : Icons.radio_button_unchecked,
                     size: 18,
                     color: entry.key == question.correctIndex
-                        ? AppColors.success
-                        : AppColors.border,
+                        ? context.colors.success
+                        : context.colors.border,
                   ),
                   const SizedBox(width: 7),
                   Expanded(
@@ -246,8 +270,8 @@ class _NewProofScreenState extends State<NewProofScreen> {
                       '${String.fromCharCode(97 + entry.key)}) ${entry.value}',
                       style: TextStyle(
                         color: entry.key == question.correctIndex
-                            ? AppColors.text
-                            : AppColors.muted,
+                            ? context.colors.text
+                            : context.colors.muted,
                         fontSize: 12,
                         fontWeight: entry.key == question.correctIndex
                             ? FontWeight.w500
@@ -299,18 +323,19 @@ class _NewProofScreenState extends State<NewProofScreen> {
     );
   }
 
-  InputDecoration _inputDecoration() {
+  InputDecoration _inputDecoration({String? hint}) {
     return InputDecoration(
+      hintText: hint,
       filled: true,
-      fillColor: AppColors.input,
+      fillColor: context.colors.input,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: BorderSide(color: context.colors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+        borderSide: BorderSide(color: context.colors.accent, width: 1.5),
       ),
     );
   }
@@ -347,6 +372,27 @@ class _NewProofScreenState extends State<NewProofScreen> {
       setState(() => _salvando = false);
       _showFeedback('Não foi possível salvar a prova');
     }
+  }
+
+  /// Remove a questão (as seguintes são renumeradas) e oferece desfazer.
+  void _removerQuestao(int index) {
+    final removida = _questions[index];
+    setState(() => _questions.removeAt(index));
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Questão ${index + 1} removida'),
+        action: SnackBarAction(
+          label: 'Desfazer',
+          onPressed: () {
+            if (!mounted) return;
+            setState(() => _questions.insert(index, removida));
+          },
+        ),
+      ),
+    );
   }
 
   void _showFeedback(String message) {
@@ -412,8 +458,8 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.88,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: context.colors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
@@ -428,7 +474,7 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
                   height: 4,
                   margin: const EdgeInsets.only(top: 4, bottom: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: context.colors.border,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -437,19 +483,19 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
                 isEditing
                     ? 'Editar questão ${widget.questionNumber}'
                     : 'Questão ${widget.questionNumber}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.text,
+                  color: context.colors.text,
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'Enunciado da questão',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.muted,
+                  color: context.colors.muted,
                 ),
               ),
               const SizedBox(height: 6),
@@ -460,25 +506,25 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
                 decoration: InputDecoration(
                   hintText: 'Ex: Qual é a fórmula da água?',
                   filled: true,
-                  fillColor: AppColors.input,
+                  fillColor: context.colors.input,
                   contentPadding: const EdgeInsets.all(12),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide: BorderSide(color: context.colors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: AppColors.accent),
+                    borderSide: BorderSide(color: context.colors.accent),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Alternativas (Selecione a correta)',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.muted,
+                  color: context.colors.muted,
                 ),
               ),
               const SizedBox(height: 8),
@@ -494,8 +540,8 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
                               ? Icons.radio_button_checked
                               : Icons.radio_button_unchecked,
                           color: _correctIndex == index
-                              ? AppColors.success
-                              : AppColors.muted,
+                              ? context.colors.success
+                              : context.colors.muted,
                         ),
                         onPressed: () => setState(() => _correctIndex = index),
                       ),
@@ -511,17 +557,17 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
                               vertical: 10,
                             ),
                             filled: true,
-                            fillColor: AppColors.input,
+                            fillColor: context.colors.input,
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: AppColors.border,
+                              borderSide: BorderSide(
+                                color: context.colors.border,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: AppColors.accent,
+                              borderSide: BorderSide(
+                                color: context.colors.accent,
                               ),
                             ),
                           ),
@@ -542,12 +588,12 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
               Center(
                 child: GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: const Text(
+                  child: Text(
                     'Cancelar',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                     ),
                   ),
                 ),

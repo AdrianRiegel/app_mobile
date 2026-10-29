@@ -78,16 +78,16 @@ class _CsvFilePickerState extends State<CsvFilePicker> {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.error_outline,
                 size: 14,
-                color: AppColors.danger,
+                color: context.colors.danger,
               ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   _error!,
-                  style: const TextStyle(fontSize: 11, color: AppColors.danger),
+                  style: TextStyle(fontSize: 11, color: context.colors.danger),
                 ),
               ),
             ],
@@ -99,7 +99,7 @@ class _CsvFilePickerState extends State<CsvFilePicker> {
 
   Widget _buildEmpty() {
     return Material(
-      color: AppColors.input,
+      color: context.colors.input,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: _loading ? null : _pick,
@@ -108,7 +108,7 @@ class _CsvFilePickerState extends State<CsvFilePicker> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
           decoration: BoxDecoration(
             border: Border.all(
-              color: _error != null ? AppColors.danger : AppColors.border,
+              color: _error != null ? context.colors.danger : context.colors.border,
               width: 1.5,
             ),
             borderRadius: BorderRadius.circular(12),
@@ -119,38 +119,38 @@ class _CsvFilePickerState extends State<CsvFilePicker> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.accentLight,
+                  color: context.colors.accentLight,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
                 child: _loading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppColors.accent,
+                          color: context.colors.accent,
                         ),
                       )
-                    : const Icon(
+                    : Icon(
                         Icons.upload_file_outlined,
                         size: 20,
-                        color: AppColors.accent,
+                        color: context.colors.accent,
                       ),
               ),
               const SizedBox(height: 10),
-              const Text(
+              Text(
                 'Selecionar arquivo CSV',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.accent,
+                  color: context.colors.accent,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 widget.hint,
-                style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                style: TextStyle(fontSize: 11, color: context.colors.muted),
               ),
             ],
           ),
@@ -163,8 +163,8 @@ class _CsvFilePickerState extends State<CsvFilePicker> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
+        color: context.colors.surface,
+        border: Border.all(color: context.colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -173,13 +173,13 @@ class _CsvFilePickerState extends State<CsvFilePicker> {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: AppColors.successLight,
+              color: context.colors.successLight,
               borderRadius: BorderRadius.circular(9),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.description_outlined,
               size: 18,
-              color: AppColors.success,
+              color: context.colors.success,
             ),
           ),
           const SizedBox(width: 10),
@@ -190,16 +190,16 @@ class _CsvFilePickerState extends State<CsvFilePicker> {
                 Text(
                   file.name,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.text,
+                    color: context.colors.text,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   file.sizeLabel,
-                  style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                  style: TextStyle(fontSize: 11, color: context.colors.muted),
                 ),
               ],
             ),
@@ -207,7 +207,7 @@ class _CsvFilePickerState extends State<CsvFilePicker> {
           TextButton(
             onPressed: _loading ? null : _pick,
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.accent,
+              foregroundColor: context.colors.accent,
               textStyle: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -220,7 +220,7 @@ class _CsvFilePickerState extends State<CsvFilePicker> {
             tooltip: 'Remover arquivo',
             onPressed: _loading ? null : _clear,
             visualDensity: VisualDensity.compact,
-            icon: const Icon(Icons.close, size: 18, color: AppColors.muted),
+            icon: Icon(Icons.close, size: 18, color: context.colors.muted),
           ),
         ],
       ),

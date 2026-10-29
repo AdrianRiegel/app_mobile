@@ -65,7 +65,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: StandardAppBar(
         title: _tabIndex == 1
             ? 'Provas · ${widget.turma.nome}'
@@ -86,7 +86,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                 ],
               ),
             ),
-            Container(height: 1, color: AppColors.border),
+            Container(height: 1, color: context.colors.border),
             Expanded(child: _buildConteudo()),
           ],
         ),
@@ -96,7 +96,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       floatingActionButton: _tabIndex == 1 && !_carregando && !_erro
           ? FloatingActionButton(
               onPressed: _createAssessment,
-              backgroundColor: AppColors.accent,
+              backgroundColor: context.colors.accent,
               elevation: 4,
               child: const Icon(Icons.add, color: Colors.white),
             )
@@ -112,10 +112,10 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: active ? AppColors.surface : Colors.transparent,
+            color: active ? context.colors.surface : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: active ? AppColors.border : Colors.transparent,
+              color: active ? context.colors.border : Colors.transparent,
             ),
           ),
           alignment: Alignment.center,
@@ -124,7 +124,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: active ? AppColors.accent : AppColors.muted,
+              color: active ? context.colors.accent : context.colors.muted,
             ),
           ),
         ),
@@ -134,8 +134,8 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
 
   Widget _buildConteudo() {
     if (_carregando) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.accent),
+      return Center(
+        child: CircularProgressIndicator(color: context.colors.accent),
       );
     }
     if (_erro) {
@@ -156,9 +156,9 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                 children: [
                   Text(
                     '${_alunos.length} alunos',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.muted,
+                      color: context.colors.muted,
                     ),
                   ),
                   Row(
@@ -166,16 +166,16 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                     children: [
                       ElevatedButton.icon(
                         onPressed: _openNovoAlunoSheet,
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.person_add_alt,
                           size: 15,
-                          color: AppColors.accent,
+                          color: context.colors.accent,
                         ),
-                        label: const Text(
+                        label: Text(
                           'Adicionar',
                           style: TextStyle(
                             fontSize: 12.0,
-                            color: AppColors.accent,
+                            color: context.colors.accent,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -189,16 +189,16 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                       const SizedBox(width: 4),
                       ElevatedButton.icon(
                         onPressed: _openImportarCsvSheet,
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.file_upload_outlined,
                           size: 15,
-                          color: AppColors.accent,
+                          color: context.colors.accent,
                         ),
-                        label: const Text(
+                        label: Text(
                           'Importar CSV',
                           style: TextStyle(
                             fontSize: 12.0,
-                            color: AppColors.accent,
+                            color: context.colors.accent,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -215,12 +215,12 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
               ),
               const SizedBox(height: 10),
               if (_alunos.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(top: 32),
                   child: Center(
                     child: Text(
                       'Nenhum aluno cadastrado nesta turma',
-                      style: TextStyle(color: AppColors.muted, fontSize: 13),
+                      style: TextStyle(color: context.colors.muted, fontSize: 13),
                     ),
                   ),
                 )
@@ -250,10 +250,10 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
 
   Widget _buildProvasTab() {
     if (_provas.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'Nenhuma avaliação cadastrada para esta turma',
-          style: TextStyle(color: AppColors.muted, fontSize: 13),
+          style: TextStyle(color: context.colors.muted, fontSize: 13),
         ),
       );
     }
@@ -271,25 +271,25 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       title: aluno.nome,
       subtitle: Text(
         'Matrícula ${aluno.matricula}',
-        style: const TextStyle(fontSize: 11, color: AppColors.muted),
+        style: TextStyle(fontSize: 11, color: context.colors.muted),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.edit_outlined,
               size: 18,
-              color: AppColors.accent,
+              color: context.colors.accent,
             ),
             tooltip: 'Editar aluno',
             onPressed: () => _openEditarAlunoSheet(aluno),
           ),
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.delete_outline,
               size: 18,
-              color: AppColors.danger,
+              color: context.colors.danger,
             ),
             tooltip: 'Excluir aluno',
             onPressed: () => _confirmarExclusaoAluno(aluno),
@@ -306,19 +306,19 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
         width: 34,
         height: 34,
         decoration: BoxDecoration(
-          color: AppColors.accentLight,
+          color: context.colors.accentLight,
           borderRadius: BorderRadius.circular(9),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.description_outlined,
           size: 18,
-          color: AppColors.accent,
+          color: context.colors.accent,
         ),
       ),
       title: prova.title,
       subtitle: Text(
         '${prova.totalQuestions} questões · ${prova.dateLabel}',
-        style: const TextStyle(fontSize: 11, color: AppColors.muted),
+        style: TextStyle(fontSize: 11, color: context.colors.muted),
       ),
       trailing: StatusBadge.assessment(prova.status),
       onTap: () async {
@@ -357,17 +357,17 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     return Container(
       width: 36,
       height: 36,
-      decoration: const BoxDecoration(
-        color: AppColors.accentLight,
+      decoration: BoxDecoration(
+        color: context.colors.accentLight,
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
       child: Text(
         initials.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: AppColors.accent,
+          color: context.colors.accent,
         ),
       ),
     );
@@ -509,7 +509,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
             child: const Text('Cancelar'),
           ),
           TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            style: TextButton.styleFrom(foregroundColor: context.colors.danger),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Excluir'),
           ),
@@ -637,8 +637,8 @@ class _AlunoFormSheetState extends State<_AlunoFormSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: context.colors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
@@ -652,17 +652,17 @@ class _AlunoFormSheetState extends State<_AlunoFormSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(top: 4, bottom: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: context.colors.border,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
             Text(
               widget.titulo,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppColors.text,
+                color: context.colors.text,
               ),
             ),
             const SizedBox(height: 14),
@@ -695,12 +695,12 @@ class _AlunoFormSheetState extends State<_AlunoFormSheet> {
             Center(
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: const Text(
+                child: Text(
                   'Cancelar',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.accent,
+                    color: context.colors.accent,
                   ),
                 ),
               ),
@@ -738,8 +738,8 @@ class _ImportarAlunosCsvSheetState extends State<_ImportarAlunosCsvSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: context.colors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
@@ -753,23 +753,23 @@ class _ImportarAlunosCsvSheetState extends State<_ImportarAlunosCsvSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(top: 4, bottom: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: context.colors.border,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
-            const Text(
+            Text(
               'Importar Alunos via Planilha (CSV)',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppColors.text,
+                color: context.colors.text,
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Selecione um arquivo .csv ou cole o conteúdo com as colunas "nome" e "matricula" (separadas por vírgula ou ponto-e-vírgula):',
-              style: TextStyle(fontSize: 12, color: AppColors.muted),
+              style: TextStyle(fontSize: 12, color: context.colors.muted),
             ),
             const SizedBox(height: 10),
             CsvFilePicker(
@@ -782,15 +782,15 @@ class _ImportarAlunosCsvSheetState extends State<_ImportarAlunosCsvSheet> {
               style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
               decoration: InputDecoration(
                 hintText: "nome,matricula\nLucas Pereira,2026101\nFernanda Lima,2026102",
-                hintStyle: const TextStyle(
-                  color: AppColors.muted,
+                hintStyle: TextStyle(
+                  color: context.colors.muted,
                   fontSize: 11,
                 ),
                 filled: true,
-                fillColor: AppColors.input,
+                fillColor: context.colors.input,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppColors.border),
+                  borderSide: BorderSide(color: context.colors.border),
                 ),
               ),
             ),
@@ -809,12 +809,12 @@ class _ImportarAlunosCsvSheetState extends State<_ImportarAlunosCsvSheet> {
             Center(
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: const Text(
+                child: Text(
                   'Cancelar',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.accent,
+                    color: context.colors.accent,
                   ),
                 ),
               ),

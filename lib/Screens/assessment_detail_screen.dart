@@ -96,7 +96,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
             child: const Text('Cancelar'),
           ),
           TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            style: TextButton.styleFrom(foregroundColor: context.colors.danger),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Excluir'),
           ),
@@ -142,22 +142,22 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
         : assessment.correctedStudents / assessment.totalStudents;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: StandardAppBar(
         title: 'Detalhes da avaliação',
         actions: [
           IconButton(
-            icon: const Icon(Icons.shuffle, size: 20, color: AppColors.accent),
+            icon: Icon(Icons.shuffle, size: 20, color: context.colors.accent),
             tooltip: 'Gerar PDF randômico',
             onPressed: _gerarProvaRandomicaPdf,
           ),
           IconButton(
-            icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.accent),
+            icon: Icon(Icons.edit_outlined, size: 20, color: context.colors.accent),
             tooltip: 'Editar informações',
             onPressed: _openEditarInformacoes,
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.danger),
+            icon: Icon(Icons.delete_outline, size: 20, color: context.colors.danger),
             tooltip: 'Excluir avaliação',
             onPressed: _confirmarExclusao,
           ),
@@ -177,8 +177,8 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                     children: [
                       Text(
                         assessment.title,
-                        style: const TextStyle(
-                          color: AppColors.text,
+                        style: TextStyle(
+                          color: context.colors.text,
                           fontSize: 17,
                           fontWeight: FontWeight.w600,
                           height: 1.25,
@@ -187,8 +187,8 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                       const SizedBox(height: 5),
                       Text(
                         '${assessment.subject} · ${assessment.className}',
-                        style: const TextStyle(
-                          color: AppColors.muted,
+                        style: TextStyle(
+                          color: context.colors.muted,
                           fontSize: 12,
                         ),
                       ),
@@ -207,8 +207,8 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.surface,
-                border: Border.all(color: AppColors.border),
+                color: context.colors.surface,
+                border: Border.all(color: context.colors.border),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -222,7 +222,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                           'Questões',
                         ),
                       ),
-                      Container(width: 1, height: 40, color: AppColors.border),
+                      Container(width: 1, height: 40, color: context.colors.border),
                       Expanded(
                         child: _metric(
                           Icons.people_outline,
@@ -230,7 +230,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                           'Alunos',
                         ),
                       ),
-                      Container(width: 1, height: 40, color: AppColors.border),
+                      Container(width: 1, height: 40, color: context.colors.border),
                       Expanded(
                         child: _metric(
                           Icons.event_outlined,
@@ -245,14 +245,14 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Correções realizadas',
-                        style: TextStyle(color: AppColors.muted, fontSize: 11),
+                        style: TextStyle(color: context.colors.muted, fontSize: 11),
                       ),
                       Text(
                         '${assessment.correctedStudents} de ${assessment.totalStudents} alunos',
-                        style: const TextStyle(
-                          color: AppColors.text,
+                        style: TextStyle(
+                          color: context.colors.text,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
@@ -265,8 +265,8 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                     child: LinearProgressIndicator(
                       value: progress,
                       minHeight: 6,
-                      backgroundColor: AppColors.border,
-                      valueColor: const AlwaysStoppedAnimation(AppColors.accent),
+                      backgroundColor: context.colors.border,
+                      valueColor: AlwaysStoppedAnimation(context.colors.accent),
                     ),
                   ),
                 ],
@@ -276,20 +276,20 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Gabarito',
                   style: TextStyle(
-                    color: AppColors.text,
+                    color: context.colors.text,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 TextButton(
                   onPressed: () => _openAnswerKey(context),
-                  child: const Text(
+                  child: Text(
                     'Editar',
                     style: TextStyle(
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -300,8 +300,8 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
             Container(
               padding: const EdgeInsets.all(13),
               decoration: BoxDecoration(
-                color: AppColors.surface,
-                border: Border.all(color: AppColors.border),
+                color: context.colors.surface,
+                border: Border.all(color: context.colors.border),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Wrap(
@@ -315,7 +315,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                     height: 40,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: AppColors.accentLight,
+                      color: context.colors.accentLight,
                       borderRadius: BorderRadius.circular(9),
                     ),
                     child: Column(
@@ -323,15 +323,15 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                       children: [
                         Text(
                           '${index + 1}',
-                          style: const TextStyle(
-                            color: AppColors.muted,
+                          style: TextStyle(
+                            color: context.colors.muted,
                             fontSize: 8,
                           ),
                         ),
                         Text(
                           answer,
-                          style: const TextStyle(
-                            color: AppColors.accent,
+                          style: TextStyle(
+                            color: context.colors.accent,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
@@ -373,7 +373,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                 label: 'Encerrar correção',
                 icon: Icons.check_circle_outline,
                 verticalPadding: 14,
-                borderColor: AppColors.accent,
+                borderColor: context.colors.accent,
                 onPressed: () => _confirmarEncerramento(context),
               ),
             ],
@@ -400,7 +400,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
+              backgroundColor: context.colors.accent,
               foregroundColor: Colors.white,
             ),
             child: const Text('Encerrar correção'),
@@ -490,7 +490,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
   }) {
     return Column(
       children: [
-        Icon(icon, color: AppColors.accent, size: 18),
+        Icon(icon, color: context.colors.accent, size: 18),
         const SizedBox(height: 5),
         Text(
           value,
@@ -498,7 +498,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: AppColors.text,
+            color: context.colors.text,
             fontSize: smallValue ? 9 : 13,
             fontWeight: FontWeight.w600,
           ),
@@ -506,7 +506,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(color: AppColors.muted, fontSize: 9),
+          style: TextStyle(color: context.colors.muted, fontSize: 9),
         ),
       ],
     );
@@ -580,8 +580,8 @@ class _EditarProvaSheetState extends State<_EditarProvaSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: context.colors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
@@ -595,17 +595,17 @@ class _EditarProvaSheetState extends State<_EditarProvaSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(top: 4, bottom: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: context.colors.border,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
-            const Text(
+            Text(
               'Editar Informações da Prova',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.text,
+                color: context.colors.text,
               ),
             ),
             const SizedBox(height: 14),
@@ -621,12 +621,12 @@ class _EditarProvaSheetState extends State<_EditarProvaSheet> {
               dense: true,
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Data de aplicação',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: AppColors.muted,
+                color: context.colors.muted,
               ),
             ),
             const SizedBox(height: 6),
@@ -636,21 +636,21 @@ class _EditarProvaSheetState extends State<_EditarProvaSheet> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.input,
+                  color: context.colors.input,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: context.colors.border),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       AvaliacaoRepository.formatarData(_dataAplicacao),
-                      style: const TextStyle(fontSize: 13, color: AppColors.text),
+                      style: TextStyle(fontSize: 13, color: context.colors.text),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.calendar_today_outlined,
                       size: 16,
-                      color: AppColors.accent,
+                      color: context.colors.accent,
                     ),
                   ],
                 ),
@@ -673,12 +673,12 @@ class _EditarProvaSheetState extends State<_EditarProvaSheet> {
             Center(
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: const Text(
+                child: Text(
                   'Cancelar',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.accent,
+                    color: context.colors.accent,
                   ),
                 ),
               ),
@@ -712,8 +712,8 @@ class _VisualizarVariantesSheetState extends State<_VisualizarVariantesSheet> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: context.colors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -726,7 +726,7 @@ class _VisualizarVariantesSheetState extends State<_VisualizarVariantesSheet> {
               height: 4,
               margin: const EdgeInsets.only(top: 4, bottom: 12),
               decoration: BoxDecoration(
-                color: AppColors.border,
+                color: context.colors.border,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -734,12 +734,12 @@ class _VisualizarVariantesSheetState extends State<_VisualizarVariantesSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'PDF da Prova Randômica',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.text,
+                  color: context.colors.text,
                 ),
               ),
               IconButton(
@@ -759,9 +759,9 @@ class _VisualizarVariantesSheetState extends State<_VisualizarVariantesSheet> {
                 child: ChoiceChip(
                   label: Text(item.variantLabel),
                   selected: ativa,
-                  selectedColor: AppColors.accent,
+                  selectedColor: context.colors.accent,
                   labelStyle: TextStyle(
-                    color: ativa ? Colors.white : AppColors.text,
+                    color: ativa ? Colors.white : context.colors.text,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -775,10 +775,10 @@ class _VisualizarVariantesSheetState extends State<_VisualizarVariantesSheet> {
           const SizedBox(height: 12),
           Text(
             'Gabarito desta versão: ${variante.gabaritoResumido}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AppColors.accent,
+              color: context.colors.accent,
             ),
           ),
           const SizedBox(height: 10),
@@ -786,18 +786,18 @@ class _VisualizarVariantesSheetState extends State<_VisualizarVariantesSheet> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.input,
+                color: context.colors.input,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: context.colors.border),
               ),
               child: SingleChildScrollView(
                 child: Text(
                   variante.gerarLayoutProvaPdf(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 11,
                     height: 1.4,
-                    color: AppColors.text,
+                    color: context.colors.text,
                   ),
                 ),
               ),

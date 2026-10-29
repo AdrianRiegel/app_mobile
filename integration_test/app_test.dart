@@ -8,8 +8,12 @@
 //     --driver=test_driver/integration_test.dart \
 //     --target=integration_test/app_test.dart \
 //     --dart-define=TEST_EMAIL=... --dart-define=TEST_SENHA=...
+//
+// Opcionais: --dart-define=TEST_TEMA=dark (ou light) e
+// --dart-define=TEST_PRINTS=true (prints em build/integration_screenshots/).
 import 'package:app_mobile/main.dart' as app;
 import 'package:app_mobile/services/database/database.dart';
+import 'package:app_mobile/theme/theme_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +21,12 @@ import 'package:integration_test/integration_test.dart';
 
 const _email = String.fromEnvironment('TEST_EMAIL');
 const _senha = String.fromEnvironment('TEST_SENHA');
+
+/// `dark` ou `light` força o tema; vazio segue o sistema.
+const _tema = String.fromEnvironment('TEST_TEMA');
+
+/// Com `--dart-define=TEST_PRINTS=true`, salva um print ao fim de cada passo.
+const _prints = bool.fromEnvironment('TEST_PRINTS');
 
 late final IntegrationTestWidgetsFlutterBinding _binding;
 
@@ -28,6 +38,9 @@ void main() {
     final sufixo = DateTime.now().millisecondsSinceEpoch % 1000000;
 
     await app.main();
+    if (_tema.isNotEmpty) {
+      ThemeController.instance.value = ThemeMode.values.byName(_tema);
+    }
     // Abre no login ou, se a sessão foi restaurada, direto no painel.
     await _aguardar(
       tester,
@@ -98,14 +111,46 @@ void main() {
       await tester.tap(find.text('Provas'));
       await _aguardar(tester, find.text('Avaliação bimestral — Cap. 4'));
       await tester.tap(find.byType(FloatingActionButton).last);
+      // A tela abre em branco: título, data e questões vazios.
+      await _aguardar(tester, find.text('0 questões'));
+      expect(find.text('Selecionar data'), findsOneWidget);
+
+      for (final (n, alternativas) in [
+        ['54', '56', '58', '60'],
+        ['1/2', '1/4', '2/3', '3/4'],
+      ].indexed) {
+        await tester.tap(find.text('Adicionar questão'));
+        await _aguardar(tester, find.text('Adicionar à prova'));
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Ex: Qual é a fórmula da água?'),
+          'Questão E2E ${n + 1}',
+        );
+        for (final (i, texto) in alternativas.indexed) {
+          await tester.enterText(
+            find.widgetWithText(
+              TextField,
+              'Alternativa ${String.fromCharCode(65 + i)}',
+            ),
+            texto,
+          );
+        }
+        await tester.tap(find.text('Adicionar à prova'));
+        await _aguardar(tester, find.text('Adicionar à prova'), sumir: true);
+        // O aviso "Questão N adicionada" cobre o fim da lista por alguns
+        // segundos, como para o usuário.
+        await _aguardar(tester, find.byType(SnackBar), sumir: true);
+      }
       await _aguardar(tester, find.text('2 questões'));
 
+      // Digita o título com a tela já parada (na animação de abertura o
+      // texto se perdia).
       await tester.enterText(find.byType(TextField).first, tituloProva);
-      await tester.scrollUntilVisible(
-        find.text('Salvar prova'),
-        200,
-        scrollable: find.byType(Scrollable).first,
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+        tituloProva,
       );
+
       await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.text('Salvar prova'));
       // O título também está no campo da própria tela: espera ela fechar.
@@ -225,6 +270,11 @@ Future<void> _passo(String nome, Future<void> Function() acao) async {
   try {
     await acao();
     debugPrint('✔ $nome');
+    if (_prints) {
+      await _binding.takeScreenshot(
+        '${_tema.isEmpty ? 'sistema' : _tema}_${nome.replaceAll(RegExp(r'\W+'), '_')}',
+      );
+    }
   } catch (e) {
     debugPrint('✘ $nome: $e');
     await _binding.takeScreenshot(

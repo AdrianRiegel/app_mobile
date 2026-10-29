@@ -140,7 +140,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: StandardAppBar(
         title: 'Iniciar correção',
         onBack: () {
@@ -166,10 +166,10 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
 
             // Só exibe o card resumo se a avaliação já foi escolhida (Etapa 1 em diante)
             if (_currentStage > 0 && _selectedAssessment != null) ...[
-              const Text(
+              Text(
                 'Avaliação selecionada',
                 style: TextStyle(
-                  color: AppColors.muted,
+                  color: context.colors.muted,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
@@ -178,8 +178,8 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
               Container(
                 padding: const EdgeInsets.all(13),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border.all(color: AppColors.border),
+                  color: context.colors.surface,
+                  border: Border.all(color: context.colors.border),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -188,13 +188,13 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: AppColors.accentLight,
+                        color: context.colors.accentLight,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.description_outlined,
                         size: 19,
-                        color: AppColors.accent,
+                        color: context.colors.accent,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -204,8 +204,8 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                         children: [
                           Text(
                             _selectedAssessment!.title,
-                            style: const TextStyle(
-                              color: AppColors.text,
+                            style: TextStyle(
+                              color: context.colors.text,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -213,8 +213,8 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                           const SizedBox(height: 3),
                           Text(
                             '${_selectedAssessment!.className} · ${_selectedAssessment!.totalQuestions} questões',
-                            style: const TextStyle(
-                              color: AppColors.muted,
+                            style: TextStyle(
+                              color: context.colors.muted,
                               fontSize: 10,
                             ),
                           ),
@@ -268,7 +268,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                       height: 2,
                       color: index == 0
                           ? Colors.transparent
-                          : (active ? AppColors.accent : AppColors.border),
+                          : (active ? context.colors.accent : context.colors.border),
                     ),
                   ),
                   Container(
@@ -276,16 +276,16 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                     height: 25,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: active ? AppColors.accent : AppColors.surface,
+                      color: active ? context.colors.accent : context.colors.surface,
                       border: Border.all(
-                        color: active ? AppColors.accent : AppColors.border,
+                        color: active ? context.colors.accent : context.colors.border,
                       ),
                       shape: BoxShape.circle,
                     ),
                     child: Text(
                       '${index + 1}',
                       style: TextStyle(
-                        color: active ? Colors.white : AppColors.muted,
+                        color: active ? Colors.white : context.colors.muted,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                       ),
@@ -296,7 +296,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                       height: 2,
                       color: index == labels.length - 1
                           ? Colors.transparent
-                          : (passed ? AppColors.accent : AppColors.border),
+                          : (passed ? context.colors.accent : context.colors.border),
                     ),
                   ),
                 ],
@@ -305,7 +305,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
               Text(
                 labels[index],
                 style: TextStyle(
-                  color: active ? AppColors.accent : AppColors.muted,
+                  color: active ? context.colors.accent : context.colors.muted,
                   fontSize: 9,
                   fontWeight: active ? FontWeight.w600 : FontWeight.w400,
                 ),
@@ -320,11 +320,11 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
   // ETAPA 0: Selecionar Avaliação (Vinculado ao model Assessment)
   Widget _selectAssessmentContent() {
     if (_carregando) {
-      return const Padding(
+      return Padding(
         key: ValueKey('loadingAssessments'),
         padding: EdgeInsets.only(top: 40),
         child: Center(
-          child: CircularProgressIndicator(color: AppColors.accent),
+          child: CircularProgressIndicator(color: context.colors.accent),
         ),
       );
     }
@@ -335,11 +335,11 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       );
     }
     if (_availableAssessments.isEmpty) {
-      return const EmptyStateView(
+      return EmptyStateView(
         key: ValueKey('emptyAssessments'),
         icon: Icons.assignment_outlined,
-        iconBackground: AppColors.accentLight,
-        iconColor: AppColors.accent,
+        iconBackground: context.colors.accentLight,
+        iconColor: context.colors.accent,
         title: 'Nenhuma avaliação pronta',
         message: 'Configure o gabarito de uma avaliação para poder corrigi-la.',
       );
@@ -348,25 +348,25 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       key: const ValueKey('selectAssessment'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Identificação da Avaliação',
           style: TextStyle(
-            color: AppColors.text,
+            color: context.colors.text,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 6),
-        const Text(
+        Text(
           'Selecione a avaliação que você irá corrigir agora.',
-          style: TextStyle(color: AppColors.muted, fontSize: 11),
+          style: TextStyle(color: context.colors.muted, fontSize: 11),
         ),
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.border),
+            color: context.colors.surface,
+            border: Border.all(color: context.colors.border),
             borderRadius: BorderRadius.circular(10),
           ),
           child: DropdownButtonHideUnderline(
@@ -377,16 +377,16 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                 style: TextStyle(fontSize: 13),
               ),
               value: _selectedAssessment,
-              icon: const Icon(
+              icon: Icon(
                 Icons.keyboard_arrow_down,
-                color: AppColors.muted,
+                color: context.colors.muted,
               ),
               items: _availableAssessments.map((Assessment assessment) {
                 return DropdownMenuItem<Assessment>(
                   value: assessment,
                   child: Text(
                     '${assessment.title} (${assessment.className})',
-                    style: const TextStyle(fontSize: 13, color: AppColors.text),
+                    style: TextStyle(fontSize: 13, color: context.colors.text),
                     overflow: TextOverflow.ellipsis,
                   ),
                 );
@@ -413,11 +413,11 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
   // ETAPA 1: Selecionar Aluno (Vinculado a _currentClassStudents)
   Widget _selectStudentContent() {
     if (_carregandoAlunos) {
-      return const Padding(
+      return Padding(
         key: ValueKey('loadingStudents'),
         padding: EdgeInsets.only(top: 40),
         child: Center(
-          child: CircularProgressIndicator(color: AppColors.accent),
+          child: CircularProgressIndicator(color: context.colors.accent),
         ),
       );
     }
@@ -425,8 +425,8 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       return EmptyStateView(
         key: const ValueKey('emptyStudents'),
         icon: Icons.person_outline,
-        iconBackground: AppColors.accentLight,
-        iconColor: AppColors.accent,
+        iconBackground: context.colors.accentLight,
+        iconColor: context.colors.accent,
         title: 'Turma sem alunos',
         message:
             'Cadastre os alunos da turma ${_selectedAssessment!.className} para corrigir as provas.',
@@ -436,10 +436,10 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       key: const ValueKey('selectStudent'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Identificação do Aluno',
           style: TextStyle(
-            color: AppColors.text,
+            color: context.colors.text,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -447,14 +447,14 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         const SizedBox(height: 6),
         Text(
           'Selecione o aluno da turma ${_selectedAssessment!.className}.',
-          style: const TextStyle(color: AppColors.muted, fontSize: 11),
+          style: TextStyle(color: context.colors.muted, fontSize: 11),
         ),
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.border),
+            color: context.colors.surface,
+            border: Border.all(color: context.colors.border),
             borderRadius: BorderRadius.circular(10),
           ),
           child: DropdownButtonHideUnderline(
@@ -465,16 +465,16 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                 style: TextStyle(fontSize: 13),
               ),
               value: _selectedStudent,
-              icon: const Icon(
+              icon: Icon(
                 Icons.keyboard_arrow_down,
-                color: AppColors.muted,
+                color: context.colors.muted,
               ),
               items: _alunos.map((Aluno aluno) {
                 return DropdownMenuItem<Aluno>(
                   value: aluno,
                   child: Text(
                     '${aluno.nome} (${aluno.matricula})',
-                    style: const TextStyle(fontSize: 13, color: AppColors.text),
+                    style: TextStyle(fontSize: 13, color: context.colors.text),
                     overflow: TextOverflow.ellipsis,
                   ),
                 );
@@ -508,34 +508,34 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           width: 170,
           height: 170,
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.accent, width: 2),
+            color: context.colors.surface,
+            border: Border.all(color: context.colors.accent, width: 2),
             borderRadius: BorderRadius.circular(18),
           ),
           child: _reading
-              ? const Center(
-                  child: CircularProgressIndicator(color: AppColors.accent),
+              ? Center(
+                  child: CircularProgressIndicator(color: context.colors.accent),
                 )
-              : const Icon(
+              : Icon(
                   Icons.document_scanner_outlined,
-                  color: AppColors.accent,
+                  color: context.colors.accent,
                   size: 74,
                 ),
         ),
         const SizedBox(height: 18),
         Text(
           _reading ? 'Lendo...' : 'Folha de respostas',
-          style: const TextStyle(
-            color: AppColors.text,
+          style: TextStyle(
+            color: context.colors.text,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 5),
-        const Text(
+        Text(
           'Enquadre a folha inteira na câmera\nEsta etapa é uma simulação visual.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.muted, fontSize: 11),
+          style: TextStyle(color: context.colors.muted, fontSize: 11),
         ),
         const SizedBox(height: 22),
         PrimaryButton(
@@ -561,8 +561,8 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
+        color: context.colors.surface,
+        border: Border.all(color: context.colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -570,30 +570,30 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           Container(
             width: 54,
             height: 54,
-            decoration: const BoxDecoration(
-              color: AppColors.successLight,
+            decoration: BoxDecoration(
+              color: context.colors.successLight,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.check_rounded,
-              color: AppColors.success,
+              color: context.colors.success,
               size: 30,
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Folha lida com sucesso',
             style: TextStyle(
-              color: AppColors.text,
+              color: context.colors.text,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Ao continuar, a correção será salva e o resultado exibido.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.muted, fontSize: 11, height: 1.4),
+            style: TextStyle(color: context.colors.muted, fontSize: 11, height: 1.4),
           ),
           const SizedBox(height: 18),
           PrimaryButton(
@@ -621,31 +621,31 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.colors.surface,
             border: Border.all(
-              color: aprovado ? Colors.green[300]! : Colors.red[300]!,
+              color: aprovado ? context.colors.success : context.colors.danger,
             ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Aluno avaliado',
-                style: TextStyle(color: AppColors.muted, fontSize: 11),
+                style: TextStyle(color: context.colors.muted, fontSize: 11),
               ),
               const SizedBox(height: 2),
               Text(
                 _selectedStudent?.nome ?? 'Aluno',
-                style: const TextStyle(
-                  color: AppColors.text,
+                style: TextStyle(
+                  color: context.colors.text,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
-                child: Divider(height: 1, color: AppColors.border),
+                child: Divider(height: 1, color: context.colors.border),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -653,9 +653,9 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Acertos',
-                        style: TextStyle(color: AppColors.muted, fontSize: 11),
+                        style: TextStyle(color: context.colors.muted, fontSize: 11),
                       ),
                       Text(
                         '$acertos/$totalQuestoes',
@@ -669,9 +669,9 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Nota Final',
-                        style: TextStyle(color: AppColors.muted, fontSize: 11),
+                        style: TextStyle(color: context.colors.muted, fontSize: 11),
                       ),
                       Text(
                         nota.toStringAsFixed(1),
@@ -688,13 +688,17 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: aprovado ? Colors.green[50] : Colors.red[50],
+                      color: aprovado
+                          ? context.colors.successLight
+                          : context.colors.dangerLight,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       aprovado ? 'Na Média' : 'Abaixo da Média',
                       style: TextStyle(
-                        color: aprovado ? Colors.green[700] : Colors.red[700],
+                        color: aprovado
+                            ? context.colors.success
+                            : context.colors.danger,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -709,7 +713,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         SecondaryButton(
           label: 'Ver gabarito detalhado',
           verticalPadding: 14,
-          borderColor: AppColors.accent,
+          borderColor: context.colors.accent,
           onPressed: () => setState(() => _showGabarito = true),
         ),
         const SizedBox(height: 10),
@@ -730,10 +734,10 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Gabarito',
               style: TextStyle(
-                color: AppColors.text,
+                color: context.colors.text,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -748,9 +752,9 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           ],
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Alternativa marcada pelo aluno: verde = acerto, vermelho = erro.',
-          style: TextStyle(color: AppColors.muted, fontSize: 11),
+          style: TextStyle(color: context.colors.muted, fontSize: 11),
         ),
         const SizedBox(height: 8),
         _buildGabaritoGrid(),
@@ -764,7 +768,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F1F5),
+        color: context.colors.background,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Wrap(

@@ -67,7 +67,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -80,15 +80,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Container(
                       width: 36,
                       height: 36,
-                      decoration: const BoxDecoration(
-                        color: AppColors.accentLight,
+                      decoration: BoxDecoration(
+                        color: context.colors.accentLight,
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         _usuario?.iniciais ?? '',
-                        style: const TextStyle(
-                          color: AppColors.accent,
+                        style: TextStyle(
+                          color: context.colors.accent,
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
@@ -104,17 +104,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _usuario == null
                               ? 'Olá!'
                               : 'Olá, ${_usuario!.primeiroNome}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.text,
+                            color: context.colors.text,
                           ),
                         ),
-                        const Text(
+                        Text(
                           'Professor(a)',
                           style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.muted,
+                            color: context.colors.muted,
                           ),
                         ),
                       ],
@@ -123,17 +123,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Container(
                     width: 60,
                     height: 36,
-                    decoration: const BoxDecoration(
-                      color: AppColors.accentLight,
+                    decoration: BoxDecoration(
+                      color: context.colors.accentLight,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.centerRight,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.notifications_none,
-                          color: AppColors.muted,
+                          color: context.colors.muted,
                           size: 22,
                         ),
                         ElevatedButton(
@@ -146,9 +146,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.logout,
-                            color: AppColors.muted,
+                            color: context.colors.muted,
                             size: 20,
                           ),
                         ),

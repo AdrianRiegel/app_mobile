@@ -16,7 +16,7 @@ class ExamStatisticsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: const StandardAppBar(title: 'Estatísticas'),
       body: SafeArea(
         top: false,
@@ -25,8 +25,8 @@ class ExamStatisticsScreen extends StatelessWidget {
           children: [
             Text(
               'Estatísticas · ${statistics.shortLabel}',
-              style: const TextStyle(
-                color: AppColors.text,
+              style: TextStyle(
+                color: context.colors.text,
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
               ),
@@ -34,7 +34,7 @@ class ExamStatisticsScreen extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               '${statistics.className} · ${statistics.subject}',
-              style: const TextStyle(color: AppColors.muted, fontSize: 11),
+              style: TextStyle(color: context.colors.muted, fontSize: 11),
             ),
             const SizedBox(height: 16),
             IntrinsicHeight(
@@ -58,29 +58,29 @@ class ExamStatisticsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 22),
-            const Text(
+            Text(
               'Acertos por questão',
               style: TextStyle(
-                color: AppColors.text,
+                color: context.colors.text,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 12),
-            ...statistics.questions.map(_questionRow),
+            ...statistics.questions.map((q) => _questionRow(context, q)),
           ],
         ),
       ),
     );
   }
 
-  Widget _questionRow(QuestionStat question) {
+  Widget _questionRow(BuildContext context, QuestionStat question) {
     final fraction = (question.correctRate / 100).clamp(0.0, 1.0);
     final barColor = question.correctRate < 50
-        ? AppColors.danger
+        ? context.colors.danger
         : question.correctRate < 70
-        ? AppColors.warning
-        : AppColors.accent;
+        ? context.colors.warning
+        : context.colors.accent;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -90,7 +90,7 @@ class ExamStatisticsScreen extends StatelessWidget {
             width: 26,
             child: Text(
               'Q${question.number}',
-              style: const TextStyle(color: AppColors.muted, fontSize: 11),
+              style: TextStyle(color: context.colors.muted, fontSize: 11),
             ),
           ),
           const SizedBox(width: 8),
@@ -99,7 +99,7 @@ class ExamStatisticsScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
               child: Stack(
                 children: [
-                  Container(height: 10, color: AppColors.accentLight),
+                  Container(height: 10, color: context.colors.accentLight),
                   FractionallySizedBox(
                     widthFactor: fraction,
                     child: Container(height: 10, color: barColor),
@@ -114,8 +114,8 @@ class ExamStatisticsScreen extends StatelessWidget {
             child: Text(
               '${question.correctRate}%',
               textAlign: TextAlign.right,
-              style: const TextStyle(
-                color: AppColors.text,
+              style: TextStyle(
+                color: context.colors.text,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
