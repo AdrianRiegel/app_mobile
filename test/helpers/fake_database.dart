@@ -11,6 +11,14 @@ class FakeAuthRepository implements AuthRepository {
   FakeAuthRepository({this.logado = true});
 
   bool logado;
+  Usuario _usuario = const Usuario(
+    id: professorId,
+    nome: 'Maria Silva',
+    email: 'maria@escola.com',
+    escola: 'Colégio Estadual',
+    disciplinaPrincipal: 'Matemática',
+    notificacoesEmail: true,
+  );
 
   @override
   String? get uid => logado ? professorId : null;
@@ -40,13 +48,26 @@ class FakeAuthRepository implements AuthRepository {
   Future<void> sair() async => logado = false;
 
   @override
-  Future<Usuario?> carregarUsuario() async => logado
-      ? const Usuario(
-          id: professorId,
-          nome: 'Maria Silva',
-          email: 'maria@escola.com',
-        )
-      : null;
+  Future<Usuario?> carregarUsuario() async => logado ? _usuario : null;
+
+  @override
+  Future<void> atualizarPerfil({
+    required String nome,
+    String? escola,
+    String? disciplinaPrincipal,
+    bool? notificacoesEmail,
+  }) async {
+    if (!logado) throw const AuthException('Nenhum usuário logado');
+    if (nome.trim().isEmpty) {
+      throw const AuthException('O nome não pode estar em branco');
+    }
+    _usuario = _usuario.copyWith(
+      nome: nome.trim(),
+      escola: escola?.trim(),
+      disciplinaPrincipal: disciplinaPrincipal?.trim(),
+      notificacoesEmail: notificacoesEmail,
+    );
+  }
 }
 
 /// Liga o [Database] a um Firestore em memória com uma turma de dois alunos

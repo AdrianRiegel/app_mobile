@@ -35,6 +35,14 @@ abstract class AuthRepository {
   Future<void> sair();
 
   Future<Usuario?> carregarUsuario();
+
+  /// Atualiza os dados do perfil do professor no Auth e na collection `usuarios`.
+  Future<void> atualizarPerfil({
+    required String nome,
+    String? escola,
+    String? disciplinaPrincipal,
+    bool? notificacoesEmail,
+  });
 }
 
 class FirebaseAuthRepository implements AuthRepository {
@@ -106,7 +114,45 @@ class FirebaseAuthRepository implements AuthRepository {
       id: user.uid,
       nome: data?['nome'] as String? ?? user.displayName ?? 'Professor(a)',
       email: data?['email'] as String? ?? user.email ?? '',
+      escola: data?['escola'] as String?,
+      disciplinaPrincipal: data?['disciplinaPrincipal'] as String?,
+      notificacoesEmail: data?['notificacoesEmail'] as bool? ?? true,
     );
+  }
+
+  @override
+  Future<void> atualizarPerfil({
+    required String nome,
+    String? escola,
+    String? disciplinaPrincipal,
+    bool? notificacoesEmail,
+  }) {
+    return _executar(() async {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw const AuthException('Nenhum usuário logado');
+      }
+      final trimmedNome = nome.trim();
+      if (trimmedNome.isEmpty) {
+        throw const AuthException('O nome não pode estar em branco');
+      }
+
+      await user.updateDisplayName(trimmedNome);
+
+      final updateData = <String, dynamic>{
+        'nome': trimmedNome,
+        'atualizadoEm': FieldValue.serverTimestamp(),
+      };
+      if (escola != null) updateData['escola'] = escola.trim();
+      if (disciplinaPrincipal != null) {
+        updateData['disciplinaPrincipal'] = disciplinaPrincipal.trim();
+      }
+      if (notificacoesEmail != null) {
+        updateData['notificacoesEmail'] = notificacoesEmail;
+      }
+
+      await _usuarios.doc(user.uid).set(updateData, SetOptions(merge: true));
+    });
   }
 
   Future<void> _executar(Future<void> Function() acao) async {
