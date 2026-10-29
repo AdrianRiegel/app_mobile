@@ -8,6 +8,8 @@ import '../models/assessment.dart';
 import '../models/resultado.dart';
 import '../services/omr/omr_processor.dart';
 import 'omr_review_screen.dart';
+import '../services/camera_service.dart';
+import 'camera_capture_screen.dart';
 import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 
@@ -537,8 +539,15 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         ),
         const SizedBox(height: 22),
         PrimaryButton(
-          label: 'Simular leitura da Folha',
+          label: 'Abrir câmera e fotografar',
           icon: Icons.camera_alt_outlined,
+          verticalPadding: 14,
+          onPressed: _reading ? null : _abrirCamera,
+        ),
+        const SizedBox(height: 10),
+        SecondaryButton(
+          label: 'Simular leitura da Folha',
+          icon: Icons.refresh,
           verticalPadding: 14,
           onPressed: _reading ? null : _simulateRead,
         ),
@@ -800,7 +809,16 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
     );
   }
 
-  /// Simula a leitura ÃƒÂ³ptica da folha: cada questÃƒÂ£o tem 70% de chance de vir
+  Future<void> _abrirCamera() async {
+    final image = await Navigator.push<CapturedImage>(
+      context,
+      MaterialPageRoute(builder: (_) => const CameraCaptureScreen()),
+    );
+    if (image == null || !mounted) return;
+    await _simulateRead();
+  }
+
+  /// Simula a leitura óptica da folha: cada questão tem 70% de chance de vir
   /// com a alternativa correta do gabarito.
   Future<void> _simulateRead({bool simularAmbiguidade = false}) async {
     setState(() => _reading = true);
