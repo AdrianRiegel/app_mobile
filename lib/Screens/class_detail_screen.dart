@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
+import '../components/inputs/csv_file_picker.dart';
 import '../models/aluno.dart';
 import '../models/assessment.dart';
 import '../models/turma.dart';
@@ -331,18 +332,15 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   }
 
   Future<void> _createAssessment() async {
-    final assessment = await Navigator.push<Assessment>(
+    final criada = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => NewProofScreen(turma: widget.turma)),
+      MaterialPageRoute(
+        builder: (_) => NewProofScreen(turma: widget.turma),
+      ),
     );
-    if (assessment == null || !mounted) {
-      return;
+    if (criada == true && mounted) {
+      _carregar();
     }
-
-    setState(() => _provas.insert(0, assessment));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Avaliação criada como rascunho')),
-    );
   }
 
   Widget _avatar(String nome) {

@@ -10,6 +10,7 @@ import 'assessments_screen.dart';
 import 'correction_start_screen.dart';
 import 'report_screen.dart';
 import 'statistics_screen.dart';
+import 'profile_settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -74,20 +75,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
               child: Row(
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: const BoxDecoration(
-                      color: AppColors.accentLight,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _usuario?.iniciais ?? '',
-                      style: const TextStyle(
-                        color: AppColors.accent,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                  GestureDetector(
+                    onTap: () => _abrir(const ProfileSettingsScreen()),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(
+                        color: AppColors.accentLight,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _usuario?.iniciais ?? '',
+                        style: const TextStyle(
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),
@@ -251,7 +255,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             return;
           }
           if (index == 3) {
-            _showComingSoon('Perfil');
+            _abrir(const ProfileSettingsScreen());
             return;
           }
           setState(() => _selectedIndex = index);
@@ -260,11 +264,4 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature estará disponível em uma próxima entrega'),
-      ),
-    );
-  }
 }

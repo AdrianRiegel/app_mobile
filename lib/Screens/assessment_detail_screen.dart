@@ -367,10 +367,69 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                   ? null
                   : () => _openStatistics(context),
             ),
+            if (assessment.status != AssessmentStatus.completed) ...[
+              const SizedBox(height: 10),
+              SecondaryButton(
+                label: 'Encerrar correção',
+                icon: Icons.check_circle_outline,
+                verticalPadding: 14,
+                borderColor: AppColors.accent,
+                onPressed: () => _confirmarEncerramento(context),
+              ),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmarEncerramento(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Encerrar correção?'),
+        content: const Text(
+          'Ao encerrar, os alunos que não possuem nota registrada receberão nota 0 automaticamente e a avaliação será marcada como concluída.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Encerrar correção'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true || !mounted) return;
+
+    try {
+      final ausentes = await ResultadoRepository().encerrarCorrecao(
+        avaliacao: assessment,
+      );
+      if (!mounted) return;
+      await _recarregar();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Correção encerrada com sucesso. $ausentes aluno(s) ausente(s) receberam nota 0.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Não foi possível encerrar a correção')),
+      );
+    }
   }
 
   Future<void> _iniciarCorrecao(BuildContext context) async {

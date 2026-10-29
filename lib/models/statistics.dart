@@ -19,6 +19,7 @@ class QuestionStat {
 /// Estatísticas consolidadas de uma prova/avaliação.
 class ExamStatistics {
   const ExamStatistics({
+    this.assessmentId = '',
     required this.assessmentTitle,
     required this.shortLabel,
     required this.className,
@@ -55,6 +56,7 @@ class ExamStatistics {
   /// Calcula a média e a questão mais errada a partir do desempenho por
   /// questão.
   factory ExamStatistics.fromQuestions({
+    String assessmentId = '',
     required String assessmentTitle,
     required String shortLabel,
     required String className,
@@ -62,6 +64,7 @@ class ExamStatistics {
     required List<QuestionStat> questions,
   }) {
     return ExamStatistics(
+      assessmentId: assessmentId,
       assessmentTitle: assessmentTitle,
       shortLabel: shortLabel,
       className: className,
@@ -73,6 +76,9 @@ class ExamStatistics {
       questions: questions,
     );
   }
+
+  /// Id da avaliação no banco; vazio nas estatísticas de demonstração.
+  final String assessmentId;
 
   /// Título completo da avaliação (ex.: `Avaliação bimestral — Cap. 4`).
   final String assessmentTitle;
@@ -109,11 +115,14 @@ class ExamStatistics {
 /// Agrupa as provas de uma mesma turma para a tela de estatísticas gerais.
 class ClassStatistics {
   const ClassStatistics({
+    this.turmaId = '',
     required this.className,
     required this.subject,
     required this.exams,
   });
 
+  /// Id da turma no banco; vazio nas estatísticas de demonstração.
+  final String turmaId;
   final String className;
   final String subject;
   final List<ExamStatistics> exams;
