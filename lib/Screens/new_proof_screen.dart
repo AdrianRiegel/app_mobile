@@ -103,7 +103,7 @@ class _NewProofScreenState extends State<NewProofScreen> {
               )
             else
               ..._questions.asMap().entries.map(
-                (entry) => _questionCard(entry.key + 1, entry.value),
+                (entry) => _questionCard(entry.key + 1, entry.key, entry.value),
               ),
             const SizedBox(height: 12),
             SecondaryButton(
@@ -125,10 +125,10 @@ class _NewProofScreenState extends State<NewProofScreen> {
     );
   }
 
-  Widget _questionCard(int number, Question question) {
+  Widget _questionCard(int number, int index, Question question) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 9),
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border.all(color: AppColors.border),
@@ -164,6 +164,18 @@ class _NewProofScreenState extends State<NewProofScreen> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: AppColors.accent,
+                ),
+                tooltip: 'Editar questão',
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(4),
+                onPressed: () => _openEditQuestionSheet(index),
               ),
             ],
           ),
@@ -211,12 +223,31 @@ class _NewProofScreenState extends State<NewProofScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => _AddQuestionSheet(
+      builder: (sheetContext) => _QuestionFormSheet(
         questionNumber: _questions.length + 1,
-        onAdd: (newQuestion) {
+        onSave: (newQuestion) {
           Navigator.pop(sheetContext);
           setState(() => _questions.add(newQuestion));
           _showFeedback('Questão ${_questions.length} adicionada com sucesso');
+        },
+      ),
+    );
+  }
+
+  void _openEditQuestionSheet(int index) {
+    if (index < 0 || index >= _questions.length) return;
+    final question = _questions[index];
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _QuestionFormSheet(
+        questionNumber: index + 1,
+        initialQuestion: question,
+        onSave: (updatedQuestion) {
+          Navigator.pop(sheetContext);
+          setState(() => _questions[index] = updatedQuestion);
+          _showFeedback('Questão ${index + 1} atualizada com sucesso');
         },
       ),
     );
@@ -277,26 +308,41 @@ class _NewProofScreenState extends State<NewProofScreen> {
   }
 }
 
-class _AddQuestionSheet extends StatefulWidget {
-  const _AddQuestionSheet({
+class _QuestionFormSheet extends StatefulWidget {
+  const _QuestionFormSheet({
     required this.questionNumber,
-    required this.onAdd,
+    this.initialQuestion,
+    required this.onSave,
   });
 
   final int questionNumber;
-  final ValueChanged<Question> onAdd;
+  final Question? initialQuestion;
+  final ValueChanged<Question> onSave;
 
   @override
-  State<_AddQuestionSheet> createState() => _AddQuestionSheetState();
+  State<_QuestionFormSheet> createState() => _QuestionFormSheetState();
 }
 
-class _AddQuestionSheetState extends State<_AddQuestionSheet> {
-  final _statementController = TextEditingController();
-  final List<TextEditingController> _optionsControllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-  int _correctIndex = 0;
+class _QuestionFormSheetState extends State<_QuestionFormSheet> {
+  late final TextEditingController _statementController;
+  late final List<TextEditingController> _optionsControllers;
+  late int _correctIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialQuestion;
+    _statementController = TextEditingController(
+      text: initial?.statement ?? '',
+    );
+    _optionsControllers = List.generate(4, (i) {
+      final text = (initial != null && i < initial.options.length)
+          ? initial.options[i]
+          : '';
+      return TextEditingController(text: text);
+    });
+    _correctIndex = initial?.correctIndex ?? 0;
+  }
 
   @override
   void dispose() {
@@ -309,6 +355,7 @@ class _AddQuestionSheetState extends State<_AddQuestionSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.initialQuestion != null;
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -339,7 +386,9 @@ class _AddQuestionSheetState extends State<_AddQuestionSheet> {
                 ),
               ),
               Text(
-                'Questão ${widget.questionNumber}',
+                isEditing
+                    ? 'Editar questão ${widget.questionNumber}'
+                    : 'Questão ${widget.questionNumber}',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -436,7 +485,7 @@ class _AddQuestionSheetState extends State<_AddQuestionSheet> {
               }),
               const SizedBox(height: 18),
               PrimaryButton(
-                label: 'Adicionar à prova',
+                label: isEditing ? 'Salvar alterações' : 'Adicionar à prova',
                 verticalPadding: 14,
                 fontSize: 13,
                 onPressed: _submit,
@@ -482,7 +531,7 @@ class _AddQuestionSheetState extends State<_AddQuestionSheet> {
       return;
     }
 
-    widget.onAdd(
+    widget.onSave(
       Question(
         statement: statement,
         options: options,

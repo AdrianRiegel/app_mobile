@@ -115,5 +115,51 @@ void main() {
       expect(find.text('3. Qual é a fórmula da água?'), findsOneWidget);
       expect(find.text('Questão 3 adicionada com sucesso'), findsOneWidget);
     });
+
+    testWidgets('abre o modal de edição, altera questão e preserva integridade sem duplicar', (
+      tester,
+    ) async {
+      await configurarBancoFalso();
+
+      await tester.pumpWidget(
+        const MaterialApp(home: NewProofScreen(turma: turma)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 questões'), findsOneWidget);
+      expect(find.text('1. Qual é o resultado de 7 × 8?'), findsOneWidget);
+
+      // Clica no botão de editar da primeira questão
+      final editButtons = find.byTooltip('Editar questão');
+      expect(editButtons, findsNWidgets(2));
+      await tester.tap(editButtons.first);
+      await tester.pumpAndSettle();
+
+      // Confirma abertura do modal pré-preenchido
+      expect(find.text('Editar questão 1'), findsOneWidget);
+      expect(find.text('Salvar alterações'), findsOneWidget);
+      expect(find.text('Qual é o resultado de 7 × 8?'), findsOneWidget);
+
+      // Altera o enunciado e uma alternativa
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Qual é o resultado de 7 × 8?'),
+        'Qual é o resultado de 8 × 9?',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, '56'),
+        '72',
+      );
+
+      // Salva a alteração
+      await tester.tap(find.text('Salvar alterações'));
+      await tester.pumpAndSettle();
+
+      // Confirma atualização na lista
+      expect(find.text('Questão 1 atualizada com sucesso'), findsOneWidget);
+      expect(find.text('1. Qual é o resultado de 8 × 9?'), findsOneWidget);
+      expect(find.textContaining('72'), findsOneWidget);
+      // Garante que o total de questões continua sendo 2 (não foi duplicada)
+      expect(find.text('2 questões'), findsOneWidget);
+    });
   });
 }
