@@ -126,11 +126,11 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
             children: [
               _filterChip('Todas', null),
               const SizedBox(width: 7),
-              _filterChip('Rascunhos', AssessmentStatus.draft),
+              _filterChip(AssessmentStatus.draft.pluralLabel, AssessmentStatus.draft),
               const SizedBox(width: 7),
-              _filterChip('Agendadas', AssessmentStatus.scheduled),
+              _filterChip(AssessmentStatus.scheduled.pluralLabel, AssessmentStatus.scheduled),
               const SizedBox(width: 7),
-              _filterChip('Concluídas', AssessmentStatus.completed),
+              _filterChip(AssessmentStatus.completed.pluralLabel, AssessmentStatus.completed),
             ],
           ),
         ),
@@ -176,10 +176,8 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
         ),
       ),
       title: assessment.title,
-      titleTrailing: StatusBadge(
-        label: assessment.statusLabel,
-        background: assessment.status.badgeBackground,
-        foreground: assessment.status.badgeForeground,
+      titleTrailing: StatusBadge.assessment(
+        assessment.status,
         fontSize: 8,
       ),
       subtitle: Column(

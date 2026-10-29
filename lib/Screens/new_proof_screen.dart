@@ -19,6 +19,7 @@ class _NewProofScreenState extends State<NewProofScreen> {
   final _titleController = TextEditingController(
     text: 'Avaliação bimestral — Cap. 4',
   );
+  DateTime _dataAplicacao = DateTime.now();
   bool _salvando = false;
 
   final List<Question> _questions = [
@@ -38,6 +39,18 @@ class _NewProofScreenState extends State<NewProofScreen> {
   void dispose() {
     _titleController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selecionarData() async {
+    final escolhida = await showDatePicker(
+      context: context,
+      initialDate: _dataAplicacao,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (escolhida != null && mounted) {
+      setState(() => _dataAplicacao = escolhida);
+    }
   }
 
   @override
@@ -63,60 +76,89 @@ class _NewProofScreenState extends State<NewProofScreen> {
               controller: _titleController,
               decoration: _inputDecoration(),
             ),
+            const SizedBox(height: 16),
+            const Text(
+              'Data de aplicação',
+              style: TextStyle(
+                color: AppColors.muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: _selecionarData,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.input,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      AvaliacaoRepository.formatarData(_dataAplicacao),
+                      style: const TextStyle(fontSize: 14, color: AppColors.text),
+                    ),
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 18,
+                      color: AppColors.accent,
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Questões',
+                  'Questões adicionadas',
                   style: TextStyle(
                     color: AppColors.text,
-                    fontSize: 15,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
                   '${_questions.length} questões',
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: const TextStyle(color: AppColors.muted, fontSize: 11),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            if (_questions.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border.all(color: AppColors.border),
+            const SizedBox(height: 10),
+            ..._questions.asMap().entries.map(
+              (entry) => _questionCard(entry.key + 1, entry.value),
+            ),
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              onPressed: () {
+                _showFeedback('Adicionar questão estará disponível em breve');
+              },
+              icon: const Icon(Icons.add, size: 18, color: AppColors.accent),
+              label: const Text(
+                'Adicionar questão',
+                style: TextStyle(
+                  color: AppColors.accent,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.accent, width: 1.2),
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                alignment: Alignment.center,
-                child: const Text(
-                  'Nenhuma questão cadastrada ainda. Toque em "Adicionar questão".',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.muted, fontSize: 12),
-                ),
-              )
-            else
-              ..._questions.asMap().entries.map(
-                (entry) => _questionCard(entry.key + 1, entry.key, entry.value),
+                padding: const EdgeInsets.symmetric(vertical: 13),
               ),
-            const SizedBox(height: 12),
-            SecondaryButton(
-              label: 'Adicionar questão',
-              icon: Icons.add,
-              verticalPadding: 14,
-              foregroundColor: AppColors.text,
-              onPressed: _openAddQuestionSheet,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
             PrimaryButton(
               label: _salvando ? 'Salvando...' : 'Salvar prova',
-              verticalPadding: 15,
               onPressed: _salvando ? null : _save,
             ),
           ],
@@ -257,7 +299,7 @@ class _NewProofScreenState extends State<NewProofScreen> {
     return InputDecoration(
       filled: true,
       fillColor: AppColors.input,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: AppColors.border),
@@ -288,7 +330,11 @@ class _NewProofScreenState extends State<NewProofScreen> {
         titulo: title,
         disciplina: widget.turma.disciplina,
         totalQuestoes: _questions.length,
-        respostas: [for (final question in _questions) question.correctLetter],
+        dataAplicacao: _dataAplicacao,
+        respostas: [
+          for (final question in _questions)
+            String.fromCharCode(65 + question.correctIndex),
+        ],
       );
       if (!mounted) return;
       Navigator.pop(context, assessment);

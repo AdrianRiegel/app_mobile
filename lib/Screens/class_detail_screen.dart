@@ -71,24 +71,18 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
             ? 'Provas · ${widget.turma.nome}'
             : widget.turma.descricao,
         showDivider: false,
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: Icon(Icons.more_vert, size: 18, color: AppColors.muted),
-          ),
-        ],
       ),
       body: SafeArea(
         top: false,
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
               child: Row(
                 children: [
-                  _tab('Alunos', 0),
-                  const SizedBox(width: 18),
-                  _tab('Provas', 1),
+                  _tabButton('Alunos', 0),
+                  const SizedBox(width: 8),
+                  _tabButton('Provas', 1),
                 ],
               ),
             ),
@@ -100,22 +94,21 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     );
   }
 
-  Widget _tab(String label, int index) {
+  Widget _tabButton(String label, int index) {
     final active = _tabIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _tabIndex = index),
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _tabIndex = index),
         child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: active ? AppColors.accent : Colors.transparent,
-                width: 2,
-              ),
+            color: active ? AppColors.surface : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: active ? AppColors.border : Colors.transparent,
             ),
           ),
-          padding: const EdgeInsets.only(bottom: 6),
+          alignment: Alignment.center,
           child: Text(
             label,
             style: TextStyle(
@@ -160,13 +153,12 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
-                    spacing: 8,
                     children: [
                       ElevatedButton.icon(
                         onPressed: _openNovoAlunoSheet,
                         icon: const Icon(
-                          Icons.person,
-                          size: 16,
+                          Icons.person_add_alt,
+                          size: 15,
                           color: AppColors.accent,
                         ),
                         label: const Text(
@@ -174,50 +166,37 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                           style: TextStyle(
                             fontSize: 12.0,
                             color: AppColors.accent,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          fixedSize: const Size(90, 20),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 2,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                         ),
                       ),
+                      const SizedBox(width: 4),
                       ElevatedButton.icon(
                         onPressed: _openImportarCsvSheet,
                         icon: const Icon(
-                          Icons.import_export,
-                          size: 16,
+                          Icons.file_upload_outlined,
+                          size: 15,
                           color: AppColors.accent,
                         ),
                         label: const Text(
-                          'Importar',
+                          'Importar CSV',
                           style: TextStyle(
                             fontSize: 12.0,
                             color: AppColors.accent,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          fixedSize: const Size(80, 20),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 2,
-                            vertical: 2,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                         ),
                       ),
                     ],
@@ -225,12 +204,23 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              ..._alunos.map(
-                (aluno) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _buildAlunoItem(aluno),
+              if (_alunos.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 32),
+                  child: Center(
+                    child: Text(
+                      'Nenhum aluno cadastrado nesta turma',
+                      style: TextStyle(color: AppColors.muted, fontSize: 13),
+                    ),
+                  ),
+                )
+              else
+                ..._alunos.map(
+                  (aluno) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _buildAlunoItem(aluno),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -251,12 +241,20 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   Widget _buildProvasTab() {
     return Stack(
       children: [
-        ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
-          itemCount: _provas.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 8),
-          itemBuilder: (context, index) => _buildProvaItem(_provas[index]),
-        ),
+        if (_provas.isEmpty)
+          const Center(
+            child: Text(
+              'Nenhuma avaliação cadastrada para esta turma',
+              style: TextStyle(color: AppColors.muted, fontSize: 13),
+            ),
+          )
+        else
+          ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
+            itemCount: _provas.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
+            itemBuilder: (context, index) => _buildProvaItem(_provas[index]),
+          ),
         Positioned(
           right: 16,
           bottom: 16,
@@ -279,11 +277,26 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
         'Matrícula ${aluno.matricula}',
         style: const TextStyle(fontSize: 11, color: AppColors.muted),
       ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.accent),
+            tooltip: 'Editar aluno',
+            onPressed: () => _openEditarAlunoSheet(aluno),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.danger),
+            tooltip: 'Excluir aluno',
+            onPressed: () => _confirmarExclusaoAluno(aluno),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildProvaItem(Assessment prova) {
-    final aplicada = prova.status == AssessmentStatus.completed;
+    final concluida = prova.isCompleted;
     return AppListItemCard(
       leading: Container(
         width: 34,
@@ -303,16 +316,12 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
         '${prova.totalQuestions} questões · ${prova.dateLabel}',
         style: const TextStyle(fontSize: 11, color: AppColors.muted),
       ),
-      trailing: StatusBadge(
-        label: aplicada ? 'Aplicada' : prova.statusLabel,
-        background: aplicada ? AppColors.successLight : AppColors.neutralLight,
-        foreground: aplicada ? AppColors.success : AppColors.muted,
-      ),
+      trailing: StatusBadge.assessment(prova.status),
       onTap: () async {
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => aplicada
+            builder: (_) => concluida
                 ? ProofGradesScreen(assessment: prova)
                 : AssessmentDetailScreen(assessment: prova),
           ),
@@ -363,8 +372,10 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => _NovoAlunoSheet(
-        onCreate: (nome, matricula) async {
+      builder: (sheetContext) => _AlunoFormSheet(
+        titulo: 'Novo aluno(a)',
+        botaoTexto: 'Adicionar aluno',
+        onSubmit: (nome, matricula) async {
           final nomeLimpo = nome.trim();
           final matriculaLimpa = matricula.trim();
           final messenger = ScaffoldMessenger.of(context);
@@ -404,233 +415,205 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     );
   }
 
+  void _openEditarAlunoSheet(Aluno aluno) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _AlunoFormSheet(
+        titulo: 'Editar aluno(a)',
+        botaoTexto: 'Salvar alterações',
+        nomeInicial: aluno.nome,
+        matriculaInicial: aluno.matricula,
+        onSubmit: (nome, matricula) async {
+          final nomeLimpo = nome.trim();
+          final matriculaLimpa = matricula.trim();
+          final messenger = ScaffoldMessenger.of(context);
+          Navigator.pop(sheetContext);
+
+          if (nomeLimpo.isEmpty || matriculaLimpa.isEmpty) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Preencha nome e matrícula do aluno'),
+              ),
+            );
+            return;
+          }
+
+          try {
+            final atualizado = await _alunoRepository.editar(
+              id: aluno.id,
+              turmaId: widget.turma.id,
+              nome: nomeLimpo,
+              matricula: matriculaLimpa,
+            );
+            if (!mounted) return;
+            setState(() {
+              final idx = _alunos.indexWhere((a) => a.id == aluno.id);
+              if (idx != -1) _alunos[idx] = atualizado;
+            });
+            messenger.showSnackBar(
+              SnackBar(content: Text('Aluno(a) "$nomeLimpo" atualizado(a)')),
+            );
+          } on MatriculaDuplicadaException catch (e) {
+            messenger.showSnackBar(SnackBar(content: Text(e.message)));
+          } catch (_) {
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Não foi possível editar o aluno')),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _confirmarExclusaoAluno(Aluno aluno) async {
+    final temProva = await _alunoRepository.turmaTemProvaAplicada(widget.turma.id);
+    if (!mounted) return;
+
+    if (temProva) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Exclusão não permitida'),
+          content: const Text(
+            'Não é possível excluir o aluno pois a turma já possui prova aplicada.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Entendi'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final confirma = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir aluno'),
+        content: Text('Deseja realmente excluir o aluno "${aluno.nome}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirma == true && mounted) {
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        await _alunoRepository.excluir(
+          alunoId: aluno.id,
+          turmaId: widget.turma.id,
+        );
+        if (!mounted) return;
+        setState(() => _alunos.removeWhere((a) => a.id == aluno.id));
+        messenger.showSnackBar(
+          SnackBar(content: Text('Aluno "${aluno.nome}" removido')),
+        );
+      } on AlunoComProvaAplicadaException catch (e) {
+        messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      } catch (_) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Não foi possível excluir o aluno')),
+        );
+      }
+    }
+  }
+
   void _openImportarCsvSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => _ImportarCsvSheet(
-        onImport: (novos) async {
+      builder: (sheetContext) => _ImportarAlunosCsvSheet(
+        onImport: (conteudoCsv) async {
+          final messenger = ScaffoldMessenger.of(context);
           Navigator.pop(sheetContext);
 
-          final existentes = _alunos.map((aluno) => aluno.matricula).toSet();
-          int importados = 0;
-          int duplicados = 0;
-
-          for (final row in novos) {
-            if (existentes.contains(row.matricula)) {
-              duplicados++;
-              continue;
-            }
-            try {
-              final aluno = await _alunoRepository.adicionar(
-                turmaId: widget.turma.id,
-                nome: row.nome,
-                matricula: row.matricula,
-              );
-              if (!mounted) return;
-              setState(() => _alunos.insert(0, aluno));
-              existentes.add(aluno.matricula);
-              importados++;
-            } catch (_) {
-              duplicados++;
-            }
+          final resultado = CsvImportService.parseStudents(conteudoCsv);
+          if (!resultado.temAlunos) {
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  resultado.erros.isNotEmpty
+                      ? resultado.erros.first
+                      : 'Nenhum aluno identificado no texto CSV informado',
+                ),
+              ),
+            );
+            return;
           }
 
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                duplicados == 0
-                    ? '$importados aluno(s) importado(s)'
-                    : '$importados aluno(s) importado(s) · '
-                        '$duplicados já cadastrado(s) ou ignorado(s)',
+          try {
+            final adicionados = await _alunoRepository.importarAlunos(
+              turmaId: widget.turma.id,
+              novosAlunos: [
+                for (final row in resultado.alunos)
+                  (nome: row.nome, matricula: row.matricula),
+              ],
+            );
+            if (!mounted) return;
+            _carregar();
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  '$adicionados alunos importados com sucesso!'
+                  '${resultado.erros.isNotEmpty ? ' (${resultado.erros.length} erros)' : ''}',
+                ),
               ),
-            ),
-          );
+            );
+          } catch (_) {
+            if (!mounted) return;
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Erro ao importar alunos do CSV')),
+            );
+          }
         },
       ),
     );
   }
 }
 
-class _ImportarCsvSheet extends StatefulWidget {
-  const _ImportarCsvSheet({required this.onImport});
+class _AlunoFormSheet extends StatefulWidget {
+  const _AlunoFormSheet({
+    required this.titulo,
+    required this.botaoTexto,
+    required this.onSubmit,
+    this.nomeInicial = '',
+    this.matriculaInicial = '',
+  });
 
-  final void Function(List<CsvStudentRow> alunos) onImport;
-
-  @override
-  State<_ImportarCsvSheet> createState() => _ImportarCsvSheetState();
-}
-
-class _ImportarCsvSheetState extends State<_ImportarCsvSheet> {
-  CsvImportResult? _result;
-
-  @override
-  Widget build(BuildContext context) {
-    final result = _result;
-    final canImport = result != null && result.alunos.isNotEmpty;
-
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(top: 4, bottom: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-            const Text(
-              'Importar alunos',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppColors.text,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Use um arquivo .csv com as colunas nome e matrícula, '
-              'separadas por vírgula ou ponto e vírgula.',
-              style: TextStyle(fontSize: 11, color: AppColors.muted),
-            ),
-            const SizedBox(height: 14),
-            CsvFilePicker(
-              onChanged: (file) => setState(() {
-                _result = file == null
-                    ? null
-                    : CsvImportService.parseStudents(file.content);
-              }),
-            ),
-            if (result != null) ...[
-              const SizedBox(height: 12),
-              Flexible(child: _buildResumo(result)),
-            ],
-            const SizedBox(height: 18),
-            ElevatedButton(
-              onPressed: canImport
-                  ? () => widget.onImport(result.alunos)
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: AppColors.border,
-                disabledForegroundColor: AppColors.muted,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: Text(
-                canImport
-                    ? 'Importar ${result.alunos.length} aluno(s)'
-                    : 'Importar alunos',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Center(
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: const Text(
-                  'Cancelar',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.accent,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResumo(CsvImportResult result) {
-    return ListView(
-      shrinkWrap: true,
-      children: [
-        _resumoLinha(
-          Icons.check_circle_outline,
-          AppColors.success,
-          '${result.alunos.length} aluno(s) prontos para importar',
-        ),
-        if (result.erros.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          _resumoLinha(
-            Icons.warning_amber_rounded,
-            AppColors.warning,
-            '${result.erros.length} linha(s) ignorada(s)',
-          ),
-          ...result.erros.map(
-            (erro) => Padding(
-              padding: const EdgeInsets.only(left: 22, top: 4),
-              child: Text(
-                erro,
-                style: const TextStyle(fontSize: 11, color: AppColors.muted),
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _resumoLinha(IconData icon, Color color, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _NovoAlunoSheet extends StatefulWidget {
-  const _NovoAlunoSheet({required this.onCreate});
-
-  final void Function(String nome, String matricula) onCreate;
+  final String titulo;
+  final String botaoTexto;
+  final String nomeInicial;
+  final String matriculaInicial;
+  final void Function(String nome, String matricula) onSubmit;
 
   @override
-  State<_NovoAlunoSheet> createState() => _NovoAlunoSheetState();
+  State<_AlunoFormSheet> createState() => _AlunoFormSheetState();
 }
 
-class _NovoAlunoSheetState extends State<_NovoAlunoSheet> {
-  final TextEditingController _nomeController = TextEditingController();
-  final TextEditingController _matriculaController = TextEditingController();
+class _AlunoFormSheetState extends State<_AlunoFormSheet> {
+  late final TextEditingController _nomeController;
+  late final TextEditingController _matriculaController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nomeController = TextEditingController(text: widget.nomeInicial);
+    _matriculaController = TextEditingController(text: widget.matriculaInicial);
+  }
 
   @override
   void dispose() {
@@ -666,9 +649,9 @@ class _NovoAlunoSheetState extends State<_NovoAlunoSheet> {
                 ),
               ),
             ),
-            const Text(
-              'Novo aluno(a)',
-              style: TextStyle(
+            Text(
+              widget.titulo,
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: AppColors.text,
@@ -690,17 +673,123 @@ class _NovoAlunoSheetState extends State<_NovoAlunoSheet> {
             ),
             const SizedBox(height: 18),
             PrimaryButton(
-              label: 'Adicionar aluno',
+              label: widget.botaoTexto,
               verticalPadding: 14,
               fontSize: 13,
               onPressed: () {
-                widget.onCreate(
+                widget.onSubmit(
                   _nomeController.text,
                   _matriculaController.text,
                 );
               },
             ),
             const SizedBox(height: 10),
+            Center(
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ImportarAlunosCsvSheet extends StatefulWidget {
+  const _ImportarAlunosCsvSheet({required this.onImport});
+
+  final void Function(String conteudoCsv) onImport;
+
+  @override
+  State<_ImportarAlunosCsvSheet> createState() => _ImportarAlunosCsvSheetState();
+}
+
+class _ImportarAlunosCsvSheetState extends State<_ImportarAlunosCsvSheet> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(top: 4, bottom: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const Text(
+              'Importar Alunos via Planilha (CSV)',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.text,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Cole o conteúdo CSV com as colunas "nome" e "matricula" (separadas por vírgula ou ponto-e-vírgula):',
+              style: TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _controller,
+              maxLines: 6,
+              style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+              decoration: InputDecoration(
+                hintText: "nome,matricula\nLucas Pereira,2026101\nFernanda Lima,2026102",
+                hintStyle: const TextStyle(color: AppColors.muted, fontSize: 11),
+                filled: true,
+                fillColor: AppColors.input,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            PrimaryButton(
+              label: 'Processar e Importar',
+              verticalPadding: 14,
+              fontSize: 13,
+              onPressed: () {
+                if (_controller.text.trim().isNotEmpty) {
+                  widget.onImport(_controller.text);
+                }
+              },
+            ),
+            const SizedBox(height: 8),
             Center(
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),

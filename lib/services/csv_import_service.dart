@@ -1,37 +1,5 @@
 import 'dart:convert';
-import 'dart:typed_data';
-
-import 'package:file_picker/file_picker.dart';
-
-/// Arquivo CSV selecionado pelo usuário, já decodificado como texto.
-class CsvFile {
-  const CsvFile({
-    required this.name,
-    required this.sizeInBytes,
-    required this.content,
-  });
-
-  final String name;
-  final int sizeInBytes;
-  final String content;
-
-  String get sizeLabel {
-    if (sizeInBytes < 1024) {
-      return '$sizeInBytes B';
-    }
-    return '${(sizeInBytes / 1024).toStringAsFixed(1)} KB';
-  }
-}
-
-/// Erro de seleção/leitura com mensagem pronta para exibir ao usuário.
-class CsvImportException implements Exception {
-  const CsvImportException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
-}
+import '../models/assessment.dart';
 
 class CsvStudentRow {
   const CsvStudentRow({required this.nome, required this.matricula});
@@ -40,75 +8,37 @@ class CsvStudentRow {
   final String matricula;
 }
 
-class CsvImportResult {
-  const CsvImportResult({required this.alunos, required this.erros});
+class CsvStudentsResult {
+  const CsvStudentsResult({required this.alunos, required this.erros});
 
   final List<CsvStudentRow> alunos;
   final List<String> erros;
+
+  bool get temAlunos => alunos.isNotEmpty;
+}
+
+class CsvQuestionsResult {
+  const CsvQuestionsResult({required this.questoes, required this.erros});
+
+  final List<QuestaoGabarito> questoes;
+  final List<String> erros;
+
+  bool get temQuestoes => questoes.isNotEmpty;
 }
 
 abstract final class CsvImportService {
-  static const int maxSizeInBytes = 1024 * 1024;
-
-  /// Abre o seletor nativo de arquivos restrito a `.csv`.
-  ///
-  /// Retorna `null` se o usuário cancelar e lança [CsvImportException] se o
-  /// arquivo for inválido.
-  static Future<CsvFile?> pickCsvFile() async {
-    final file = await FilePicker.pickFile(
-      dialogTitle: 'Selecione o arquivo CSV',
-      type: FileType.custom,
-      allowedExtensions: const ['csv'],
-    );
-    if (file == null) {
-      return null;
-    }
-
-    if (file.extension?.toLowerCase() != 'csv') {
-      throw const CsvImportException('Selecione um arquivo com extensão .csv');
-    }
-
-    final knownSize = file.lengthSync();
-    if (knownSize != null && knownSize > maxSizeInBytes) {
-      throw const CsvImportException('O arquivo excede o limite de 1 MB');
-    }
-
-    final Uint8List bytes;
-    try {
-      bytes = await file.readAsBytes();
-    } catch (_) {
-      throw const CsvImportException('Não foi possível ler o arquivo');
-    }
-
-    if (bytes.length > maxSizeInBytes) {
-      throw const CsvImportException('O arquivo excede o limite de 1 MB');
-    }
-
-    final content = decodeBytes(bytes);
-    if (content.trim().isEmpty) {
-      throw const CsvImportException('O arquivo selecionado está vazio');
-    }
-
-    return CsvFile(
-      name: file.name,
-      sizeInBytes: bytes.length,
-      content: content,
-    );
-  }
-
-  /// Decodifica como UTF-8 e recorre a Latin-1, formato comum em CSVs
-  /// exportados pelo Excel em pt-BR.
+  /// Decodifica bytes como UTF-8 com fallback para Latin-1.
   static String decodeBytes(List<int> bytes) {
     try {
-      return utf8.decode(bytes).replaceFirst('﻿', '');
+      return utf8.decode(bytes).replaceFirst('\uFEFF', '');
     } on FormatException {
       return latin1.decode(bytes);
     }
   }
 
-  /// Converte o CSV em alunos. Aceita `,` ou `;` como separador e um
-  /// cabeçalho opcional com as colunas `nome` e `matricula`.
-  static CsvImportResult parseStudents(String content) {
+  /// Converte o conteúdo de um CSV em alunos.
+  /// Aceita delimitador `,` ou `;` e cabeçalhos com `nome` e `matricula`.
+  static CsvStudentsResult parseStudents(String content) {
     final lines = const LineSplitter().convert(content);
     final alunos = <CsvStudentRow>[];
     final erros = <String>[];
@@ -116,7 +46,7 @@ abstract final class CsvImportService {
 
     final firstIndex = lines.indexWhere((line) => line.trim().isNotEmpty);
     if (firstIndex == -1) {
-      return CsvImportResult(alunos: alunos, erros: ['O arquivo está vazio']);
+      return const CsvStudentsResult(alunos: [], erros: ['O arquivo está vazio']);
     }
 
     final delimiter = _detectDelimiter(lines[firstIndex]);
@@ -128,12 +58,13 @@ abstract final class CsvImportService {
       lines[firstIndex],
       delimiter,
     ).map(_normalizeHeader).toList();
+
     if (header.contains('nome')) {
       nomeIndex = header.indexOf('nome');
       matriculaIndex = header.indexOf('matricula');
       if (matriculaIndex == -1) {
-        return CsvImportResult(
-          alunos: alunos,
+        return const CsvStudentsResult(
+          alunos: [],
           erros: ['Cabeçalho sem a coluna "matricula"'],
         );
       }
@@ -141,9 +72,8 @@ abstract final class CsvImportService {
     }
 
     for (var i = startIndex; i < lines.length; i++) {
-      if (lines[i].trim().isEmpty) {
-        continue;
-      }
+      if (lines[i].trim().isEmpty) continue;
+
       final lineNumber = i + 1;
       final fields = _splitLine(lines[i], delimiter);
       final nome = _fieldAt(fields, nomeIndex);
@@ -154,29 +84,135 @@ abstract final class CsvImportService {
         continue;
       }
       if (!matriculas.add(matricula)) {
-        erros.add('Linha $lineNumber: matrícula $matricula repetida');
+        erros.add('Linha $lineNumber: matrícula "$matricula" repetida no arquivo');
         continue;
       }
       alunos.add(CsvStudentRow(nome: nome, matricula: matricula));
     }
 
-    return CsvImportResult(alunos: alunos, erros: erros);
+    return CsvStudentsResult(alunos: alunos, erros: erros);
+  }
+
+  /// Converte o conteúdo de um CSV em questões/gabarito de prova.
+  /// Colunas suportadas:
+  /// - `questao` (ou `numero`)
+  /// - `resposta` (ou `alternativa`, `gabarito`, `correta`)
+  /// - `peso` (opcional, padrão 1.0)
+  static CsvQuestionsResult parseQuestions(String content) {
+    final lines = const LineSplitter().convert(content);
+    final questoes = <QuestaoGabarito>[];
+    final erros = <String>[];
+    final numerosQuestoes = <int>{};
+
+    final firstIndex = lines.indexWhere((line) => line.trim().isNotEmpty);
+    if (firstIndex == -1) {
+      return const CsvQuestionsResult(
+        questoes: [],
+        erros: ['O arquivo está vazio'],
+      );
+    }
+
+    final delimiter = _detectDelimiter(lines[firstIndex]);
+    var questaoIndex = 0;
+    var respostaIndex = 1;
+    var pesoIndex = -1;
+    var startIndex = firstIndex;
+
+    final header = _splitLine(
+      lines[firstIndex],
+      delimiter,
+    ).map(_normalizeHeader).toList();
+
+    final temCabecalho = header.any(
+      (h) => h.contains('questao') || h.contains('numero') || h.contains('resposta') || h.contains('gabarito'),
+    );
+
+    if (temCabecalho) {
+      questaoIndex = header.indexWhere((h) => h.contains('questao') || h.contains('numero'));
+      if (questaoIndex == -1) questaoIndex = 0;
+
+      respostaIndex = header.indexWhere(
+        (h) => h.contains('resposta') || h.contains('alternativa') || h.contains('gabarito') || h.contains('correta'),
+      );
+      if (respostaIndex == -1) {
+        return const CsvQuestionsResult(
+          questoes: [],
+          erros: ['Cabeçalho sem coluna de resposta ou gabarito'],
+        );
+      }
+
+      pesoIndex = header.indexWhere((h) => h.contains('peso'));
+      startIndex = firstIndex + 1;
+    }
+
+    for (var i = startIndex; i < lines.length; i++) {
+      if (lines[i].trim().isEmpty) continue;
+
+      final lineNumber = i + 1;
+      final fields = _splitLine(lines[i], delimiter);
+
+      final questaoStr = _fieldAt(fields, questaoIndex);
+      final respostaStr = _fieldAt(fields, respostaIndex).toUpperCase();
+      final pesoStr = pesoIndex != -1 ? _fieldAt(fields, pesoIndex) : '';
+
+      final numQuestao = int.tryParse(questaoStr);
+      if (numQuestao == null || numQuestao <= 0) {
+        erros.add('Linha $lineNumber: número de questão inválido ("$questaoStr")');
+        continue;
+      }
+
+      if (!numerosQuestoes.add(numQuestao)) {
+        erros.add('Linha $lineNumber: questão $numQuestao duplicada no arquivo');
+        continue;
+      }
+
+      if (respostaStr.isNotEmpty && !RegExp(r'^[A-E]$').hasMatch(respostaStr)) {
+        erros.add('Linha $lineNumber: alternativa "$respostaStr" inválida (use de A a E)');
+        continue;
+      }
+
+      var peso = 1.0;
+      if (pesoStr.isNotEmpty) {
+        final parsedPeso = double.tryParse(pesoStr.replaceAll(',', '.'));
+        if (parsedPeso == null || parsedPeso <= 0) {
+          erros.add('Linha $lineNumber: peso "$pesoStr" inválido (deve ser um número positivo)');
+          continue;
+        }
+        peso = parsedPeso;
+      }
+
+      questoes.add(
+        QuestaoGabarito(
+          questao: numQuestao,
+          alternativaCorreta: respostaStr.isEmpty ? null : respostaStr,
+          peso: peso,
+        ),
+      );
+    }
+
+    // Ordena as questões por número
+    questoes.sort((a, b) => a.questao.compareTo(b.questao));
+
+    return CsvQuestionsResult(questoes: questoes, erros: erros);
   }
 
   static String _detectDelimiter(String line) {
-    return _splitLine(line, ';').length > _splitLine(line, ',').length
-        ? ';'
-        : ',';
+    final pontoEVirgula = _splitLine(line, ';').length;
+    final virgula = _splitLine(line, ',').length;
+    return pontoEVirgula > virgula ? ';' : ',';
   }
 
   static String _fieldAt(List<String> fields, int index) =>
-      index < fields.length ? fields[index].trim() : '';
+      index >= 0 && index < fields.length ? fields[index].trim() : '';
 
-  static String _normalizeHeader(String value) =>
-      value.trim().toLowerCase().replaceAll('í', 'i').replaceAll('á', 'a');
+  static String _normalizeHeader(String value) => value
+      .trim()
+      .toLowerCase()
+      .replaceAll('í', 'i')
+      .replaceAll('á', 'a')
+      .replaceAll('ã', 'a')
+      .replaceAll('ç', 'c');
 
-  /// Divide uma linha respeitando campos entre aspas (`"Silva, Ana"`) e
-  /// aspas escapadas (`""`).
   static List<String> _splitLine(String line, String delimiter) {
     final fields = <String>[];
     final buffer = StringBuffer();

@@ -17,6 +17,7 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
   final _titleController = TextEditingController();
   final _subjectController = TextEditingController();
   final _questionsController = TextEditingController(text: '10');
+  DateTime _dataAplicacao = DateTime.now();
 
   List<Turma> _turmas = [];
   Turma? _selectedClass;
@@ -52,7 +53,6 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
     }
   }
 
-  /// Sugere a disciplina da turma enquanto o professor não digitou outra.
   void _selecionarTurma(Turma turma) {
     final disciplinaAtual = _subjectController.text.trim();
     if (disciplinaAtual.isEmpty ||
@@ -60,6 +60,18 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
       _subjectController.text = turma.disciplina;
     }
     _selectedClass = turma;
+  }
+
+  Future<void> _selecionarData() async {
+    final escolhida = await showDatePicker(
+      context: context,
+      initialDate: _dataAplicacao,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (escolhida != null && mounted) {
+      setState(() => _dataAplicacao = escolhida);
+    }
   }
 
   @override
@@ -75,11 +87,14 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const StandardAppBar(title: 'Nova avaliação'),
-      body: SafeArea(top: false, child: _buildBody()),
+      body: SafeArea(
+        top: false,
+        child: _buildConteudo(),
+      ),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildConteudo() {
     if (_carregando) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.accent),
@@ -94,28 +109,15 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
         iconBackground: AppColors.accentLight,
         iconColor: AppColors.accent,
         title: 'Nenhuma turma cadastrada',
-        message: 'Crie uma turma antes de cadastrar avaliações.',
+        message: 'Cadastre ao menos uma turma para poder criar avaliações.',
       );
     }
+
     return Form(
       key: _formKey,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
         children: [
-          const Text(
-            'Informações básicas',
-            style: TextStyle(
-              color: AppColors.text,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Você poderá configurar o gabarito na próxima etapa.',
-            style: TextStyle(color: AppColors.muted, fontSize: 12),
-          ),
-          const SizedBox(height: 20),
           _label('Título da avaliação'),
           TextFormField(
             controller: _titleController,
@@ -156,6 +158,34 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
             },
           ),
           const SizedBox(height: 16),
+          _label('Data de aplicação'),
+          InkWell(
+            onTap: _selecionarData,
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
+              decoration: BoxDecoration(
+                color: AppColors.input,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    AvaliacaoRepository.formatarData(_dataAplicacao),
+                    style: const TextStyle(fontSize: 14, color: AppColors.text),
+                  ),
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 18,
+                    color: AppColors.accent,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           _label('Quantidade de questões'),
           TextFormField(
             controller: _questionsController,
@@ -183,7 +213,7 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
                 SizedBox(width: 9),
                 Expanded(
                   child: Text(
-                    'A avaliação será criada como rascunho e ficará disponível para configurar o gabarito.',
+                    'A avaliação será criada como rascunho com a data prevista e ficará disponível para configurar o gabarito.',
                     style: TextStyle(
                       color: AppColors.accent,
                       fontSize: 11,
@@ -270,6 +300,7 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
         titulo: _titleController.text.trim(),
         disciplina: _subjectController.text.trim(),
         totalQuestoes: int.parse(_questionsController.text),
+        dataAplicacao: _dataAplicacao,
       );
       if (!mounted) return;
       Navigator.pop(context, assessment);
