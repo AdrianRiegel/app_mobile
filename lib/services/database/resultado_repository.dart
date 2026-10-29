@@ -23,9 +23,9 @@ class ResultadoRepository extends FirestoreRepository {
 
   /// Corrige as [respostas] do aluno e salva o resultado.
   ///
-  /// O documento usa o id `{avaliacaoId}_{alunoId}`, entÃ£o corrigir o mesmo
+  /// O documento usa o id `{avaliacaoId}_{alunoId}`, então corrigir o mesmo
   /// aluno de novo substitui o resultado anterior. Quando todos os alunos da
-  /// turma tÃªm resultado, a avaliaÃ§Ã£o passa a `concluida`.
+  /// turma têm resultado, a avaliação passa a `concluida`.
   Future<Resultado> salvar({
     required Assessment avaliacao,
     required Aluno aluno,
@@ -140,7 +140,7 @@ class ResultadoRepository extends FirestoreRepository {
   }
 
   /// Compara as respostas com o gabarito. A nota vai de 0 a 10 e considera o
-  /// peso de cada questÃ£o.
+  /// peso de cada questão.
   static Resultado corrigir({
     required String id,
     required Assessment avaliacao,

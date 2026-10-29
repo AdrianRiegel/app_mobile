@@ -91,6 +91,16 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           ],
         ),
       ),
+      // No Scaffold (e não num Stack do corpo) o botão sobe quando aparece
+      // um SnackBar, em vez de ficar coberto por ele.
+      floatingActionButton: _tabIndex == 1 && !_carregando && !_erro
+          ? FloatingActionButton(
+              onPressed: _createAssessment,
+              backgroundColor: AppColors.accent,
+              elevation: 4,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
     );
   }
 
@@ -239,33 +249,19 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   }
 
   Widget _buildProvasTab() {
-    return Stack(
-      children: [
-        if (_provas.isEmpty)
-          const Center(
-            child: Text(
-              'Nenhuma avaliação cadastrada para esta turma',
-              style: TextStyle(color: AppColors.muted, fontSize: 13),
-            ),
-          )
-        else
-          ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
-            itemCount: _provas.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 8),
-            itemBuilder: (context, index) => _buildProvaItem(_provas[index]),
-          ),
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton(
-            onPressed: _createAssessment,
-            backgroundColor: AppColors.accent,
-            elevation: 4,
-            child: const Icon(Icons.add, color: Colors.white),
-          ),
+    if (_provas.isEmpty) {
+      return const Center(
+        child: Text(
+          'Nenhuma avaliação cadastrada para esta turma',
+          style: TextStyle(color: AppColors.muted, fontSize: 13),
         ),
-      ],
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
+      itemCount: _provas.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      itemBuilder: (context, index) => _buildProvaItem(_provas[index]),
     );
   }
 
@@ -281,12 +277,20 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.accent),
+            icon: const Icon(
+              Icons.edit_outlined,
+              size: 18,
+              color: AppColors.accent,
+            ),
             tooltip: 'Editar aluno',
             onPressed: () => _openEditarAlunoSheet(aluno),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.danger),
+            icon: const Icon(
+              Icons.delete_outline,
+              size: 18,
+              color: AppColors.danger,
+            ),
             tooltip: 'Excluir aluno',
             onPressed: () => _confirmarExclusaoAluno(aluno),
           ),
@@ -318,6 +322,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       ),
       trailing: StatusBadge.assessment(prova.status),
       onTap: () async {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         await Navigator.push(
           context,
           MaterialPageRoute(
@@ -332,13 +337,14 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   }
 
   Future<void> _createAssessment() async {
-    final criada = await Navigator.push<bool>(
+    // O aviso desta tela (ex.: alunos importados) seguiria para a próxima e
+    // cobriria o botão "Salvar prova".
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    final criada = await Navigator.push<Assessment>(
       context,
-      MaterialPageRoute(
-        builder: (_) => NewProofScreen(turma: widget.turma),
-      ),
+      MaterialPageRoute(builder: (_) => NewProofScreen(turma: widget.turma)),
     );
-    if (criada == true && mounted) {
+    if (criada != null && mounted) {
       _carregar();
     }
   }
@@ -468,7 +474,9 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   }
 
   Future<void> _confirmarExclusaoAluno(Aluno aluno) async {
-    final temProva = await _alunoRepository.turmaTemProvaAplicada(widget.turma.id);
+    final temProva = await _alunoRepository.turmaTemProvaAplicada(
+      widget.turma.id,
+    );
     if (!mounted) return;
 
     if (temProva) {
@@ -710,7 +718,8 @@ class _ImportarAlunosCsvSheet extends StatefulWidget {
   final void Function(String conteudoCsv) onImport;
 
   @override
-  State<_ImportarAlunosCsvSheet> createState() => _ImportarAlunosCsvSheetState();
+  State<_ImportarAlunosCsvSheet> createState() =>
+      _ImportarAlunosCsvSheetState();
 }
 
 class _ImportarAlunosCsvSheetState extends State<_ImportarAlunosCsvSheet> {
@@ -759,8 +768,12 @@ class _ImportarAlunosCsvSheetState extends State<_ImportarAlunosCsvSheet> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Cole o conteúdo CSV com as colunas "nome" e "matricula" (separadas por vírgula ou ponto-e-vírgula):',
+              'Selecione um arquivo .csv ou cole o conteúdo com as colunas "nome" e "matricula" (separadas por vírgula ou ponto-e-vírgula):',
               style: TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
+            const SizedBox(height: 10),
+            CsvFilePicker(
+              onChanged: (file) => _controller.text = file?.content ?? '',
             ),
             const SizedBox(height: 10),
             TextField(
@@ -769,7 +782,10 @@ class _ImportarAlunosCsvSheetState extends State<_ImportarAlunosCsvSheet> {
               style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
               decoration: InputDecoration(
                 hintText: "nome,matricula\nLucas Pereira,2026101\nFernanda Lima,2026102",
-                hintStyle: const TextStyle(color: AppColors.muted, fontSize: 11),
+                hintStyle: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 11,
+                ),
                 filled: true,
                 fillColor: AppColors.input,
                 border: OutlineInputBorder(

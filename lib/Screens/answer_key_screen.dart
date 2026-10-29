@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
+import '../components/inputs/csv_file_picker.dart';
 import '../models/assessment.dart';
 import '../services/csv_import_service.dart';
 import '../services/database/database.dart';
@@ -91,8 +92,13 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Cole as linhas do CSV com "questao" e "resposta" (ex.: 1;A ou questao,resposta):',
+                'Selecione um arquivo .csv ou cole as linhas com "questao" e "resposta" (ex.: 1;A ou questao,resposta):',
                 style: TextStyle(fontSize: 12, color: AppColors.muted),
+              ),
+              const SizedBox(height: 10),
+              CsvFilePicker(
+                hint: 'Formato: questao;resposta',
+                onChanged: (file) => controller.text = file?.content ?? '',
               ),
               const SizedBox(height: 10),
               TextField(
@@ -101,7 +107,10 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
                 style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
                 decoration: InputDecoration(
                   hintText: "questao,resposta\n1,A\n2,B\n3,C\n4,D",
-                  hintStyle: const TextStyle(color: AppColors.muted, fontSize: 11),
+                  hintStyle: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 11,
+                  ),
                   filled: true,
                   fillColor: AppColors.input,
                   border: OutlineInputBorder(
@@ -139,7 +148,9 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
                   setState(() {
                     for (final q in resultado.questoes) {
                       final idx = q.questao - 1;
-                      if (idx >= 0 && idx < _answers.length && q.alternativaCorreta != null) {
+                      if (idx >= 0 &&
+                          idx < _answers.length &&
+                          q.alternativaCorreta != null) {
                         _answers[idx] = q.alternativaCorreta;
                         aplicadas++;
                       }
@@ -185,7 +196,11 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
         title: 'Configurar gabarito',
         actions: [
           IconButton(
-            icon: const Icon(Icons.file_upload_outlined, size: 20, color: AppColors.accent),
+            icon: const Icon(
+              Icons.file_upload_outlined,
+              size: 20,
+              color: AppColors.accent,
+            ),
             tooltip: 'Importar gabarito via CSV',
             onPressed: _openImportarGabaritoCsv,
           ),
@@ -229,18 +244,25 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
                 itemBuilder: (context, index) => _questionRow(index),
               ),
             ),
-            Container(
-              color: AppColors.surface,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: PrimaryButton(
-                label: _salvando ? 'Salvando...' : 'Salvar gabarito',
-                icon: Icons.check,
-                verticalPadding: 14,
-                fontSize: 13,
-                onPressed: _salvando ? null : _salvar,
-              ),
-            ),
           ],
+        ),
+      ),
+      // Como bottomNavigationBar, os SnackBars aparecem acima do botão em vez
+      // de cobri-lo.
+      bottomNavigationBar: Container(
+        color: AppColors.surface,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: PrimaryButton(
+              label: _salvando ? 'Salvando...' : 'Salvar gabarito',
+              icon: Icons.check,
+              verticalPadding: 14,
+              fontSize: 13,
+              onPressed: _salvando ? null : _salvar,
+            ),
+          ),
         ),
       ),
     );

@@ -1,5 +1,39 @@
 import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
+
 import '../models/assessment.dart';
+
+/// Arquivo CSV selecionado pelo usuário, já decodificado como texto.
+class CsvFile {
+  const CsvFile({
+    required this.name,
+    required this.sizeInBytes,
+    required this.content,
+  });
+
+  final String name;
+  final int sizeInBytes;
+  final String content;
+
+  String get sizeLabel {
+    if (sizeInBytes < 1024) {
+      return '$sizeInBytes B';
+    }
+    return '${(sizeInBytes / 1024).toStringAsFixed(1)} KB';
+  }
+}
+
+/// Erro de seleção/leitura com mensagem pronta para exibir ao usuário.
+class CsvImportException implements Exception {
+  const CsvImportException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
 
 class CsvStudentRow {
   const CsvStudentRow({required this.nome, required this.matricula});
@@ -27,6 +61,54 @@ class CsvQuestionsResult {
 }
 
 abstract final class CsvImportService {
+  static const int maxSizeInBytes = 1024 * 1024;
+
+  /// Abre o seletor nativo de arquivos restrito a `.csv`.
+  ///
+  /// Retorna `null` se o usuário cancelar e lança [CsvImportException] se o
+  /// arquivo for inválido.
+  static Future<CsvFile?> pickCsvFile() async {
+    final file = await FilePicker.pickFile(
+      dialogTitle: 'Selecione o arquivo CSV',
+      type: FileType.custom,
+      allowedExtensions: const ['csv'],
+    );
+    if (file == null) {
+      return null;
+    }
+
+    if (file.extension?.toLowerCase() != 'csv') {
+      throw const CsvImportException('Selecione um arquivo com extensão .csv');
+    }
+
+    final knownSize = file.lengthSync();
+    if (knownSize != null && knownSize > maxSizeInBytes) {
+      throw const CsvImportException('O arquivo excede o limite de 1 MB');
+    }
+
+    final Uint8List bytes;
+    try {
+      bytes = await file.readAsBytes();
+    } catch (_) {
+      throw const CsvImportException('Não foi possível ler o arquivo');
+    }
+
+    if (bytes.length > maxSizeInBytes) {
+      throw const CsvImportException('O arquivo excede o limite de 1 MB');
+    }
+
+    final content = decodeBytes(bytes);
+    if (content.trim().isEmpty) {
+      throw const CsvImportException('O arquivo selecionado está vazio');
+    }
+
+    return CsvFile(
+      name: file.name,
+      sizeInBytes: bytes.length,
+      content: content,
+    );
+  }
+
   /// Decodifica bytes como UTF-8 com fallback para Latin-1.
   static String decodeBytes(List<int> bytes) {
     try {
@@ -46,7 +128,10 @@ abstract final class CsvImportService {
 
     final firstIndex = lines.indexWhere((line) => line.trim().isNotEmpty);
     if (firstIndex == -1) {
-      return const CsvStudentsResult(alunos: [], erros: ['O arquivo está vazio']);
+      return const CsvStudentsResult(
+        alunos: [],
+        erros: ['O arquivo está vazio'],
+      );
     }
 
     final delimiter = _detectDelimiter(lines[firstIndex]);
@@ -84,7 +169,9 @@ abstract final class CsvImportService {
         continue;
       }
       if (!matriculas.add(matricula)) {
-        erros.add('Linha $lineNumber: matrícula "$matricula" repetida no arquivo');
+        erros.add(
+          'Linha $lineNumber: matrícula "$matricula" repetida no arquivo',
+        );
         continue;
       }
       alunos.add(CsvStudentRow(nome: nome, matricula: matricula));
@@ -124,15 +211,25 @@ abstract final class CsvImportService {
     ).map(_normalizeHeader).toList();
 
     final temCabecalho = header.any(
-      (h) => h.contains('questao') || h.contains('numero') || h.contains('resposta') || h.contains('gabarito'),
+      (h) =>
+          h.contains('questao') ||
+          h.contains('numero') ||
+          h.contains('resposta') ||
+          h.contains('gabarito'),
     );
 
     if (temCabecalho) {
-      questaoIndex = header.indexWhere((h) => h.contains('questao') || h.contains('numero'));
+      questaoIndex = header.indexWhere(
+        (h) => h.contains('questao') || h.contains('numero'),
+      );
       if (questaoIndex == -1) questaoIndex = 0;
 
       respostaIndex = header.indexWhere(
-        (h) => h.contains('resposta') || h.contains('alternativa') || h.contains('gabarito') || h.contains('correta'),
+        (h) =>
+            h.contains('resposta') ||
+            h.contains('alternativa') ||
+            h.contains('gabarito') ||
+            h.contains('correta'),
       );
       if (respostaIndex == -1) {
         return const CsvQuestionsResult(
@@ -157,17 +254,23 @@ abstract final class CsvImportService {
 
       final numQuestao = int.tryParse(questaoStr);
       if (numQuestao == null || numQuestao <= 0) {
-        erros.add('Linha $lineNumber: número de questão inválido ("$questaoStr")');
+        erros.add(
+          'Linha $lineNumber: número de questão inválido ("$questaoStr")',
+        );
         continue;
       }
 
       if (!numerosQuestoes.add(numQuestao)) {
-        erros.add('Linha $lineNumber: questão $numQuestao duplicada no arquivo');
+        erros.add(
+          'Linha $lineNumber: questão $numQuestao duplicada no arquivo',
+        );
         continue;
       }
 
       if (respostaStr.isNotEmpty && !RegExp(r'^[A-E]$').hasMatch(respostaStr)) {
-        erros.add('Linha $lineNumber: alternativa "$respostaStr" inválida (use de A a E)');
+        erros.add(
+          'Linha $lineNumber: alternativa "$respostaStr" inválida (use de A a E)',
+        );
         continue;
       }
 
@@ -175,7 +278,9 @@ abstract final class CsvImportService {
       if (pesoStr.isNotEmpty) {
         final parsedPeso = double.tryParse(pesoStr.replaceAll(',', '.'));
         if (parsedPeso == null || parsedPeso <= 0) {
-          erros.add('Linha $lineNumber: peso "$pesoStr" inválido (deve ser um número positivo)');
+          erros.add(
+            'Linha $lineNumber: peso "$pesoStr" inválido (deve ser um número positivo)',
+          );
           continue;
         }
         peso = parsedPeso;

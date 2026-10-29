@@ -42,7 +42,7 @@ void main() {
       );
 
       expect(result.alunos.length, 1);
-      expect(result.erros, ['Linha 4: matrícula 1 repetida']);
+      expect(result.erros, ['Linha 4: matrícula "1" repetida no arquivo']);
     });
 
     test('rejeita cabeçalho sem matrícula', () {

@@ -61,6 +61,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('2 questões'), findsOneWidget);
+      // O botão fica abaixo da área visível do teste (800x600).
+      await tester.scrollUntilVisible(
+        find.text('Adicionar questão'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('Adicionar questão'), findsOneWidget);
 
       // Abre o modal de nova questão

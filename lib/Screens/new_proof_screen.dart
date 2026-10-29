@@ -90,7 +90,10 @@ class _NewProofScreenState extends State<NewProofScreen> {
               onTap: _selecionarData,
               borderRadius: BorderRadius.circular(10),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.input,
                   borderRadius: BorderRadius.circular(10),
@@ -101,7 +104,10 @@ class _NewProofScreenState extends State<NewProofScreen> {
                   children: [
                     Text(
                       AvaliacaoRepository.formatarData(_dataAplicacao),
-                      style: const TextStyle(fontSize: 14, color: AppColors.text),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.text,
+                      ),
                     ),
                     const Icon(
                       Icons.calendar_today_outlined,
@@ -132,13 +138,11 @@ class _NewProofScreenState extends State<NewProofScreen> {
             ),
             const SizedBox(height: 10),
             ..._questions.asMap().entries.map(
-              (entry) => _questionCard(entry.key + 1, entry.value),
+              (entry) => _questionCard(entry.key + 1, entry.key, entry.value),
             ),
             const SizedBox(height: 14),
             OutlinedButton.icon(
-              onPressed: () {
-                _showFeedback('Adicionar questão estará disponível em breve');
-              },
+              onPressed: _openAddQuestionSheet,
               icon: const Icon(Icons.add, size: 18, color: AppColors.accent),
               label: const Text(
                 'Adicionar questão',
@@ -348,9 +352,7 @@ class _NewProofScreenState extends State<NewProofScreen> {
   void _showFeedback(String message) {
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

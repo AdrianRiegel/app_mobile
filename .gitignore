@@ -129,3 +129,6 @@ app.*.symbols
 !/dev/ci/**/Gemfile.lock
 # Variáveis de ambiente
 .env
+
+# ChromeDriver local para testes de integração no Chrome
+/chromedriver/
