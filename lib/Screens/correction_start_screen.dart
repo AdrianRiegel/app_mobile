@@ -16,7 +16,7 @@ import '../theme/app_colors.dart';
 class CorrectionStartScreen extends StatefulWidget {
   const CorrectionStartScreen({super.key, this.assessment});
 
-  /// AvaliaÃƒÂ§ÃƒÂ£o prÃƒÂ©-selecionada; sem ela, o professor escolhe na lista.
+  /// Avaliação pré-selecionada; sem ela, o professor escolhe na lista.
   final Assessment? assessment;
 
   @override
@@ -24,7 +24,7 @@ class CorrectionStartScreen extends StatefulWidget {
 }
 
 class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
-  int _currentStage = 0; // 0 = AvaliaÃƒÂ§ÃƒÂ£o, 1 = Aluno, 2 = Folha, 3 = Resultado
+  int _currentStage = 0; // 0 = Avaliação, 1 = Aluno, 2 = Folha, 3 = Resultado
   bool _reading = false;
   bool _readSuccess = false;
   bool _showGabarito = false;
@@ -50,7 +50,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
     _carregarAvaliacoes();
   }
 
-  /// SÃƒÂ³ avaliaÃƒÂ§ÃƒÂµes com gabarito completo podem ser corrigidas.
+  /// Só avaliações com gabarito completo podem ser corrigidas.
   Future<void> _carregarAvaliacoes() async {
     setState(() {
       _carregando = true;
@@ -97,7 +97,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         _currentStage = 0;
         _carregandoAlunos = false;
       });
-      _mostrarMensagem('NÃƒÂ£o foi possÃƒÂ­vel carregar os alunos da turma');
+      _mostrarMensagem('Não foi possível carregar os alunos da turma');
     }
   }
 
@@ -118,7 +118,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _salvando = false);
-      _mostrarMensagem('NÃƒÂ£o foi possÃƒÂ­vel salvar a correÃƒÂ§ÃƒÂ£o');
+      _mostrarMensagem('Não foi possível salvar a correção');
     }
   }
 
@@ -142,7 +142,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: StandardAppBar(
-        title: 'Iniciar correÃƒÂ§ÃƒÂ£o',
+        title: 'Iniciar correção',
         onBack: () {
           if (_currentStage == 3 && _showGabarito) {
             setState(() => _showGabarito = false);
@@ -164,10 +164,10 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
             _steps(),
             const SizedBox(height: 24),
 
-            // SÃƒÂ³ exibe o card resumo se a avaliaÃƒÂ§ÃƒÂ£o jÃƒÂ¡ foi escolhida (Etapa 1 em diante)
+            // Só exibe o card resumo se a avaliação já foi escolhida (Etapa 1 em diante)
             if (_currentStage > 0 && _selectedAssessment != null) ...[
               const Text(
-                'AvaliaÃƒÂ§ÃƒÂ£o selecionada',
+                'Avaliação selecionada',
                 style: TextStyle(
                   color: AppColors.muted,
                   fontSize: 11,
@@ -212,7 +212,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            '${_selectedAssessment!.className} Ã‚Â· ${_selectedAssessment!.totalQuestions} questÃƒÂµes',
+                            '${_selectedAssessment!.className} · ${_selectedAssessment!.totalQuestions} questões',
                             style: const TextStyle(
                               color: AppColors.muted,
                               fontSize: 10,
@@ -250,7 +250,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
   }
 
   Widget _steps() {
-    const labels = ['AvaliaÃƒÂ§ÃƒÂ£o', 'Aluno', 'Folha', 'Resultado'];
+    const labels = ['Avaliação', 'Aluno', 'Folha', 'Resultado'];
     int currentStep = _currentStage;
 
     return Row(
@@ -317,7 +317,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
     );
   }
 
-  // ETAPA 0: Selecionar AvaliaÃƒÂ§ÃƒÂ£o (Vinculado ao model Assessment)
+  // ETAPA 0: Selecionar Avaliação (Vinculado ao model Assessment)
   Widget _selectAssessmentContent() {
     if (_carregando) {
       return const Padding(
@@ -340,8 +340,8 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         icon: Icons.assignment_outlined,
         iconBackground: AppColors.accentLight,
         iconColor: AppColors.accent,
-        title: 'Nenhuma avaliaÃƒÂ§ÃƒÂ£o pronta',
-        message: 'Configure o gabarito de uma avaliaÃƒÂ§ÃƒÂ£o para poder corrigi-la.',
+        title: 'Nenhuma avaliação pronta',
+        message: 'Configure o gabarito de uma avaliação para poder corrigi-la.',
       );
     }
     return Column(
@@ -349,7 +349,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'IdentificaÃƒÂ§ÃƒÂ£o da AvaliaÃƒÂ§ÃƒÂ£o',
+          'Identificação da Avaliação',
           style: TextStyle(
             color: AppColors.text,
             fontSize: 14,
@@ -358,7 +358,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         ),
         const SizedBox(height: 6),
         const Text(
-          'Selecione a avaliaÃƒÂ§ÃƒÂ£o que vocÃƒÂª irÃƒÂ¡ corrigir agora.',
+          'Selecione a avaliação que você irá corrigir agora.',
           style: TextStyle(color: AppColors.muted, fontSize: 11),
         ),
         const SizedBox(height: 20),
@@ -373,7 +373,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
             child: DropdownButton<Assessment>(
               isExpanded: true,
               hint: const Text(
-                'Selecione uma avaliaÃƒÂ§ÃƒÂ£o...',
+                'Selecione uma avaliação...',
                 style: TextStyle(fontSize: 13),
               ),
               value: _selectedAssessment,
@@ -402,7 +402,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         ),
         const SizedBox(height: 24),
         PrimaryButton(
-          label: 'Continuar para identificaÃƒÂ§ÃƒÂ£o do aluno',
+          label: 'Continuar para identificação do aluno',
           verticalPadding: 14,
           onPressed: _selectedAssessment == null ? null : _irParaAlunos,
         ),
@@ -437,7 +437,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'IdentificaÃƒÂ§ÃƒÂ£o do Aluno',
+          'Identificação do Aluno',
           style: TextStyle(
             color: AppColors.text,
             fontSize: 14,
@@ -533,7 +533,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         ),
         const SizedBox(height: 5),
         const Text(
-          'Enquadre a folha inteira na cÃƒÂ¢mera\nEsta etapa ÃƒÂ© uma simulaÃƒÂ§ÃƒÂ£o visual.',
+          'Enquadre a folha inteira na câmera\nEsta etapa é uma simulação visual.',
           textAlign: TextAlign.center,
           style: TextStyle(color: AppColors.muted, fontSize: 11),
         ),
@@ -591,7 +591,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Ao continuar, a correÃƒÂ§ÃƒÂ£o serÃƒÂ¡ salva e o resultado exibido.',
+            'Ao continuar, a correção será salva e o resultado exibido.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.muted, fontSize: 11, height: 1.4),
           ),
@@ -692,7 +692,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      aprovado ? 'Na MÃƒÂ©dia' : 'Abaixo da MÃƒÂ©dia',
+                      aprovado ? 'Na Média' : 'Abaixo da Média',
                       style: TextStyle(
                         color: aprovado ? Colors.green[700] : Colors.red[700],
                         fontSize: 11,
@@ -714,7 +714,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         ),
         const SizedBox(height: 10),
         PrimaryButton(
-          label: 'Corrigir prÃƒÂ³ximo aluno',
+          label: 'Corrigir próximo aluno',
           verticalPadding: 14,
           onPressed: _corrigirProximoAluno,
         ),
@@ -774,7 +774,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           for (final resposta in respostas)
             _answerBadge(
               '${resposta.questao}',
-              resposta.alternativaMarcada ?? 'Ã¢â‚¬â€œ',
+              resposta.alternativaMarcada ?? '–',
               isCorrect: resposta.correta,
             ),
         ],
