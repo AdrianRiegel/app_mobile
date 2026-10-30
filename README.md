@@ -414,7 +414,7 @@ analysis_options.yaml  # regras do linter
 
 - Turmas: edição de descrição, semestre e ano com persistência no Firestore; exclusão com confirmação e remoção dos alunos e avaliações não aplicadas. A exclusão é bloqueada quando há avaliação concluída ou resultado de correção.
 - Alunos: paginação de oito registros por página, mantendo cadastro, edição, exclusão e importação CSV da versão integrada.
-- Navegação: gesto horizontal alterna as abas Alunos e Provas.
+- Navegação: botão de voltar em Turmas retorna à rota anterior ou ao painel quando não há histórico; gesto horizontal alterna as abas Alunos e Provas.
 - QR individual: seleção do aluno e geração de QR com JSON versionado contendo `class_id`, `proof_id` e `student_id`, obtidos dos registros reais do Firestore. A geração não substitui o fluxo de correção OMR.
 - Login e cadastro continuam utilizando o Firebase Authentication da versão atual. Os dados em memória usados na demonstração anterior foram retirados.
 

@@ -19,6 +19,44 @@ const turma = Turma(
 );
 
 void main() {
+  testWidgets('voltar em Turmas retorna à tela de origem', (tester) async {
+    await configurarBancoFalso();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ClassesScreen()),
+              ),
+              child: const Text('Abrir turmas'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Abrir turmas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Abrir turmas'), findsOneWidget);
+    expect(find.byType(ClassesScreen), findsNothing);
+  });
+
+  testWidgets('voltar em Turmas sem rota anterior abre o painel', (
+    tester,
+  ) async {
+    await configurarBancoFalso();
+    await tester.pumpWidget(const MaterialApp(home: ClassesScreen()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Olá, Maria'), findsOneWidget);
+    expect(find.byType(ClassesScreen), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   test('edição de turma persiste e preserva contagem de alunos', () async {
     await configurarBancoFalso();
     final repo = TurmaRepository();

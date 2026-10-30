@@ -6,6 +6,7 @@ import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 import 'assessments_screen.dart';
 import 'class_detail_screen.dart';
+import 'dashboard_screen.dart';
 
 class ClassesScreen extends StatefulWidget {
   const ClassesScreen({super.key});
@@ -82,6 +83,20 @@ class _ClassesScreenState extends State<ClassesScreen> {
               padding: EdgeInsets.fromLTRB(16, 16, 16, 10),
               child: Row(
                 children: [
+                  BackButton(
+                    color: context.colors.text,
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      } else {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (_) => const DashboardScreen(),
+                          ),
+                        );
+                      }
+                    },
+                  ),
                   Text(
                     'Turmas',
                     style: TextStyle(
