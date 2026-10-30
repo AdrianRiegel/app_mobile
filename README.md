@@ -343,7 +343,14 @@ analysis_options.yaml  # regras do linter
    flutterfire configure --project=<id-do-projeto> --platforms=android,ios,web
    ```
 
-   - Confirme que os arquivos de configuração do Firebase estejam na estrutura correta do app.
+   - Use o projeto Firebase do grupo. Para Android, confira `lib/firebase_options.dart` e `android/app/google-services.json`; esses arquivos não estão versionados neste repositório.
+   - Crie o arquivo `.env`, exigido pelo carregamento de assets, a partir do modelo:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   - Configure o envio de e-mail somente se for utilizá-lo. As credenciais SMTP não devem ser publicadas no GitHub. Não substitua a configuração Firebase real por um arquivo temporário de testes para gerar o APK de entrega.
 
 4. Execute a aplicação:
 
@@ -352,6 +359,12 @@ analysis_options.yaml  # regras do linter
    ```
 
 5. Se houver necessidade de rodar em emulador ou dispositivo físico, certifique-se de que o ambiente de desenvolvimento esteja configurado corretamente e que o projeto tenha sido sincronizado com a conta Firebase do professor.
+
+### Conferência da versão Android para a N2
+
+O APK de entrega deve corresponder ao código final integrado. Com o Firebase real configurado, o comando de geração é `flutter build apk --release`; o resultado fica em `build/app/outputs/flutter-apk/app-release.apk`.
+
+Instale o APK em Android e confira login, persistência de turmas e alunos após reabrir o app, avaliações, gabaritos e resultados no projeto Firebase do grupo. Os testes automatizados utilizam Firestore falso e não substituem essa verificação. O pacote de código deve incluir o projeto completo, sem a pasta `build`, e as instruções e configurações necessárias para compilá-lo.
 
 ## 8. Backlog de Atividades da N2
 
@@ -408,3 +421,14 @@ analysis_options.yaml  # regras do linter
 | Ajustes de usabilidade em relatórios e correções           | 30/09 | Concluído |
 
 ---
+
+
+### Complementos da integração N2 do PR 47
+
+- Turmas: edição de descrição, semestre e ano com persistência no Firestore; exclusão com confirmação e remoção dos alunos e avaliações não aplicadas. A exclusão é bloqueada quando há avaliação concluída ou resultado de correção.
+- Alunos: paginação de oito registros por página, mantendo cadastro, edição, exclusão e importação CSV da versão integrada.
+- Navegação: botão de voltar em Turmas retorna à rota anterior ou ao painel quando não há histórico; gesto horizontal alterna as abas Alunos e Provas.
+- QR individual: seleção do aluno e geração de QR com JSON versionado contendo `class_id`, `proof_id` e `student_id`, obtidos dos registros reais do Firestore. A geração não substitui o fluxo de correção OMR.
+- Login e cadastro continuam utilizando o Firebase Authentication da versão atual. Os dados em memória usados na demonstração anterior foram retirados.
+
+Para validar esses complementos: `flutter test test/n2_workflow_test.dart`. Os testes utilizam o Firestore falso apenas em ambiente de teste.

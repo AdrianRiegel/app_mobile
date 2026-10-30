@@ -6,6 +6,7 @@ import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 import 'assessments_screen.dart';
 import 'class_detail_screen.dart';
+import 'dashboard_screen.dart';
 
 class ClassesScreen extends StatefulWidget {
   const ClassesScreen({super.key});
@@ -82,6 +83,20 @@ class _ClassesScreenState extends State<ClassesScreen> {
               padding: EdgeInsets.fromLTRB(16, 16, 16, 10),
               child: Row(
                 children: [
+                  BackButton(
+                    color: context.colors.text,
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      } else {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (_) => const DashboardScreen(),
+                          ),
+                        );
+                      }
+                    },
+                  ),
                   Text(
                     'Turmas',
                     style: TextStyle(
@@ -138,7 +153,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _openNovaTurmaSheet,
+        onPressed: () => _openNovaTurmaSheet(),
         backgroundColor: context.colors.accent,
         elevation: 6,
         child: const Icon(Icons.add, color: Colors.white),
@@ -222,6 +237,20 @@ class _ClassesScreenState extends State<ClassesScreen> {
         ),
       ),
       title: turma.descricao,
+      trailing: PopupMenuButton<String>(
+        tooltip: 'Ações da turma',
+        onSelected: (value) {
+          if (value == 'editar') {
+            _openNovaTurmaSheet(turma: turma);
+          } else {
+            _excluirTurma(turma);
+          }
+        },
+        itemBuilder: (_) => const [
+          PopupMenuItem(value: 'editar', child: Text('Editar turma')),
+          PopupMenuItem(value: 'excluir', child: Text('Excluir turma')),
+        ],
+      ),
       subtitle: Text(
         turma.resumo,
         style: TextStyle(fontSize: 11, color: context.colors.muted),
@@ -259,23 +288,77 @@ class _ClassesScreenState extends State<ClassesScreen> {
     );
   }
 
-  void _openNovaTurmaSheet() {
+  Future<void> _excluirTurma(Turma turma) async {
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir turma'),
+        content: Text(
+          'Excluir "${turma.descricao}" e seus alunos e rascunhos? Turmas com provas aplicadas não podem ser excluídas.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou != true || !mounted) return;
+    try {
+      await _repository.excluir(turma.id);
+      if (!mounted) return;
+      _carregar();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is TurmaComProvaAplicadaException
+                ? error.toString()
+                : 'Não foi possível excluir a turma',
+          ),
+        ),
+      );
+    }
+  }
+
+  void _openNovaTurmaSheet({Turma? turma}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => _NovaTurmaSheet(
+        turma: turma,
         onCreate: (descricao, semestre, ano) async {
           final messenger = ScaffoldMessenger.of(context);
           Navigator.pop(sheetContext);
           try {
-            await _repository.criar(
-              descricao: descricao,
-              semestre: semestre,
-              ano: ano,
-            );
+            if (turma == null) {
+              await _repository.criar(
+                descricao: descricao,
+                semestre: semestre,
+                ano: ano,
+              );
+            } else {
+              await _repository.editar(
+                id: turma.id,
+                descricao: descricao,
+                semestre: semestre,
+                ano: ano,
+              );
+            }
+            if (!mounted) return;
             messenger.showSnackBar(
-              SnackBar(content: Text('Turma "$descricao" criada')),
+              SnackBar(
+                content: Text(
+                  'Turma "$descricao" ${turma == null ? "criada" : "atualizada"}',
+                ),
+              ),
             );
             _carregar();
           } catch (_) {
@@ -308,7 +391,9 @@ class CustomMiniEndFloatLocation extends FloatingActionButtonLocation {
 }
 
 class _NovaTurmaSheet extends StatefulWidget {
-  const _NovaTurmaSheet({required this.onCreate});
+  const _NovaTurmaSheet({required this.onCreate, this.turma});
+
+  final Turma? turma;
 
   final void Function(String descricao, int semestre, int ano) onCreate;
 
@@ -324,6 +409,17 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
   final TextEditingController _anoController = TextEditingController(
     text: '${DateTime.now().year}',
   );
+
+  @override
+  void initState() {
+    super.initState();
+    final turma = widget.turma;
+    if (turma != null) {
+      _descricaoController.text = turma.descricao;
+      _semestreController.text = '${turma.semestre}º semestre';
+      _anoController.text = '${turma.ano}';
+    }
+  }
 
   @override
   void dispose() {
@@ -387,7 +483,7 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
               ),
             ),
             Text(
-              'Nova turma',
+              widget.turma == null ? 'Nova turma' : 'Editar turma',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -416,7 +512,7 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
             ),
             const SizedBox(height: 18),
             PrimaryButton(
-              label: 'Criar turma',
+              label: widget.turma == null ? 'Criar turma' : 'Salvar alterações',
               verticalPadding: 14,
               fontSize: 13,
               onPressed: _criar,

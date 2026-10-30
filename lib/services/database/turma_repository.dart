@@ -3,6 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/turma.dart';
 import 'database.dart';
 
+class TurmaComProvaAplicadaException implements Exception {
+  const TurmaComProvaAplicadaException();
+  @override
+  String toString() =>
+      'Não é possível excluir uma turma com provas aplicadas ou resultados.';
+}
+
 class TurmaRepository extends FirestoreRepository {
   /// Turmas do professor, das mais recentes (ano/semestre) para as antigas.
   Future<List<Turma>> listar() async {
@@ -45,6 +52,50 @@ class TurmaRepository extends FirestoreRepository {
       semestre: semestre,
       ano: ano,
     );
+  }
+
+  Future<void> editar({
+    required String id,
+    required String descricao,
+    required int semestre,
+    required int ano,
+  }) async {
+    if (descricao.trim().isEmpty ||
+        semestre < 1 ||
+        semestre > 2 ||
+        ano < 2000 ||
+        ano > 2100) {
+      throw ArgumentError('Informe descrição, semestre e ano válidos');
+    }
+    await turmas.doc(id).update({
+      'descricao': descricao.trim(),
+      'semestre': semestre,
+      'ano': ano,
+    });
+  }
+
+  Future<void> excluir(String id) async {
+    if (await AlunoRepository().turmaTemProvaAplicada(id)) {
+      throw const TurmaComProvaAplicadaException();
+    }
+    final alunosDaTurma = await alunos
+        .where('professorId', isEqualTo: professorId)
+        .where('turmaId', isEqualTo: id)
+        .get();
+    final provas = await avaliacoes
+        .where('professorId', isEqualTo: professorId)
+        .where('turmaId', isEqualTo: id)
+        .get();
+    // Uma única escrita atômica evita deixar registros órfãos em caso de falha.
+    final batch = firestore.batch();
+    for (final aluno in alunosDaTurma.docs) {
+      batch.delete(aluno.reference);
+    }
+    for (final prova in provas.docs) {
+      batch.delete(prova.reference);
+    }
+    batch.delete(turmas.doc(id));
+    await batch.commit();
   }
 
   static Turma fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {

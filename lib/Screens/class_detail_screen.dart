@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+
+import '../services/proof_qr_payload.dart';
 
 import '../components/components.dart';
 import '../components/inputs/csv_file_picker.dart';
@@ -25,6 +28,15 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   final _alunoRepository = AlunoRepository();
   final _avaliacaoRepository = AvaliacaoRepository();
   int _tabIndex = 0;
+  static const _alunosPorPagina = 8;
+  int _paginaAlunos = 1;
+
+  int get _totalPaginasAlunos =>
+      (_alunos.length / _alunosPorPagina).ceil().clamp(1, 999999);
+  List<Aluno> get _alunosDaPagina => _alunos
+      .skip((_paginaAlunos - 1) * _alunosPorPagina)
+      .take(_alunosPorPagina)
+      .toList();
 
   List<Aluno> _alunos = [];
   List<Assessment> _provas = [];
@@ -50,6 +62,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       if (!mounted) return;
       setState(() {
         _alunos = alunos;
+        _paginaAlunos = _paginaAlunos.clamp(1, _totalPaginasAlunos);
         _provas = provas;
         _carregando = false;
       });
@@ -87,7 +100,17 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
               ),
             ),
             Container(height: 1, color: context.colors.border),
-            Expanded(child: _buildConteudo()),
+            Expanded(
+              child: GestureDetector(
+                onHorizontalDragEnd: (details) {
+                  final velocity = details.primaryVelocity ?? 0;
+                  if (velocity.abs() > 200) {
+                    setState(() => _tabIndex = velocity < 0 ? 1 : 0);
+                  }
+                },
+                child: _buildConteudo(),
+              ),
+            ),
           ],
         ),
       ),
@@ -156,10 +179,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                 children: [
                   Text(
                     '${_alunos.length} alunos',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: context.colors.muted,
-                    ),
+                    style: TextStyle(fontSize: 11, color: context.colors.muted),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -220,12 +240,15 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                   child: Center(
                     child: Text(
                       'Nenhum aluno cadastrado nesta turma',
-                      style: TextStyle(color: context.colors.muted, fontSize: 13),
+                      style: TextStyle(
+                        color: context.colors.muted,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 )
               else
-                ..._alunos.map(
+                ..._alunosDaPagina.map(
                   (aluno) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: _buildAlunoItem(aluno),
@@ -234,6 +257,28 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
             ],
           ),
         ),
+        if (_alunos.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: _paginaAlunos > 1
+                      ? () => setState(() => _paginaAlunos--)
+                      : null,
+                  child: const Text('‹ Anterior'),
+                ),
+                Text('Página $_paginaAlunos de $_totalPaginasAlunos'),
+                TextButton(
+                  onPressed: _paginaAlunos < _totalPaginasAlunos
+                      ? () => setState(() => _paginaAlunos++)
+                      : null,
+                  child: const Text('Próxima ›'),
+                ),
+              ],
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: PrimaryButton(
@@ -320,7 +365,17 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
         '${prova.totalQuestions} questões · ${prova.dateLabel}',
         style: TextStyle(fontSize: 11, color: context.colors.muted),
       ),
-      trailing: StatusBadge.assessment(prova.status),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          StatusBadge.assessment(prova.status),
+          IconButton(
+            tooltip: 'Gerar QR Code por aluno',
+            onPressed: () => _showStudentQr(prova),
+            icon: Icon(Icons.qr_code_2, color: context.colors.accent),
+          ),
+        ],
+      ),
       onTap: () async {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         await Navigator.push(
@@ -333,6 +388,83 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
         );
         _carregar();
       },
+    );
+  }
+
+  void _showStudentQr(Assessment assessment) {
+    if (_alunos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cadastre ao menos um aluno para gerar o QR Code'),
+        ),
+      );
+      return;
+    }
+    var selectedStudentId = _alunos.first.id;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final student = _alunos.firstWhere(
+            (item) => item.id == selectedStudentId,
+          );
+          final payload = ProofQrPayload(
+            classId: widget.turma.id,
+            proofId: assessment.id,
+            studentId: student.id,
+          ).encode();
+          return AlertDialog(
+            title: const Text('QR Code individual'),
+            content: SizedBox(
+              width: 280,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButton<String>(
+                    isExpanded: true,
+                    value: selectedStudentId,
+                    items: _alunos
+                        .map(
+                          (item) => DropdownMenuItem(
+                            value: item.id,
+                            child: Text(item.nome),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => selectedStudentId = value);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: 210,
+                    height: 210,
+                    child: QrImageView(
+                      data: payload,
+                      size: 210,
+                      backgroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Turma ${widget.turma.id} · Prova ${assessment.id} · Aluno ${student.id}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Fechar'),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -525,7 +657,10 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           turmaId: widget.turma.id,
         );
         if (!mounted) return;
-        setState(() => _alunos.removeWhere((a) => a.id == aluno.id));
+        setState(() {
+          _alunos.removeWhere((a) => a.id == aluno.id);
+          _paginaAlunos = _paginaAlunos.clamp(1, _totalPaginasAlunos);
+        });
         messenger.showSnackBar(
           SnackBar(content: Text('Aluno "${aluno.nome}" removido')),
         );
@@ -782,10 +917,7 @@ class _ImportarAlunosCsvSheetState extends State<_ImportarAlunosCsvSheet> {
               style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
               decoration: InputDecoration(
                 hintText: "nome,matricula\nLucas Pereira,2026101\nFernanda Lima,2026102",
-                hintStyle: TextStyle(
-                  color: context.colors.muted,
-                  fontSize: 11,
-                ),
+                hintStyle: TextStyle(color: context.colors.muted, fontSize: 11),
                 filled: true,
                 fillColor: context.colors.input,
                 border: OutlineInputBorder(
