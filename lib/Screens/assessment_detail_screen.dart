@@ -44,11 +44,15 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
           Navigator.pop(sheetContext);
 
           try {
-            final atualizada = await AvaliacaoRepository().editar(
-              id: assessment.id,
-              titulo: novoTitulo,
-              disciplina: novaDisciplina,
-              dataAplicacao: novaData,
+            final atualizada = await runWithLoader(
+              context,
+              () => AvaliacaoRepository().editar(
+                id: assessment.id,
+                titulo: novoTitulo,
+                disciplina: novaDisciplina,
+                dataAplicacao: novaData,
+              ),
+              message: 'Salvando alterações...',
             );
             if (!mounted) return;
             setState(() => assessment = atualizada);
@@ -107,7 +111,11 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
     if (confirma == true && mounted) {
       final messenger = ScaffoldMessenger.of(context);
       try {
-        await AvaliacaoRepository().excluir(assessment.id);
+        await runWithLoader(
+          context,
+          () => AvaliacaoRepository().excluir(assessment.id),
+          message: 'Excluindo avaliação...',
+        );
         if (!mounted) return;
         messenger.showSnackBar(
           const SnackBar(content: Text('Avaliação excluída com sucesso')),
@@ -361,6 +369,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
               label: _carregandoEstatisticas
                   ? 'Carregando...'
                   : 'Ver estatísticas',
+              loading: _carregandoEstatisticas,
               icon: Icons.bar_chart,
               verticalPadding: 14,
               onPressed: _carregandoEstatisticas
@@ -412,11 +421,18 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
     if (confirmar != true || !mounted) return;
 
     try {
-      final ausentes = await ResultadoRepository().encerrarCorrecao(
-        avaliacao: assessment,
+      final ausentes = await runWithLoader(
+        this.context,
+        () async {
+          final ausentes = await ResultadoRepository().encerrarCorrecao(
+            avaliacao: assessment,
+          );
+          await _recarregar();
+          return ausentes;
+        },
+        message: 'Encerrando correção...',
       );
       if (!mounted) return;
-      await _recarregar();
       messenger.showSnackBar(
         SnackBar(
           content: Text(

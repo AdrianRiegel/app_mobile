@@ -310,7 +310,11 @@ class _ClassesScreenState extends State<ClassesScreen> {
     );
     if (confirmou != true || !mounted) return;
     try {
-      await _repository.excluir(turma.id);
+      await runWithLoader(
+        context,
+        () => _repository.excluir(turma.id),
+        message: 'Excluindo turma...',
+      );
       if (!mounted) return;
       _carregar();
     } catch (error) {
@@ -338,20 +342,26 @@ class _ClassesScreenState extends State<ClassesScreen> {
           final messenger = ScaffoldMessenger.of(context);
           Navigator.pop(sheetContext);
           try {
-            if (turma == null) {
-              await _repository.criar(
-                descricao: descricao,
-                semestre: semestre,
-                ano: ano,
-              );
-            } else {
-              await _repository.editar(
-                id: turma.id,
-                descricao: descricao,
-                semestre: semestre,
-                ano: ano,
-              );
-            }
+            await runWithLoader(
+              context,
+              () async {
+                if (turma == null) {
+                  await _repository.criar(
+                    descricao: descricao,
+                    semestre: semestre,
+                    ano: ano,
+                  );
+                } else {
+                  await _repository.editar(
+                    id: turma.id,
+                    descricao: descricao,
+                    semestre: semestre,
+                    ano: ano,
+                  );
+                }
+              },
+              message: turma == null ? 'Criando turma...' : 'Salvando turma...',
+            );
             if (!mounted) return;
             messenger.showSnackBar(
               SnackBar(
