@@ -529,10 +529,14 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           }
 
           try {
-            final aluno = await _alunoRepository.adicionar(
-              turmaId: widget.turma.id,
-              nome: nomeLimpo,
-              matricula: matriculaLimpa,
+            final aluno = await runWithLoader(
+              context,
+              () => _alunoRepository.adicionar(
+                turmaId: widget.turma.id,
+                nome: nomeLimpo,
+                matricula: matriculaLimpa,
+              ),
+              message: 'Adicionando aluno...',
             );
             if (!mounted) return;
             setState(() => _alunos.insert(0, aluno));
@@ -579,11 +583,15 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           }
 
           try {
-            final atualizado = await _alunoRepository.editar(
-              id: aluno.id,
-              turmaId: widget.turma.id,
-              nome: nomeLimpo,
-              matricula: matriculaLimpa,
+            final atualizado = await runWithLoader(
+              context,
+              () => _alunoRepository.editar(
+                id: aluno.id,
+                turmaId: widget.turma.id,
+                nome: nomeLimpo,
+                matricula: matriculaLimpa,
+              ),
+              message: 'Salvando aluno...',
             );
             if (!mounted) return;
             setState(() {
@@ -606,9 +614,19 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   }
 
   Future<void> _confirmarExclusaoAluno(Aluno aluno) async {
-    final temProva = await _alunoRepository.turmaTemProvaAplicada(
-      widget.turma.id,
-    );
+    final bool temProva;
+    try {
+      temProva = await runWithLoader(
+        context,
+        () => _alunoRepository.turmaTemProvaAplicada(widget.turma.id),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível excluir o aluno')),
+      );
+      return;
+    }
     if (!mounted) return;
 
     if (temProva) {
@@ -652,9 +670,13 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     if (confirma == true && mounted) {
       final messenger = ScaffoldMessenger.of(context);
       try {
-        await _alunoRepository.excluir(
-          alunoId: aluno.id,
-          turmaId: widget.turma.id,
+        await runWithLoader(
+          context,
+          () => _alunoRepository.excluir(
+            alunoId: aluno.id,
+            turmaId: widget.turma.id,
+          ),
+          message: 'Excluindo aluno...',
         );
         if (!mounted) return;
         setState(() {
@@ -699,12 +721,16 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           }
 
           try {
-            final adicionados = await _alunoRepository.importarAlunos(
-              turmaId: widget.turma.id,
-              novosAlunos: [
-                for (final row in resultado.alunos)
-                  (nome: row.nome, matricula: row.matricula),
-              ],
+            final adicionados = await runWithLoader(
+              context,
+              () => _alunoRepository.importarAlunos(
+                turmaId: widget.turma.id,
+                novosAlunos: [
+                  for (final row in resultado.alunos)
+                    (nome: row.nome, matricula: row.matricula),
+                ],
+              ),
+              message: 'Importando alunos...',
             );
             if (!mounted) return;
             _carregar();

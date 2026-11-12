@@ -12,6 +12,7 @@ class PrimaryButton extends StatelessWidget {
     this.verticalPadding = 16,
     this.horizontalPadding,
     this.fontSize = 14,
+    this.loading = false,
   });
 
   final String label;
@@ -22,12 +23,18 @@ class PrimaryButton extends StatelessWidget {
   final double? horizontalPadding;
   final double fontSize;
 
+  /// Exibe um spinner no lugar do ícone e desabilita o botão.
+  final bool loading;
+
   @override
   Widget build(BuildContext context) {
     final style = ElevatedButton.styleFrom(
       backgroundColor: context.colors.accent,
       foregroundColor: Colors.white,
-      disabledBackgroundColor: context.colors.accentLight,
+      // Durante o carregamento o botão mantém a cor de destaque.
+      disabledBackgroundColor:
+          loading ? context.colors.accent : context.colors.accentLight,
+      disabledForegroundColor: loading ? Colors.white : null,
       elevation: 0,
       padding: horizontalPadding == null
           ? EdgeInsets.symmetric(vertical: verticalPadding)
@@ -38,16 +45,43 @@ class PrimaryButton extends StatelessWidget {
       label,
       style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w600),
     );
+    final callback = loading ? null : onPressed;
 
-    final button = icon == null
-        ? ElevatedButton(onPressed: onPressed, style: style, child: labelWidget)
-        : ElevatedButton.icon(
-            onPressed: onPressed,
-            style: style,
-            icon: Icon(icon, size: 18),
-            label: labelWidget,
-          );
+    final Widget button;
+    if (loading) {
+      button = ElevatedButton.icon(
+        onPressed: null,
+        style: style,
+        icon: const ButtonSpinner(color: Colors.white),
+        label: labelWidget,
+      );
+    } else if (icon == null) {
+      button = ElevatedButton(onPressed: callback, style: style, child: labelWidget);
+    } else {
+      button = ElevatedButton.icon(
+        onPressed: callback,
+        style: style,
+        icon: Icon(icon, size: 18),
+        label: labelWidget,
+      );
+    }
 
     return fullWidth ? SizedBox(width: double.infinity, child: button) : button;
+  }
+}
+
+/// Spinner pequeno do tamanho de um ícone de botão.
+class ButtonSpinner extends StatelessWidget {
+  const ButtonSpinner({super.key, required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 16,
+      height: 16,
+      child: CircularProgressIndicator(strokeWidth: 2, color: color),
+    );
   }
 }

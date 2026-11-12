@@ -136,6 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 24),
                 PrimaryButton(
                   label: _entrando ? 'Entrando...' : 'Entrar',
+                  loading: _entrando,
                   onPressed: _entrando ? null : _entrar,
                 ),
                 const SizedBox(height: 24),

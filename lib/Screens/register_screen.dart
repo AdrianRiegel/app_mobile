@@ -107,6 +107,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 24),
               PrimaryButton(
                 label: _cadastrando ? 'Cadastrando...' : 'Cadastrar',
+                loading: _cadastrando,
                 onPressed: _cadastrando ? null : _cadastrar,
               ),
               const SizedBox(height: 24),
