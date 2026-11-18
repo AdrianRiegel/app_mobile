@@ -40,6 +40,13 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
 
   List<Aluno> _alunos = [];
   List<Assessment> _provas = [];
+
+  /// Situação selecionada no filtro da aba Provas (`null` = todas).
+  AssessmentStatus? _filtroProvas;
+
+  List<Assessment> get _provasFiltradas => _filtroProvas == null
+      ? _provas
+      : _provas.where((prova) => prova.status == _filtroProvas).toList();
   bool _carregando = true;
   bool _erro = false;
 
@@ -302,11 +309,79 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
         ),
       );
     }
-    return ListView.separated(
+    final provas = _provasFiltradas;
+    return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
-      itemCount: _provas.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) => _buildProvaItem(_provas[index]),
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _filtroProvaChip('Todas', null),
+                    for (final status in AssessmentStatus.values) ...[
+                      const SizedBox(width: 7),
+                      _filtroProvaChip(status.pluralLabel, status),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${provas.length} ${provas.length == 1 ? 'prova' : 'provas'}',
+              style: TextStyle(fontSize: 11, color: context.colors.muted),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (provas.isEmpty)
+          _provasFiltroVazio()
+        else
+          for (final (index, prova) in provas.indexed) ...[
+            if (index > 0) const SizedBox(height: 8),
+            _buildProvaItem(prova),
+          ],
+      ],
+    );
+  }
+
+  Widget _filtroProvaChip(String label, AssessmentStatus? status) {
+    return AppFilterChip(
+      label: label,
+      selected: _filtroProvas == status,
+      onSelected: (_) => setState(() => _filtroProvas = status),
+    );
+  }
+
+  Widget _provasFiltroVazio() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 36),
+      child: Column(
+        children: [
+          Icon(
+            Icons.filter_alt_off_outlined,
+            color: context.colors.muted,
+            size: 30,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Nenhuma prova nesta situação',
+            style: TextStyle(
+              color: context.colors.text,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Selecione outra situação para continuar.',
+            style: TextStyle(color: context.colors.muted, fontSize: 10),
+          ),
+        ],
+      ),
     );
   }
 
@@ -477,6 +552,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       MaterialPageRoute(builder: (_) => NewProofScreen(turma: widget.turma)),
     );
     if (criada != null && mounted) {
+      setState(() => _filtroProvas = null);
       _carregar();
     }
   }

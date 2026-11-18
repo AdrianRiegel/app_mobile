@@ -188,6 +188,75 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('aba Provas filtra as provas pela situação', (tester) async {
+    final db = await configurarBancoFalso();
+    for (final (id, titulo, status) in [
+      ('aval-2', 'Prova rascunho', 'rascunho'),
+      ('aval-3', 'Prova concluída', 'concluida'),
+    ]) {
+      await db.collection('avaliacoes').doc(id).set({
+        'turmaId': turma.id,
+        'professorId': professorId,
+        'titulo': titulo,
+        'disciplina': 'Matemática',
+        'status': status,
+        'gabarito': [
+          {'questao': 1, 'alternativaCorreta': 'A', 'peso': 1.0},
+        ],
+      });
+    }
+    await tester.pumpWidget(
+      const MaterialApp(home: ClassDetailScreen(turma: turma)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Provas'));
+    await tester.pumpAndSettle();
+
+    const agendada = 'Avaliação bimestral — Cap. 4';
+    expect(find.text('3 provas'), findsOneWidget);
+    expect(find.text(agendada), findsOneWidget);
+    expect(find.text('Prova rascunho'), findsOneWidget);
+    expect(find.text('Prova concluída'), findsOneWidget);
+
+    await tester.tap(find.text('Rascunhos'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 prova'), findsOneWidget);
+    expect(find.text('Prova rascunho'), findsOneWidget);
+    expect(find.text(agendada), findsNothing);
+    expect(find.text('Prova concluída'), findsNothing);
+
+    await tester.tap(find.text('Agendadas'));
+    await tester.pumpAndSettle();
+    expect(find.text(agendada), findsOneWidget);
+    expect(find.text('Prova rascunho'), findsNothing);
+
+    await tester.tap(find.text('Concluídas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Prova concluída'), findsOneWidget);
+    expect(find.text(agendada), findsNothing);
+
+    await tester.tap(find.text('Todas'));
+    await tester.pumpAndSettle();
+    expect(find.text('3 provas'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('filtro sem provas na situação mostra aviso', (tester) async {
+    await configurarBancoFalso();
+    await tester.pumpWidget(
+      const MaterialApp(home: ClassDetailScreen(turma: turma)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Provas'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Concluídas'));
+    await tester.pumpAndSettle();
+    expect(find.text('0 provas'), findsOneWidget);
+    expect(find.text('Nenhuma prova nesta situação'), findsOneWidget);
+    expect(find.text('Avaliação bimestral — Cap. 4'), findsNothing);
+  });
+
   test('payload preserva IDs e rejeita identificadores vazios', () {
     final payload = const ProofQrPayload(
       classId: 'turma-1',
