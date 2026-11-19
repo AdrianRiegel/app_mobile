@@ -34,7 +34,7 @@ Agrupa alunos e avaliações associadas a uma classe letiva.
 - **Campos**:
   - `professorId` (`string`, obrigatório): UID do professor proprietário.
   - `descricao` (`string`, obrigatório): Nome/descrição da turma (ex.: `3º Ano A - Matemática`).
-  - `semestre` (`number`, obrigatório): Semestre letivo (1 ou 2).
+  - `semestre` (`number`, obrigatório): Semestre do curso, de 1 a 10.
   - `ano` (`number`, obrigatório): Ano letivo (ex.: 2026).
   - `totalAlunos` (`number`, obrigatório, padrão: 0): Quantidade total de alunos matriculados.
   - `criadoEm` (`timestamp`, obrigatório): Data de criação.

@@ -73,6 +73,84 @@ void main() {
     expect(salva.totalAlunos, 2);
   });
 
+  test('edição aceita até o 10º semestre', () async {
+    await configurarBancoFalso();
+    final repo = TurmaRepository();
+    await repo.editar(
+      id: turma.id,
+      descricao: turma.descricao,
+      semestre: 10,
+      ano: 2026,
+    );
+    expect((await repo.buscar(turma.id)).semestre, 10);
+    expect(
+      () => repo.editar(
+        id: turma.id,
+        descricao: turma.descricao,
+        semestre: 11,
+        ano: 2026,
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  testWidgets('nova turma escolhe o semestre no combo', (tester) async {
+    final db = await configurarBancoFalso();
+    await tester.pumpWidget(const MaterialApp(home: ClassesScreen()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    // O semestre é um combo, não um campo de texto.
+    expect(find.byType(DropdownButtonFormField<int>), findsOneWidget);
+    expect(find.text('1º semestre'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Ex: 3º Ano A - Matemática'),
+      'Turma do combo',
+    );
+    await tester.tap(find.text('1º semestre'));
+    await tester.pumpAndSettle();
+    // O combo vai do 1º ao 10º semestre.
+    for (var s = 1; s <= 10; s++) {
+      expect(find.text('$sº semestre'), findsWidgets);
+    }
+    expect(find.text('11º semestre'), findsNothing);
+    await tester.tap(find.text('10º semestre').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Criar turma'));
+    await tester.pumpAndSettle();
+
+    final salvas = await db
+        .collection('turmas')
+        .where('descricao', isEqualTo: 'Turma do combo')
+        .get();
+    expect(salvas.docs.single.data()['semestre'], 10);
+  });
+
+  testWidgets('editar turma abre o combo no semestre atual', (tester) async {
+    final db = await configurarBancoFalso();
+    await db.collection('turmas').doc(turma.id).update({'semestre': 2});
+    await tester.pumpWidget(const MaterialApp(home: ClassesScreen()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Ações da turma'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Editar turma'));
+    await tester.pumpAndSettle();
+    expect(find.text('2º semestre'), findsOneWidget);
+
+    await tester.tap(find.text('2º semestre'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('1º semestre').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Salvar alterações'));
+    await tester.pumpAndSettle();
+
+    final salva = await db.collection('turmas').doc(turma.id).get();
+    expect(salva.data()!['semestre'], 1);
+  });
+
   test('exclusão remove turma, alunos e provas ainda não aplicadas', () async {
     final db = await configurarBancoFalso();
     await TurmaRepository().excluir(turma.id);
