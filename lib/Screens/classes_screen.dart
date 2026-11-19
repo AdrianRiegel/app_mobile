@@ -413,9 +413,7 @@ class _NovaTurmaSheet extends StatefulWidget {
 
 class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
   final TextEditingController _descricaoController = TextEditingController();
-  final TextEditingController _semestreController = TextEditingController(
-    text: '1º semestre',
-  );
+  int _semestre = 1;
   final TextEditingController _anoController = TextEditingController(
     text: '${DateTime.now().year}',
   );
@@ -426,7 +424,8 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
     final turma = widget.turma;
     if (turma != null) {
       _descricaoController.text = turma.descricao;
-      _semestreController.text = '${turma.semestre}º semestre';
+      // Turmas antigas podem ter outro valor; o combo só aceita 1 ou 2.
+      _semestre = turma.semestre == 2 ? 2 : 1;
       _anoController.text = '${turma.ano}';
     }
   }
@@ -434,24 +433,17 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
   @override
   void dispose() {
     _descricaoController.dispose();
-    _semestreController.dispose();
     _anoController.dispose();
     super.dispose();
   }
 
   void _criar() {
     final descricao = _descricaoController.text.trim();
-    // Aceita "1º semestre", "1" etc.: usa apenas os dígitos.
-    final semestre = int.tryParse(
-      _semestreController.text.replaceAll(RegExp(r'\D'), ''),
-    );
     final ano = int.tryParse(_anoController.text.trim());
 
     final String? erro;
     if (descricao.isEmpty) {
       erro = 'Informe a descrição da turma';
-    } else if (semestre == null || semestre < 1 || semestre > 2) {
-      erro = 'Informe o semestre (1 ou 2)';
     } else if (ano == null || ano < 2000 || ano > 2100) {
       erro = 'Informe um ano válido';
     } else {
@@ -462,7 +454,7 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(erro)));
       return;
     }
-    widget.onCreate(descricao, semestre!, ano!);
+    widget.onCreate(descricao, _semestre, ano!);
   }
 
   @override
@@ -508,9 +500,11 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
               dense: true,
             ),
             const SizedBox(height: 12),
-            LabeledTextField(
+            LabeledDropdown<int>(
               label: 'Semestre',
-              controller: _semestreController,
+              value: _semestre,
+              items: const {1: '1º semestre', 2: '2º semestre'},
+              onChanged: (valor) => setState(() => _semestre = valor ?? 1),
               dense: true,
             ),
             const SizedBox(height: 12),

@@ -73,6 +73,58 @@ void main() {
     expect(salva.totalAlunos, 2);
   });
 
+  testWidgets('nova turma escolhe o semestre no combo', (tester) async {
+    final db = await configurarBancoFalso();
+    await tester.pumpWidget(const MaterialApp(home: ClassesScreen()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    // O semestre é um combo, não um campo de texto.
+    expect(find.byType(DropdownButtonFormField<int>), findsOneWidget);
+    expect(find.text('1º semestre'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Ex: 3º Ano A - Matemática'),
+      'Turma do combo',
+    );
+    await tester.tap(find.text('1º semestre'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('2º semestre').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Criar turma'));
+    await tester.pumpAndSettle();
+
+    final salvas = await db
+        .collection('turmas')
+        .where('descricao', isEqualTo: 'Turma do combo')
+        .get();
+    expect(salvas.docs.single.data()['semestre'], 2);
+  });
+
+  testWidgets('editar turma abre o combo no semestre atual', (tester) async {
+    final db = await configurarBancoFalso();
+    await db.collection('turmas').doc(turma.id).update({'semestre': 2});
+    await tester.pumpWidget(const MaterialApp(home: ClassesScreen()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Ações da turma'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Editar turma'));
+    await tester.pumpAndSettle();
+    expect(find.text('2º semestre'), findsOneWidget);
+
+    await tester.tap(find.text('2º semestre'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('1º semestre').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Salvar alterações'));
+    await tester.pumpAndSettle();
+
+    final salva = await db.collection('turmas').doc(turma.id).get();
+    expect(salva.data()!['semestre'], 1);
+  });
+
   test('exclusão remove turma, alunos e provas ainda não aplicadas', () async {
     final db = await configurarBancoFalso();
     await TurmaRepository().excluir(turma.id);
