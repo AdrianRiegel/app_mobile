@@ -134,6 +134,28 @@ void main() {
       expect(find.text('Dados Pessoais e Profissionais'), findsOneWidget);
     });
 
+    testWidgets('não mostra notificações e o botão Sair leva ao login', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await configurarBancoFalso();
+
+      await tester.pumpWidget(const MaterialApp(home: DashboardScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.notifications_none), findsNothing);
+
+      await tester.tap(find.byTooltip('Sair'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Entrar'), findsOneWidget);
+      expect(Database.auth.uid, isNull);
+    });
+
     testWidgets('abre ProfileSettingsScreen ao clicar no avatar do professor', (
       tester,
     ) async {

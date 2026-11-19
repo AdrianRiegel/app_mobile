@@ -120,39 +120,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                   ),
-                  Container(
-                    width: 60,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: context.colors.accentLight,
-                      shape: BoxShape.circle,
+                  IconButton(
+                    onPressed: _sair,
+                    tooltip: 'Sair',
+                    style: IconButton.styleFrom(
+                      backgroundColor: context.colors.accentLight,
+                      fixedSize: const Size(36, 36),
+                      minimumSize: Size.zero,
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    alignment: Alignment.centerRight,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Icon(
-                          Icons.notifications_none,
-                          color: context.colors.muted,
-                          size: 22,
-                        ),
-                        ElevatedButton(
-                          onPressed: _sair,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            elevation: 0,
-                            padding: EdgeInsets.zero,
-                            shadowColor: Colors.transparent,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Icon(
-                            Icons.logout,
-                            color: context.colors.muted,
-                            size: 20,
-                          ),
-                        ),
-                      ],
+                    icon: Icon(
+                      Icons.logout,
+                      color: context.colors.muted,
+                      size: 20,
                     ),
                   ),
                   const SizedBox(width: 10),
