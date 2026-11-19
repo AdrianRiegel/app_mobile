@@ -1,4 +1,10 @@
 class Turma {
+  /// Semestres aceitos: do 1º ao [semestreMaximo].
+  static const semestreMaximo = 10;
+
+  static bool semestreValido(num semestre) =>
+      semestre >= 1 && semestre <= semestreMaximo;
+
   const Turma({
     required this.id,
     required this.descricao,

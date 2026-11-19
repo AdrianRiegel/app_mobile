@@ -424,8 +424,8 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
     final turma = widget.turma;
     if (turma != null) {
       _descricaoController.text = turma.descricao;
-      // Turmas antigas podem ter outro valor; o combo só aceita 1 ou 2.
-      _semestre = turma.semestre == 2 ? 2 : 1;
+      // Valor fora da faixa (dado antigo) volta para o 1º semestre.
+      _semestre = Turma.semestreValido(turma.semestre) ? turma.semestre : 1;
       _anoController.text = '${turma.ano}';
     }
   }
@@ -503,7 +503,10 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
             LabeledDropdown<int>(
               label: 'Semestre',
               value: _semestre,
-              items: const {1: '1º semestre', 2: '2º semestre'},
+              items: {
+                for (var s = 1; s <= Turma.semestreMaximo; s++)
+                  s: '$sº semestre',
+              },
               onChanged: (valor) => setState(() => _semestre = valor ?? 1),
               dense: true,
             ),

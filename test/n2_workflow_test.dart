@@ -73,6 +73,27 @@ void main() {
     expect(salva.totalAlunos, 2);
   });
 
+  test('edição aceita até o 10º semestre', () async {
+    await configurarBancoFalso();
+    final repo = TurmaRepository();
+    await repo.editar(
+      id: turma.id,
+      descricao: turma.descricao,
+      semestre: 10,
+      ano: 2026,
+    );
+    expect((await repo.buscar(turma.id)).semestre, 10);
+    expect(
+      () => repo.editar(
+        id: turma.id,
+        descricao: turma.descricao,
+        semestre: 11,
+        ano: 2026,
+      ),
+      throwsArgumentError,
+    );
+  });
+
   testWidgets('nova turma escolhe o semestre no combo', (tester) async {
     final db = await configurarBancoFalso();
     await tester.pumpWidget(const MaterialApp(home: ClassesScreen()));
@@ -90,7 +111,12 @@ void main() {
     );
     await tester.tap(find.text('1º semestre'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('2º semestre').last);
+    // O combo vai do 1º ao 10º semestre.
+    for (var s = 1; s <= 10; s++) {
+      expect(find.text('$sº semestre'), findsWidgets);
+    }
+    expect(find.text('11º semestre'), findsNothing);
+    await tester.tap(find.text('10º semestre').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Criar turma'));
     await tester.pumpAndSettle();
@@ -99,7 +125,7 @@ void main() {
         .collection('turmas')
         .where('descricao', isEqualTo: 'Turma do combo')
         .get();
-    expect(salvas.docs.single.data()['semestre'], 2);
+    expect(salvas.docs.single.data()['semestre'], 10);
   });
 
   testWidgets('editar turma abre o combo no semestre atual', (tester) async {
