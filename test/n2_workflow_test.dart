@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:app_mobile/Screens/class_detail_screen.dart';
 import 'package:app_mobile/Screens/classes_screen.dart';
+import 'package:app_mobile/components/components.dart';
 import 'package:app_mobile/models/turma.dart';
 import 'package:app_mobile/services/database/database.dart';
 import 'package:app_mobile/services/proof_qr_payload.dart';
@@ -110,50 +111,78 @@ void main() {
     );
   }
 
-  testWidgets('turmas do banco paginam e busca volta à primeira página', (
+  /// Rola a lista com infinite scroll até [finder] aparecer.
+  Future<void> rolarAte(WidgetTester tester, Finder finder) {
+    return tester.scrollUntilVisible(
+      finder,
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byType(InfiniteScrollList),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+  }
+
+  testWidgets('turmas carregam com infinite scroll e a busca reinicia', (
     tester,
   ) async {
     final db = await configurarBancoFalso();
-    for (var i = 0; i < 9; i++) {
-      await db.collection('turmas').doc('extra-$i').set({
+    for (var i = 0; i < 30; i++) {
+      final n = i.toString().padLeft(2, '0');
+      await db.collection('turmas').doc('extra-$n').set({
         'professorId': professorId,
-        'descricao': 'Turma $i',
+        'descricao': 'Turma $n',
         'semestre': 1,
         'ano': 2026,
       });
     }
     await tester.pumpWidget(const MaterialApp(home: ClassesScreen()));
     await tester.pumpAndSettle();
-    expect(find.text('Página 1 de 2'), findsOneWidget);
-    await tester.tap(find.text('Próxima ›'));
+
+    // Só o primeiro lote é montado; o fim da lista ainda não existe.
+    expect(find.text('Turma 29'), findsNothing);
+    expect(find.text('Próxima ›'), findsNothing);
+
+    await rolarAte(tester, find.text('Turma 29'));
     await tester.pumpAndSettle();
-    expect(find.text('Página 2 de 2'), findsOneWidget);
+    expect(find.text('Turma 29'), findsOneWidget);
+    // Tudo carregado: sem indicador de "carregando mais".
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
     await tester.enterText(find.byType(TextField).first, 'Matemática');
     await tester.pumpAndSettle();
-    expect(find.text('Página 1 de 1'), findsOneWidget);
     expect(find.text(turma.descricao), findsOneWidget);
+    expect(find.text('Turma 29'), findsNothing);
   });
 
-  testWidgets('alunos do banco paginam e gesto abre provas', (tester) async {
+  testWidgets('alunos carregam com infinite scroll e gesto abre provas', (
+    tester,
+  ) async {
     final db = await configurarBancoFalso();
-    for (var i = 0; i < 9; i++) {
-      await db.collection('alunos').doc('extra-$i').set({
+    for (var i = 0; i < 30; i++) {
+      final n = i.toString().padLeft(2, '0');
+      await db.collection('alunos').doc('extra-$n').set({
         'professorId': professorId,
         'turmaId': turma.id,
-        'nome': 'Estudante $i',
-        'matricula': 'extra-$i',
+        'nome': 'Estudante $n',
+        'matricula': 'extra-$n',
       });
     }
     await tester.pumpWidget(
       const MaterialApp(home: ClassDetailScreen(turma: turma)),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Página 1 de 2'), findsOneWidget);
-    await tester.tap(find.text('Próxima ›'));
+    expect(find.text('32 alunos'), findsOneWidget);
+    expect(find.text('Estudante 29'), findsNothing);
+    expect(find.textContaining('Página'), findsNothing);
+
+    await rolarAte(tester, find.text('Estudante 29'));
     await tester.pumpAndSettle();
-    expect(find.text('Página 2 de 2'), findsOneWidget);
-    expect(find.text('Ana Beatriz'), findsNothing);
-    await tester.fling(find.text('Estudante 6'), const Offset(-300, 0), 1000);
+    expect(find.text('Estudante 29'), findsOneWidget);
+
+    await tester.fling(find.text('Estudante 29'), const Offset(-300, 0), 1000);
     await tester.pumpAndSettle();
     expect(find.text('Provas · 3º Ano A'), findsOneWidget);
   });

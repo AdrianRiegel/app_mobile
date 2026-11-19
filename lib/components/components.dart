@@ -11,5 +11,6 @@ export 'feedback/load_error_view.dart';
 export 'feedback/loading_overlay.dart';
 export 'inputs/labeled_text_field.dart';
 export 'inputs/search_field.dart';
+export 'lists/infinite_scroll_list.dart';
 export 'navigation/app_bottom_nav_bar.dart';
 export 'navigation/standard_app_bar.dart';

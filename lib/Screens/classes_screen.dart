@@ -16,11 +16,8 @@ class ClassesScreen extends StatefulWidget {
 }
 
 class _ClassesScreenState extends State<ClassesScreen> {
-  static const _turmasPorPagina = 8;
-
   final _repository = TurmaRepository();
   int _selectedIndex = 1;
-  int _currentPage = 1;
   String _busca = '';
 
   List<Turma> _turmas = [];
@@ -34,14 +31,6 @@ class _ClassesScreenState extends State<ClassesScreen> {
         .where((turma) => turma.descricao.toLowerCase().contains(termo))
         .toList();
   }
-
-  int get _totalPages =>
-      (_turmasFiltradas.length / _turmasPorPagina).ceil().clamp(1, 999);
-
-  List<Turma> get _turmasDaPagina => _turmasFiltradas
-      .skip((_currentPage - 1) * _turmasPorPagina)
-      .take(_turmasPorPagina)
-      .toList();
 
   @override
   void initState() {
@@ -59,7 +48,6 @@ class _ClassesScreenState extends State<ClassesScreen> {
       if (!mounted) return;
       setState(() {
         _turmas = turmas;
-        _currentPage = _currentPage.clamp(1, _totalPages);
         _carregando = false;
       });
     } catch (_) {
@@ -115,36 +103,10 @@ class _ClassesScreenState extends State<ClassesScreen> {
                   children: [
                     SearchField(
                       hintText: 'Buscar turma por nome',
-                      onChanged: (value) => setState(() {
-                        _busca = value;
-                        _currentPage = 1;
-                      }),
+                      onChanged: (value) => setState(() => _busca = value),
                     ),
                     const SizedBox(height: 12),
                     Expanded(child: _buildLista()),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _pageButton(
-                          '‹ Anterior',
-                          enabled: _currentPage > 1,
-                          onTap: () => setState(() => _currentPage--),
-                        ),
-                        Text(
-                          'Página $_currentPage de $_totalPages',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: context.colors.muted,
-                          ),
-                        ),
-                        _pageButton(
-                          'Próxima ›',
-                          enabled: _currentPage < _totalPages,
-                          onTap: () => setState(() => _currentPage++),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
@@ -199,7 +161,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
     if (_erro) {
       return LoadErrorView(onRetry: _carregar);
     }
-    final turmas = _turmasDaPagina;
+    final turmas = _turmasFiltradas;
     if (turmas.isEmpty) {
       return EmptyStateView(
         icon: Icons.people_outline,
@@ -213,10 +175,11 @@ class _ClassesScreenState extends State<ClassesScreen> {
             : 'Tente buscar por outro nome.',
       );
     }
-    return ListView.separated(
-      padding: EdgeInsets.zero,
+    return InfiniteScrollList(
+      // Nova busca recomeça do primeiro lote, no topo da lista.
+      key: ValueKey(_busca),
+      padding: const EdgeInsets.only(bottom: 80),
       itemCount: turmas.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) => _buildTurmaItem(turmas[index]),
     );
   }
@@ -265,26 +228,6 @@ class _ClassesScreenState extends State<ClassesScreen> {
         // O total de alunos pode ter mudado dentro da turma.
         _carregar();
       },
-    );
-  }
-
-  Widget _pageButton(
-    String label, {
-    required bool enabled,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: enabled
-              ? context.colors.accent
-              : context.colors.muted.withValues(alpha: 0.4),
-        ),
-      ),
     );
   }
 
