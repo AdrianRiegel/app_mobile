@@ -4,7 +4,6 @@ class Usuario {
     required this.nome,
     required this.email,
     this.escola,
-    this.disciplinaPrincipal,
     this.notificacoesEmail = true,
   });
 
@@ -12,7 +11,6 @@ class Usuario {
   final String nome;
   final String email;
   final String? escola;
-  final String? disciplinaPrincipal;
   final bool notificacoesEmail;
 
   String get primeiroNome => nome.trim().split(' ').first;
@@ -24,7 +22,6 @@ class Usuario {
     String? nome,
     String? email,
     String? escola,
-    String? disciplinaPrincipal,
     bool? notificacoesEmail,
   }) {
     return Usuario(
@@ -32,7 +29,6 @@ class Usuario {
       nome: nome ?? this.nome,
       email: email ?? this.email,
       escola: escola ?? this.escola,
-      disciplinaPrincipal: disciplinaPrincipal ?? this.disciplinaPrincipal,
       notificacoesEmail: notificacoesEmail ?? this.notificacoesEmail,
     );
   }

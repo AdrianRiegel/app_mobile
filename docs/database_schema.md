@@ -20,7 +20,6 @@ Armazena dados cadastrais e de perfil do professor autenticado.
   - `nome` (`string`, obrigatório): Nome completo do professor.
   - `email` (`string`, obrigatório): E-mail cadastrado.
   - `escola` (`string`, opcional): Nome da instituição de ensino.
-  - `disciplinaPrincipal` (`string`, opcional): Disciplina primária lecionada.
   - `notificacoesEmail` (`boolean`, opcional, padrão: `true`): Preferência de recebimento de relatórios/notificações.
   - `ativo` (`boolean`, obrigatório, padrão: `true`): Estado de ativação da conta.
   - `criadoEm` (`timestamp`, obrigatório): Timestamp do servidor (`FieldValue.serverTimestamp()`).
