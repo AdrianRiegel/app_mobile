@@ -28,15 +28,6 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   final _alunoRepository = AlunoRepository();
   final _avaliacaoRepository = AvaliacaoRepository();
   int _tabIndex = 0;
-  static const _alunosPorPagina = 8;
-  int _paginaAlunos = 1;
-
-  int get _totalPaginasAlunos =>
-      (_alunos.length / _alunosPorPagina).ceil().clamp(1, 999999);
-  List<Aluno> get _alunosDaPagina => _alunos
-      .skip((_paginaAlunos - 1) * _alunosPorPagina)
-      .take(_alunosPorPagina)
-      .toList();
 
   List<Aluno> _alunos = [];
   List<Assessment> _provas = [];
@@ -69,7 +60,6 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       if (!mounted) return;
       setState(() {
         _alunos = alunos;
-        _paginaAlunos = _paginaAlunos.clamp(1, _totalPaginasAlunos);
         _provas = provas;
         _carregando = false;
       });
@@ -178,9 +168,11 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
     return Column(
       children: [
         Expanded(
-          child: ListView(
+          child: InfiniteScrollList(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            children: [
+            itemCount: _alunos.length,
+            itemBuilder: (context, index) => _buildAlunoItem(_alunos[index]),
+            header: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -253,39 +245,10 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                       ),
                     ),
                   ),
-                )
-              else
-                ..._alunosDaPagina.map(
-                  (aluno) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _buildAlunoItem(aluno),
-                  ),
                 ),
             ],
           ),
         ),
-        if (_alunos.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton(
-                  onPressed: _paginaAlunos > 1
-                      ? () => setState(() => _paginaAlunos--)
-                      : null,
-                  child: const Text('‹ Anterior'),
-                ),
-                Text('Página $_paginaAlunos de $_totalPaginasAlunos'),
-                TextButton(
-                  onPressed: _paginaAlunos < _totalPaginasAlunos
-                      ? () => setState(() => _paginaAlunos++)
-                      : null,
-                  child: const Text('Próxima ›'),
-                ),
-              ],
-            ),
-          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: PrimaryButton(
@@ -755,10 +718,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           message: 'Excluindo aluno...',
         );
         if (!mounted) return;
-        setState(() {
-          _alunos.removeWhere((a) => a.id == aluno.id);
-          _paginaAlunos = _paginaAlunos.clamp(1, _totalPaginasAlunos);
-        });
+        setState(() => _alunos.removeWhere((a) => a.id == aluno.id));
         messenger.showSnackBar(
           SnackBar(content: Text('Aluno "${aluno.nome}" removido')),
         );
