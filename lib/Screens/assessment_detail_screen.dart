@@ -441,6 +441,15 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
       );
       return;
     }
+    if (assessment.totalStudents > 0 &&
+        assessment.correctedStudents >= assessment.totalStudents) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Todas as provas desta avaliação já foram corrigidas'),
+        ),
+      );
+      return;
+    }
     await Navigator.push(
       context,
       MaterialPageRoute(

@@ -37,6 +37,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
   Assessment? _selectedAssessment;
 
   List<Aluno> _alunos = [];
+  Map<String, Resultado> _resultadosAlunos = {};
   bool _carregandoAlunos = false;
   Aluno? _selectedStudent;
 
@@ -86,9 +87,13 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       final alunos = await AlunoRepository().listarPorTurma(
         _selectedAssessment!.turmaId,
       );
+      final resultados = await ResultadoRepository().listarPorAvaliacao(
+        _selectedAssessment!.id,
+      );
       if (!mounted) return;
       setState(() {
         _alunos = alunos;
+        _resultadosAlunos = {for (final r in resultados) r.alunoId: r};
         _carregandoAlunos = false;
       });
     } catch (_) {
@@ -112,9 +117,14 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       if (!mounted) return;
       setState(() {
         _resultado = resultado;
+        _resultadosAlunos[resultado.alunoId] = resultado;
         _currentStage = 3;
         _salvando = false;
       });
+    } on StateError catch (e) {
+      if (!mounted) return;
+      setState(() => _salvando = false);
+      _mostrarMensagem(e.message);
     } catch (_) {
       if (!mounted) return;
       setState(() => _salvando = false);
@@ -432,10 +442,50 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
             'Cadastre os alunos da turma ${_selectedAssessment!.className} para corrigir as provas.',
       );
     }
+
+    final bool alunoJaCorrigido = _selectedStudent != null &&
+        _resultadosAlunos.containsKey(_selectedStudent!.id);
+    final Resultado? resultadoExistente = alunoJaCorrigido
+        ? _resultadosAlunos[_selectedStudent!.id]
+        : null;
+    final bool todosCorrigidos =
+        _alunos.isNotEmpty && _alunos.every((a) => _resultadosAlunos.containsKey(a.id));
+
     return Column(
       key: const ValueKey('selectStudent'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (todosCorrigidos) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: context.colors.neutralLight,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: context.colors.border),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  color: context.colors.success,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Todas as provas desta turma já foram corrigidas.',
+                    style: TextStyle(
+                      color: context.colors.text,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         Text(
           'Identificação do Aluno',
           style: TextStyle(
@@ -470,11 +520,18 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
                 color: context.colors.muted,
               ),
               items: _alunos.map((Aluno aluno) {
+                final corrigido = _resultadosAlunos.containsKey(aluno.id);
+                final nota = _resultadosAlunos[aluno.id]?.notaCalculada;
                 return DropdownMenuItem<Aluno>(
                   value: aluno,
                   child: Text(
-                    '${aluno.nome} (${aluno.matricula})',
-                    style: TextStyle(fontSize: 13, color: context.colors.text),
+                    corrigido
+                        ? '${aluno.nome} (${aluno.matricula}) · Já corrigido (${nota?.toStringAsFixed(1)})'
+                        : '${aluno.nome} (${aluno.matricula})',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: corrigido ? context.colors.muted : context.colors.text,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 );
@@ -487,11 +544,47 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
             ),
           ),
         ),
+        if (alunoJaCorrigido) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: context.colors.dangerLight,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: context.colors.danger.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: context.colors.danger,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'A prova deste aluno já foi corrigida (Nota: ${resultadoExistente?.notaCalculada.toStringAsFixed(1)}). Não é permitido corrigir novamente.',
+                    style: TextStyle(
+                      color: context.colors.danger,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
         PrimaryButton(
-          label: 'Continuar para leitura da folha',
+          label: alunoJaCorrigido
+              ? 'Prova já corrigida'
+              : 'Continuar para leitura da folha',
           verticalPadding: 14,
-          onPressed: _selectedStudent == null
+          onPressed: (_selectedStudent == null || alunoJaCorrigido)
               ? null
               : () => setState(() => _currentStage = 2),
         ),
