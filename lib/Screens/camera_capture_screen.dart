@@ -21,12 +21,15 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   bool _checkingPermission = true;
   bool _isCapturing = false;
   bool _flashOn = false;
+  CameraLensDirection _lensDirection = CameraLensDirection.back;
   CapturedImage? _capturedImage;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
+    _flashOn = _cameraService.isFlashOn;
+    _lensDirection = _cameraService.lensDirection;
     _checkPermission();
   }
 
@@ -62,6 +65,40 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   Future<void> _requestPermission() async {
     final status = await _cameraService.requestPermission();
     setState(() => _permission = status);
+  }
+
+  Future<void> _toggleFlash() async {
+    final newState = await _cameraService.toggleFlash();
+    if (!mounted) return;
+    setState(() => _flashOn = newState);
+  }
+
+  Future<void> _switchCamera() async {
+    final newDirection = await _cameraService.switchCamera();
+    if (!mounted) return;
+    setState(() => _lensDirection = newDirection);
+  }
+
+  Future<void> _pickFromGallery() async {
+    setState(() => _isCapturing = true);
+    try {
+      final image = await _cameraService.pickImageFromGallery();
+      if (!mounted) return;
+      if (image != null) {
+        setState(() {
+          _capturedImage = image;
+          _isCapturing = false;
+        });
+      } else {
+        setState(() => _isCapturing = false);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Erro ao selecionar imagem da galeria.';
+        _isCapturing = false;
+      });
+    }
   }
 
   Future<void> _takePicture() async {
@@ -122,11 +159,12 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: _flashOn ? 'Desativar flash' : 'Ativar flash',
             icon: Icon(
               _flashOn ? Icons.flash_on : Icons.flash_off,
               color: _flashOn ? Colors.amber : Colors.white70,
             ),
-            onPressed: () => setState(() => _flashOn = !_flashOn),
+            onPressed: _toggleFlash,
           ),
         ],
       ),
@@ -161,6 +199,31 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   Widget _buildCameraViewfinder() {
     return Column(
       children: [
+        if (_flashOn)
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.amber),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.flash_on, color: Colors.amber, size: 14),
+                SizedBox(width: 4),
+                Text(
+                  'Flash Ativado',
+                  style: TextStyle(
+                    color: Colors.amber,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Text(
@@ -214,29 +277,52 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Center(
-            child: GestureDetector(
-              onTap: _isCapturing ? null : _takePicture,
-              child: Container(
-                width: 74,
-                height: 74,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
-                  color: context.colors.accent,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.photo_library_outlined,
+                  color: Colors.white,
+                  size: 28,
                 ),
-                child: _isCapturing
-                    ? const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      )
-                    : const Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 34,
-                      ),
+                tooltip: 'Galeria',
+                onPressed: _isCapturing ? null : _pickFromGallery,
               ),
-            ),
+              GestureDetector(
+                onTap: _isCapturing ? null : _takePicture,
+                child: Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 4),
+                    color: context.colors.accent,
+                  ),
+                  child: _isCapturing
+                      ? const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        )
+                      : const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 34,
+                        ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  _lensDirection == CameraLensDirection.front
+                      ? Icons.camera_front_outlined
+                      : Icons.flip_camera_ios_outlined,
+                  color: Colors.white,
+                  size: 28,
+                ),
+                tooltip: 'Alternar câmera',
+                onPressed: _isCapturing ? null : _switchCamera,
+              ),
+            ],
           ),
         ),
       ],
@@ -274,32 +360,60 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
           Expanded(
             child: Container(
               width: double.infinity,
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: const Color(0xFF1F222A),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: context.colors.border),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    color: context.colors.success,
-                    size: 64,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Imagem Capturada com Sucesso',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                  if (_capturedImage?.hasBytes == true)
+                    Image.memory(
+                      _capturedImage!.bytes!,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) =>
+                          _buildPlaceholderPreview(),
+                    )
+                  else
+                    _buildPlaceholderPreview(),
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.65),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Imagem Capturada com Sucesso',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _capturedImage?.name ?? 'folha.jpg',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _capturedImage?.name ?? 'folha.jpg',
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ],
               ),
@@ -330,7 +444,28 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     );
   }
 
+  Widget _buildPlaceholderPreview() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.document_scanner_outlined,
+          color: context.colors.accent,
+          size: 64,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          _capturedImage?.name ?? 'folha.jpg',
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPermissionDeniedState() {
+    final bool permanentlyDenied =
+        _permission == CameraPermissionStatus.permanentlyDenied;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -343,19 +478,23 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
               color: Colors.white60,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Acesso à Câmera Negado',
-              style: TextStyle(
+            Text(
+              permanentlyDenied
+                  ? 'Acesso à Câmera Bloqueado'
+                  : 'Acesso à Câmera Negado',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'O EduTurmas precisa de permissão de câmera para fotografar e ler o cartão de respostas.',
+            Text(
+              permanentlyDenied
+                  ? 'O acesso à câmera foi permanentemente negado. Conceda a permissão nas configurações do seu sistema operacional para continuar.'
+                  : 'O EduTurmas precisa de permissão de câmera para fotografar e ler o cartão de respostas.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 13),
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
             ),
             const SizedBox(height: 24),
             PrimaryButton(
