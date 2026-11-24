@@ -12,7 +12,8 @@ import 'theme/theme_controller.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await dotenv.load(fileName: '.env');
+  // Sem `.env` preenchido o app funciona; só o envio de e-mail fica desligado.
+  await dotenv.load(fileName: '.env', isOptional: true);
   final logado = await Database.auth.restaurarSessao();
   await ThemeController.instance.carregar();
   runApp(EduTurmasApp(logado: logado));

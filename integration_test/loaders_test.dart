@@ -90,8 +90,10 @@ void main() {
       await _aguardar(tester, find.text('3º Ano A - Matemática'));
       await tester.tap(find.byIcon(Icons.add).last);
       await _aguardar(tester, find.text('Criar turma'));
-      final campos = find.byType(TextField);
-      await tester.enterText(campos.at(campos.evaluate().length - 3), 'Turma Loader');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Ex: 3º Ano A - Matemática'),
+        'Turma Loader',
+      );
       await tester.tap(find.text('Criar turma'));
       await _aguardar(tester, find.text('Turma Loader'));
       expect(find.byType(LoadingDialog), findsNothing);
@@ -118,6 +120,25 @@ void main() {
       await _aguardar(tester, find.textContaining('removido'));
       expect(find.byType(LoadingDialog), findsNothing);
       await _print('03_aluno_excluido');
+    });
+
+    await _passo('Filtro de situação na aba Provas', () async {
+      const prova = 'Avaliação bimestral — Cap. 4'; // agendada no banco falso
+      await tester.tap(find.text('Provas'));
+      await _aguardar(tester, find.text('Todas'));
+      expect(find.text(prova), findsOneWidget);
+
+      await tester.tap(find.text('Rascunhos'));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Nenhuma prova nesta situação'), findsOneWidget);
+      expect(find.text(prova), findsNothing);
+      await _print('06_filtro_rascunhos');
+
+      await tester.tap(find.text('Agendadas'));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text(prova), findsOneWidget);
+      expect(find.text('1 prova'), findsOneWidget);
+      await _print('07_filtro_agendadas');
     });
 
     await _passo('Salvar perfil mostra spinner no botão', () async {
