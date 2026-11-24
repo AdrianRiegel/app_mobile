@@ -5,6 +5,7 @@ import '../models/question.dart';
 import '../models/turma.dart';
 import '../services/database/database.dart';
 import '../theme/app_colors.dart';
+import 'question_form_screen.dart';
 
 class NewProofScreen extends StatefulWidget {
   const NewProofScreen({super.key, required this.turma});
@@ -145,7 +146,7 @@ class _NewProofScreenState extends State<NewProofScreen> {
             ),
             const SizedBox(height: 14),
             OutlinedButton.icon(
-              onPressed: _openAddQuestionSheet,
+              onPressed: _abrirNovaQuestao,
               icon: Icon(Icons.add, size: 18, color: context.colors.accent),
               label: Text(
                 'Adicionar questão',
@@ -235,7 +236,7 @@ class _NewProofScreenState extends State<NewProofScreen> {
                 tooltip: 'Editar questão',
                 constraints: const BoxConstraints(),
                 padding: const EdgeInsets.all(4),
-                onPressed: () => _openEditQuestionSheet(index),
+                onPressed: () => _abrirEdicaoQuestao(index),
               ),
               IconButton(
                 icon: Icon(
@@ -289,39 +290,37 @@ class _NewProofScreenState extends State<NewProofScreen> {
     );
   }
 
-  void _openAddQuestionSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => _QuestionFormSheet(
-        questionNumber: _questions.length + 1,
-        onSave: (newQuestion) {
-          Navigator.pop(sheetContext);
-          setState(() => _questions.add(newQuestion));
-          _showFeedback('Questão ${_questions.length} adicionada com sucesso');
-        },
+  Future<void> _abrirNovaQuestao() async {
+    final novas = await Navigator.push<List<Question>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            QuestionFormScreen(questionNumber: _questions.length + 1),
       ),
+    );
+    if (novas == null || novas.isEmpty || !mounted) return;
+    setState(() => _questions.addAll(novas));
+    _showFeedback(
+      novas.length == 1
+          ? 'Questão ${_questions.length} adicionada com sucesso'
+          : '${novas.length} questões importadas com sucesso',
     );
   }
 
-  void _openEditQuestionSheet(int index) {
+  Future<void> _abrirEdicaoQuestao(int index) async {
     if (index < 0 || index >= _questions.length) return;
-    final question = _questions[index];
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => _QuestionFormSheet(
-        questionNumber: index + 1,
-        initialQuestion: question,
-        onSave: (updatedQuestion) {
-          Navigator.pop(sheetContext);
-          setState(() => _questions[index] = updatedQuestion);
-          _showFeedback('Questão ${index + 1} atualizada com sucesso');
-        },
+    final editada = await Navigator.push<List<Question>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuestionFormScreen(
+          questionNumber: index + 1,
+          initialQuestion: _questions[index],
+        ),
       ),
     );
+    if (editada == null || editada.isEmpty || !mounted) return;
+    setState(() => _questions[index] = editada.first);
+    _showFeedback('Questão ${index + 1} atualizada com sucesso');
   }
 
   InputDecoration _inputDecoration({String? hint}) {
@@ -400,238 +399,5 @@ class _NewProofScreenState extends State<NewProofScreen> {
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(SnackBar(content: Text(message)));
-  }
-}
-
-class _QuestionFormSheet extends StatefulWidget {
-  const _QuestionFormSheet({
-    required this.questionNumber,
-    this.initialQuestion,
-    required this.onSave,
-  });
-
-  final int questionNumber;
-  final Question? initialQuestion;
-  final ValueChanged<Question> onSave;
-
-  @override
-  State<_QuestionFormSheet> createState() => _QuestionFormSheetState();
-}
-
-class _QuestionFormSheetState extends State<_QuestionFormSheet> {
-  late final TextEditingController _statementController;
-  late final List<TextEditingController> _optionsControllers;
-  late int _correctIndex;
-
-  @override
-  void initState() {
-    super.initState();
-    final initial = widget.initialQuestion;
-    _statementController = TextEditingController(
-      text: initial?.statement ?? '',
-    );
-    _optionsControllers = List.generate(4, (i) {
-      final text = (initial != null && i < initial.options.length)
-          ? initial.options[i]
-          : '';
-      return TextEditingController(text: text);
-    });
-    _correctIndex = initial?.correctIndex ?? 0;
-  }
-
-  @override
-  void dispose() {
-    _statementController.dispose();
-    for (final c in _optionsControllers) {
-      c.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isEditing = widget.initialQuestion != null;
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.88,
-        ),
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
-        child: SafeArea(
-          top: false,
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(top: 4, bottom: 12),
-                  decoration: BoxDecoration(
-                    color: context.colors.border,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-              Text(
-                isEditing
-                    ? 'Editar questão ${widget.questionNumber}'
-                    : 'Questão ${widget.questionNumber}',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: context.colors.text,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Enunciado da questão',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: context.colors.muted,
-                ),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _statementController,
-                maxLines: 2,
-                style: const TextStyle(fontSize: 13),
-                decoration: InputDecoration(
-                  hintText: 'Ex: Qual é a fórmula da água?',
-                  filled: true,
-                  fillColor: context.colors.input,
-                  contentPadding: const EdgeInsets.all(12),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: context.colors.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: context.colors.accent),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Alternativas (Selecione a correta)',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: context.colors.muted,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...List.generate(4, (index) {
-                final letter = String.fromCharCode(65 + index);
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          _correctIndex == index
-                              ? Icons.radio_button_checked
-                              : Icons.radio_button_unchecked,
-                          color: _correctIndex == index
-                              ? context.colors.success
-                              : context.colors.muted,
-                        ),
-                        onPressed: () => setState(() => _correctIndex = index),
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: _optionsControllers[index],
-                          style: const TextStyle(fontSize: 13),
-                          decoration: InputDecoration(
-                            hintText: 'Alternativa $letter',
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            filled: true,
-                            fillColor: context.colors.input,
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: context.colors.border,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: context.colors.accent,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-              const SizedBox(height: 18),
-              PrimaryButton(
-                label: isEditing ? 'Salvar alterações' : 'Adicionar à prova',
-                verticalPadding: 14,
-                fontSize: 13,
-                onPressed: _submit,
-              ),
-              const SizedBox(height: 10),
-              Center(
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Text(
-                    'Cancelar',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: context.colors.accent,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _submit() {
-    final messenger = ScaffoldMessenger.of(context);
-    final statement = _statementController.text.trim();
-    if (statement.isEmpty) {
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Informe o enunciado da questão')),
-      );
-      return;
-    }
-
-    final options = _optionsControllers.map((c) => c.text.trim()).toList();
-    if (options.any((opt) => opt.isEmpty)) {
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Preencha todas as 4 alternativas')),
-      );
-      return;
-    }
-
-    widget.onSave(
-      Question(
-        statement: statement,
-        options: options,
-        correctIndex: _correctIndex,
-      ),
-    );
   }
 }
