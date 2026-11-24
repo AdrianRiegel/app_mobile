@@ -55,7 +55,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _sair() async {
-    await Database.auth.sair();
+    await runWithLoader(context, Database.auth.sair, message: 'Saindo...');
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,

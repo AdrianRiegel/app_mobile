@@ -70,6 +70,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               const SizedBox(height: 24),
               PrimaryButton(
                 label: _enviando ? 'Enviando...' : 'Enviar link',
+                loading: _enviando,
                 onPressed: _enviando ? null : _enviarLink,
               ),
               const SizedBox(height: 24),

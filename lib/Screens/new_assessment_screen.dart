@@ -234,6 +234,7 @@ class _NewAssessmentScreenState extends State<NewAssessmentScreen> {
           const SizedBox(height: 28),
           PrimaryButton(
             label: _salvando ? 'Salvando...' : 'Criar avaliação',
+            loading: _salvando,
             verticalPadding: 15,
             fontSize: 13,
             onPressed: _salvando ? null : _submit,

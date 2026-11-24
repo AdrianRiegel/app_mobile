@@ -163,6 +163,7 @@ class _ReportScreenState extends State<ReportScreen> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: PrimaryButton(
             label: _gerando ? 'Gerando PDF...' : 'Gerar e baixar PDF',
+            loading: _gerando,
             icon: Icons.download_outlined,
             verticalPadding: 14,
             fontSize: 13,

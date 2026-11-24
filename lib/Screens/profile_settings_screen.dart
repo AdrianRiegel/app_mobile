@@ -139,7 +139,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
     if (confirmar != true || !mounted) return;
 
-    await Database.auth.sair();
+    await runWithLoader(context, Database.auth.sair, message: 'Saindo...');
     if (!mounted) return;
 
     Navigator.pushAndRemoveUntil(
@@ -437,6 +437,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             // Botão Salvar
             PrimaryButton(
               label: _salvando ? 'Salvando...' : 'Salvar alterações',
+              loading: _salvando,
               icon: Icons.save_outlined,
               verticalPadding: 14,
               onPressed: _salvando ? null : _salvar,
