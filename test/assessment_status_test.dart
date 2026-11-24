@@ -1,9 +1,13 @@
+import 'package:app_mobile/Screens/assessment_detail_screen.dart';
 import 'package:app_mobile/components/badges/status_badge.dart';
 import 'package:app_mobile/models/assessment.dart';
+import 'package:app_mobile/services/database/database.dart';
 import 'package:app_mobile/theme/app_colors.dart';
 import 'package:app_mobile/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'helpers/fake_database.dart';
 
 void main() {
   group('AssessmentStatus - Padronização da Situação da Prova', () {
@@ -96,6 +100,52 @@ void main() {
       expect(decoration.color, AppColors.dark.successLight);
       final text = tester.widget<Text>(find.text('Concluída'));
       expect(text.style?.color, AppColors.dark.success);
+    });
+  });
+
+  group('Bloqueio de correção em prova encerrada (#71)', () {
+    test('ResultadoRepository.salvar recusa correção de avaliação concluída com StateError', () async {
+      await configurarBancoFalso();
+      await AvaliacaoRepository().atualizarStatus('aval-1', AssessmentStatus.completed);
+      final avaliacaoConcluida = await AvaliacaoRepository().buscar('aval-1');
+
+      final aluno = (await AlunoRepository().listarPorTurma('turma-1')).first;
+
+      expect(
+        () => ResultadoRepository().salvar(
+          avaliacao: avaliacaoConcluida,
+          aluno: aluno,
+          respostas: ['A', 'B', 'C', 'D'],
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    testWidgets('AssessmentDetailScreen oculta botão de iniciar correção quando avaliação está concluída', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await configurarBancoFalso();
+      await AvaliacaoRepository().atualizarStatus('aval-1', AssessmentStatus.completed);
+      final avaliacaoConcluida = await AvaliacaoRepository().buscar('aval-1');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: AssessmentDetailScreen(assessment: avaliacaoConcluida),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Iniciar correção'), findsNothing);
+      expect(
+        find.text('Avaliação encerrada. Não são permitidas novas correções.'),
+        findsOneWidget,
+      );
     });
   });
 }

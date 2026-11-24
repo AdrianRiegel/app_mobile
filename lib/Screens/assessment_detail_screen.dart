@@ -343,13 +343,45 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            PrimaryButton(
-              label: 'Iniciar correção',
-              icon: Icons.qr_code_scanner,
-              verticalPadding: 14,
-              onPressed: () => _iniciarCorrecao(context),
-            ),
-            const SizedBox(height: 10),
+            if (assessment.status != AssessmentStatus.completed) ...[
+              PrimaryButton(
+                label: 'Iniciar correção',
+                icon: Icons.qr_code_scanner,
+                verticalPadding: 14,
+                onPressed: () => _iniciarCorrecao(context),
+              ),
+              const SizedBox(height: 10),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: context.colors.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: context.colors.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle_outline,
+                      size: 20,
+                      color: context.colors.accent,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Avaliação encerrada. Não são permitidas novas correções.',
+                        style: TextStyle(
+                          color: context.colors.muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
             SecondaryButton(
               label: 'Configurar gabarito',
               icon: Icons.edit_note_outlined,
@@ -433,6 +465,16 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
   }
 
   Future<void> _iniciarCorrecao(BuildContext context) async {
+    if (assessment.status == AssessmentStatus.completed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Esta avaliação já foi encerrada e não pode mais receber correções',
+          ),
+        ),
+      );
+      return;
+    }
     if (!assessment.gabaritoConfigurado) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

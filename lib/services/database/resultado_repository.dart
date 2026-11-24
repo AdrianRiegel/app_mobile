@@ -31,6 +31,12 @@ class ResultadoRepository extends FirestoreRepository {
     required Aluno aluno,
     required List<String?> respostas,
   }) async {
+    if (avaliacao.status == AssessmentStatus.completed) {
+      throw StateError(
+        'Não é possível registrar correção para uma avaliação já encerrada',
+      );
+    }
+
     final resultado = corrigir(
       id: '${avaliacao.id}_${aluno.id}',
       avaliacao: avaliacao,
