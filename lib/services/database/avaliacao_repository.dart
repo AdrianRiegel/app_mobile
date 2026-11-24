@@ -163,10 +163,18 @@ class AvaliacaoRepository extends FirestoreRepository {
 
   /// Salva o gabarito sem mudar o status: uma prova em rascunho continua em
   /// rascunho até ser marcada como pronta.
+  ///
+  /// Lança [StateError] se a prova já não for rascunho
+  /// ([Assessment.gabaritoEditavel]).
   Future<Assessment> salvarGabarito(
     Assessment avaliacao,
     List<String> respostas,
   ) async {
+    if (!(await buscar(avaliacao.id)).gabaritoEditavel) {
+      throw StateError(
+        'O gabarito não pode ser alterado depois que a prova está pronta',
+      );
+    }
     final gabarito = [
       for (var i = 0; i < respostas.length; i++)
         QuestaoGabarito(

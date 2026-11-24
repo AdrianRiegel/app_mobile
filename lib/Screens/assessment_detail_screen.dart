@@ -385,19 +385,44 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                TextButton(
-                  onPressed: () => _openAnswerKey(context),
-                  child: Text(
-                    'Editar',
-                    style: TextStyle(
-                      color: context.colors.accent,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                if (assessment.gabaritoEditavel)
+                  TextButton(
+                    onPressed: () => _openAnswerKey(context),
+                    child: Text(
+                      'Editar',
+                      style: TextStyle(
+                        color: context.colors.accent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
+            if (!assessment.gabaritoEditavel)
+              Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      size: 14,
+                      color: context.colors.muted,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Gabarito bloqueado: a prova já está pronta para '
+                        'leitura e correção.',
+                        style: TextStyle(
+                          color: context.colors.muted,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Container(
               padding: const EdgeInsets.all(13),
               decoration: BoxDecoration(
@@ -460,13 +485,15 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
               verticalPadding: 14,
               onPressed: () => _iniciarCorrecao(context),
             ),
-            const SizedBox(height: 10),
-            SecondaryButton(
-              label: 'Configurar gabarito',
-              icon: Icons.edit_note_outlined,
-              verticalPadding: 14,
-              onPressed: () => _openAnswerKey(context),
-            ),
+            if (assessment.gabaritoEditavel) ...[
+              const SizedBox(height: 10),
+              SecondaryButton(
+                label: 'Configurar gabarito',
+                icon: Icons.edit_note_outlined,
+                verticalPadding: 14,
+                onPressed: () => _openAnswerKey(context),
+              ),
+            ],
             const SizedBox(height: 10),
             SecondaryButton(
               label: _carregandoEstatisticas
