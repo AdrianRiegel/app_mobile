@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
 import '../models/assessment.dart';
 import '../services/database/database.dart';
+import '../services/email_service.dart';
 import '../services/random_exam_service.dart';
 import '../theme/app_colors.dart';
 import 'answer_key_screen.dart';
@@ -431,6 +434,12 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
           return ausentes;
         },
         message: 'Encerrando correção...',
+      );
+      unawaited(
+        Emails.notificarCorrecaoEncerrada(
+          avaliacao: assessment,
+          ausentes: ausentes,
+        ),
       );
       if (!mounted) return;
       messenger.showSnackBar(
