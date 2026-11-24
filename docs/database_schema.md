@@ -114,3 +114,21 @@ Registros de correção e notas dos alunos para uma avaliação.
 - **Estratégia**: Schema versionless compatível com retrocompatibilidade (Additive Changes).
 - **Campos Novos**: Sempre declarados com valores padrão (`null` safe ou fallback) nos repositórios.
 - **Validador em Tempo de Execução**: `lib/services/database/schema_validator.dart` fornece validações estáticas e dinâmicas para verificação de conformidade antes de gravações.
+
+### Conteúdo da prova e ordem de impressão (N3)
+
+Documentos novos de `avaliacoes` também armazenam `questoes`, uma lista com
+`statement` (enunciado), `options` (alternativas na ordem impressa) e
+`correctIndex` (índice da correta). `embaralharQuestoes` e
+`embaralharAlternativas` registram as opções escolhidas na criação. O sorteio
+ocorre antes da gravação; `gabarito` corresponde à mesma lista definitiva.
+A exportação não refaz o sorteio nem altera os documentos.
+
+Documentos antigos sem `questoes` carregam com lista vazia e continuam
+compatíveis. A exportação do caderno é bloqueada pois não há enunciados
+armazenados. A edição do gabarito de uma prova com conteúdo atualiza também
+`correctIndex`, preservando enunciados e ordem das alternativas.
+
+As folhas de respostas usam o contrato existente de `ProofQrPayload`
+(version 1, IDs de turma/prova/aluno), sem criar um gabarito alternativo apenas
+na impressão.

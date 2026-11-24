@@ -213,6 +213,10 @@ Future<void> _abrirNovaQuestao(WidgetTester tester) async {
     200,
     scrollable: find.byType(Scrollable).first,
   );
+  await tester.ensureVisible(
+    find.widgetWithText(OutlinedButton, 'Adicionar questão'),
+  );
+  await tester.pumpAndSettle();
   await tester.tap(find.text('Adicionar questão'));
   await tester.pumpAndSettle();
 }

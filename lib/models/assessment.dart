@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'question.dart';
 
 enum AssessmentStatus { draft, scheduled, completed }
 
@@ -75,6 +76,9 @@ class Assessment {
     this.id = '',
     this.turmaId = '',
     this.gabarito = const [],
+    this.questions = const [],
+    this.shuffleQuestions = false,
+    this.shuffleOptions = false,
     required this.title,
     required this.subject,
     required this.className,
@@ -89,6 +93,15 @@ class Assessment {
   final String id;
   final String turmaId;
   final List<QuestaoGabarito> gabarito;
+
+  /// Conteúdo real na ordem definitiva impressa e corrigida. Provas antigas
+  /// podem ter só gabarito e mantêm a lista vazia.
+  final List<Question> questions;
+  final bool shuffleQuestions;
+  final bool shuffleOptions;
+
+  bool get hasPrintableQuestions =>
+      questions.isNotEmpty && questions.length == totalQuestions;
   final String title;
   final String subject;
   final String className;

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../models/assessment.dart';
+import '../../models/question.dart';
+import '../random_exam_service.dart';
 import '../../models/turma.dart';
 import 'database.dart';
 
@@ -54,12 +56,34 @@ class AvaliacaoRepository extends FirestoreRepository {
     required int totalQuestoes,
     DateTime? dataAplicacao,
     List<String>? respostas,
+    List<Question>? questoes,
+    bool embaralharQuestoes = false,
+    bool embaralharAlternativas = false,
   }) async {
+    if (totalQuestoes <= 0 ||
+        (respostas != null && respostas.length != totalQuestoes)) {
+      throw ArgumentError('Quantidade de respostas diferente da prova.');
+    }
+    if (questoes != null && questoes.length != totalQuestoes) {
+      throw ArgumentError('Quantidade de questões diferente do conteúdo.');
+    }
+    final conteudo = RandomExamService.prepararQuestoes(
+      questoes ?? const [],
+      embaralharQuestoes: embaralharQuestoes,
+      embaralharAlternativas: embaralharAlternativas,
+    );
+    if (conteudo.isEmpty && (embaralharQuestoes || embaralharAlternativas)) {
+      throw ArgumentError(
+        'Cadastre o conteúdo das questões antes de embaralhar.',
+      );
+    }
     final gabarito = List.generate(
       totalQuestoes,
       (index) => QuestaoGabarito(
         questao: index + 1,
-        alternativaCorreta: respostas?[index],
+        alternativaCorreta: conteudo.isNotEmpty
+            ? conteudo[index].correctLetter
+            : respostas?[index],
       ),
     );
     final ref = await avaliacoes.add({
@@ -68,9 +92,13 @@ class AvaliacaoRepository extends FirestoreRepository {
       'titulo': titulo,
       'disciplina': disciplina,
       'status': _statusParaBanco(AssessmentStatus.draft),
-      'dataAplicacao':
-          dataAplicacao != null ? Timestamp.fromDate(dataAplicacao) : null,
+      'dataAplicacao': dataAplicacao != null
+          ? Timestamp.fromDate(dataAplicacao)
+          : null,
       'gabarito': gabarito.map(_gabaritoParaBanco).toList(),
+      'questoes': conteudo.map((question) => question.toMap()).toList(),
+      'embaralharQuestoes': embaralharQuestoes,
+      'embaralharAlternativas': embaralharAlternativas,
       'criadoEm': FieldValue.serverTimestamp(),
     });
 
@@ -78,11 +106,15 @@ class AvaliacaoRepository extends FirestoreRepository {
       id: ref.id,
       turmaId: turma.id,
       gabarito: gabarito,
+      questions: conteudo,
+      shuffleQuestions: embaralharQuestoes,
+      shuffleOptions: embaralharAlternativas,
       title: titulo,
       subject: disciplina,
       className: turma.nome,
-      dateLabel:
-          dataAplicacao != null ? formatarData(dataAplicacao) : 'Sem data',
+      dateLabel: dataAplicacao != null
+          ? formatarData(dataAplicacao)
+          : 'Sem data',
       dataAplicacao: dataAplicacao,
       status: AssessmentStatus.draft,
       totalQuestions: totalQuestoes,
@@ -146,8 +178,25 @@ class AvaliacaoRepository extends FirestoreRepository {
         ? AssessmentStatus.scheduled
         : avaliacao.status;
 
+    final conteudo = avaliacao.questions;
+    if (conteudo.isNotEmpty && respostas.length != conteudo.length) {
+      throw ArgumentError('O gabarito deve corresponder às questões salvas.');
+    }
+    final atualizado = <Question>[];
+    for (var i = 0; i < conteudo.length; i++) {
+      if (respostas[i].length != 1) {
+        throw ArgumentError('Informe uma alternativa para a questão ${i + 1}.');
+      }
+      final correta = respostas[i].codeUnitAt(0) - 65;
+      if (correta < 0 || correta >= conteudo[i].options.length) {
+        throw ArgumentError('Alternativa fora das opções da questão ${i + 1}.');
+      }
+      atualizado.add(conteudo[i].copyWith(correctIndex: correta));
+    }
     await avaliacoes.doc(avaliacao.id).update({
       'gabarito': gabarito.map(_gabaritoParaBanco).toList(),
+      if (conteudo.isNotEmpty)
+        'questoes': atualizado.map((question) => question.toMap()).toList(),
       'status': _statusParaBanco(status),
     });
     return buscar(avaliacao.id);
@@ -189,6 +238,13 @@ class AvaliacaoRepository extends FirestoreRepository {
       id: doc.id,
       turmaId: data['turmaId'] as String? ?? '',
       gabarito: gabarito,
+      questions: ((data['questoes'] as List?) ?? const [])
+          .map(
+            (item) => Question.fromMap(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList(),
+      shuffleQuestions: data['embaralharQuestoes'] == true,
+      shuffleOptions: data['embaralharAlternativas'] == true,
       title: data['titulo'] as String? ?? '',
       subject: data['disciplina'] as String? ?? turma?.disciplina ?? '',
       className: turma?.nome ?? 'Turma removida',
