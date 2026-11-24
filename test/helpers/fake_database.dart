@@ -16,7 +16,6 @@ class FakeAuthRepository implements AuthRepository {
     nome: 'Maria Silva',
     email: 'maria@escola.com',
     escola: 'Colégio Estadual',
-    disciplinaPrincipal: 'Matemática',
     notificacoesEmail: true,
   );
 
@@ -54,7 +53,6 @@ class FakeAuthRepository implements AuthRepository {
   Future<void> atualizarPerfil({
     required String nome,
     String? escola,
-    String? disciplinaPrincipal,
     bool? notificacoesEmail,
   }) async {
     if (!logado) throw const AuthException('Nenhum usuário logado');
@@ -64,7 +62,6 @@ class FakeAuthRepository implements AuthRepository {
     _usuario = _usuario.copyWith(
       nome: nome.trim(),
       escola: escola?.trim(),
-      disciplinaPrincipal: disciplinaPrincipal?.trim(),
       notificacoesEmail: notificacoesEmail,
     );
   }

@@ -40,7 +40,6 @@ abstract class AuthRepository {
   Future<void> atualizarPerfil({
     required String nome,
     String? escola,
-    String? disciplinaPrincipal,
     bool? notificacoesEmail,
   });
 }
@@ -115,7 +114,6 @@ class FirebaseAuthRepository implements AuthRepository {
       nome: data?['nome'] as String? ?? user.displayName ?? 'Professor(a)',
       email: data?['email'] as String? ?? user.email ?? '',
       escola: data?['escola'] as String?,
-      disciplinaPrincipal: data?['disciplinaPrincipal'] as String?,
       notificacoesEmail: data?['notificacoesEmail'] as bool? ?? true,
     );
   }
@@ -124,7 +122,6 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<void> atualizarPerfil({
     required String nome,
     String? escola,
-    String? disciplinaPrincipal,
     bool? notificacoesEmail,
   }) {
     return _executar(() async {
@@ -144,9 +141,6 @@ class FirebaseAuthRepository implements AuthRepository {
         'atualizadoEm': FieldValue.serverTimestamp(),
       };
       if (escola != null) updateData['escola'] = escola.trim();
-      if (disciplinaPrincipal != null) {
-        updateData['disciplinaPrincipal'] = disciplinaPrincipal.trim();
-      }
       if (notificacoesEmail != null) {
         updateData['notificacoesEmail'] = notificacoesEmail;
       }
