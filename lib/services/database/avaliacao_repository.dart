@@ -9,8 +9,9 @@ import 'database.dart';
 /// Avaliações (`avaliacoes`) convertidas para o model [Assessment] usado nas
 /// telas, com o nome da turma e o total de correções já preenchidos.
 ///
-/// Ciclo de status: `rascunho` ao criar → `agendada` ao salvar o gabarito →
-/// `concluida` quando todos os alunos da turma foram corrigidos.
+/// Ciclo de status: `rascunho` ao criar → `agendada` quando o professor marca
+/// a prova como pronta ([marcarComoPronta]) → `concluida` quando todos os
+/// alunos da turma foram corrigidos.
 class AvaliacaoRepository extends FirestoreRepository {
   /// Avaliações do professor (opcionalmente de uma turma), mais recentes
   /// primeiro.
@@ -160,8 +161,8 @@ class AvaliacaoRepository extends FirestoreRepository {
     await batch.commit();
   }
 
-  /// Salva o gabarito e, se a avaliação ainda era rascunho, a marca como
-  /// agendada.
+  /// Salva o gabarito sem mudar o status: uma prova em rascunho continua em
+  /// rascunho até ser marcada como pronta.
   Future<Assessment> salvarGabarito(
     Assessment avaliacao,
     List<String> respostas,
@@ -174,10 +175,6 @@ class AvaliacaoRepository extends FirestoreRepository {
           peso: i < avaliacao.gabarito.length ? avaliacao.gabarito[i].peso : 1,
         ),
     ];
-    final status = avaliacao.status == AssessmentStatus.draft
-        ? AssessmentStatus.scheduled
-        : avaliacao.status;
-
     final conteudo = avaliacao.questions;
     if (conteudo.isNotEmpty && respostas.length != conteudo.length) {
       throw ArgumentError('O gabarito deve corresponder às questões salvas.');
@@ -197,9 +194,28 @@ class AvaliacaoRepository extends FirestoreRepository {
       'gabarito': gabarito.map(_gabaritoParaBanco).toList(),
       if (conteudo.isNotEmpty)
         'questoes': atualizado.map((question) => question.toMap()).toList(),
-      'status': _statusParaBanco(status),
     });
     return buscar(avaliacao.id);
+  }
+
+  /// Marca uma prova em rascunho como pronta, passando-a para `agendada`.
+  ///
+  /// Lança [StateError] se a prova não estiver em rascunho ou se o gabarito
+  /// ainda tiver questões sem alternativa correta.
+  Future<Assessment> marcarComoPronta(Assessment avaliacao) async {
+    final atual = await buscar(avaliacao.id);
+    if (atual.status != AssessmentStatus.draft) {
+      throw StateError(
+        'Apenas provas em rascunho podem ser marcadas como prontas',
+      );
+    }
+    if (!atual.gabaritoConfigurado) {
+      throw StateError(
+        'Configure o gabarito antes de marcar a prova como pronta',
+      );
+    }
+    await atualizarStatus(atual.id, AssessmentStatus.scheduled);
+    return buscar(atual.id);
   }
 
   Future<void> atualizarStatus(String id, AssessmentStatus status) {

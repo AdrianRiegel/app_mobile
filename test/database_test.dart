@@ -94,7 +94,7 @@ void main() {
     expect(salvo.data()!['notaCalculada'], 2.5);
   });
 
-  test('cria avaliação como rascunho e agenda ao salvar o gabarito', () async {
+  test('salvar o gabarito mantém a avaliação como rascunho', () async {
     await configurarBancoFalso();
     final repository = AvaliacaoRepository();
     final turma = await TurmaRepository().buscar('turma-1');
@@ -108,10 +108,10 @@ void main() {
     expect(criada.status, AssessmentStatus.draft);
     expect(criada.gabaritoConfigurado, isFalse);
 
-    final agendada = await repository.salvarGabarito(criada, ['A', 'B', 'C']);
-    expect(agendada.status, AssessmentStatus.scheduled);
-    expect(agendada.gabaritoConfigurado, isTrue);
-    expect(agendada.className, '3º Ano A');
+    final salva = await repository.salvarGabarito(criada, ['A', 'B', 'C']);
+    expect(salva.status, AssessmentStatus.draft);
+    expect(salva.gabaritoConfigurado, isTrue);
+    expect(salva.className, '3º Ano A');
   });
 
   test('lista apenas as turmas do professor logado', () async {
