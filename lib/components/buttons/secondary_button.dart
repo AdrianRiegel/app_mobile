@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
+import 'primary_button.dart' show ButtonSpinner;
 
 class SecondaryButton extends StatelessWidget {
   const SecondaryButton({
@@ -13,6 +14,7 @@ class SecondaryButton extends StatelessWidget {
     this.horizontalPadding,
     this.foregroundColor,
     this.borderColor,
+    this.loading = false,
   });
 
   final String label;
@@ -27,6 +29,9 @@ class SecondaryButton extends StatelessWidget {
 
   /// Padrão: `border` do tema.
   final Color? borderColor;
+
+  /// Exibe um spinner no lugar do ícone e desabilita o botão.
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -46,14 +51,27 @@ class SecondaryButton extends StatelessWidget {
       style: const TextStyle(fontWeight: FontWeight.w600),
     );
 
-    final button = icon == null
-        ? OutlinedButton(onPressed: onPressed, style: style, child: labelWidget)
-        : OutlinedButton.icon(
-            onPressed: onPressed,
-            style: style,
-            icon: Icon(icon, size: 18),
-            label: labelWidget,
-          );
+    final foreground = foregroundColor ?? context.colors.accent;
+    final Widget button;
+    if (loading) {
+      button = OutlinedButton.icon(
+        onPressed: null,
+        style: style.copyWith(
+          foregroundColor: WidgetStatePropertyAll(foreground),
+        ),
+        icon: ButtonSpinner(color: foreground),
+        label: labelWidget,
+      );
+    } else if (icon == null) {
+      button = OutlinedButton(onPressed: onPressed, style: style, child: labelWidget);
+    } else {
+      button = OutlinedButton.icon(
+        onPressed: onPressed,
+        style: style,
+        icon: Icon(icon, size: 18),
+        label: labelWidget,
+      );
+    }
 
     return fullWidth ? SizedBox(width: double.infinity, child: button) : button;
   }

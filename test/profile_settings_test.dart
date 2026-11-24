@@ -19,14 +19,12 @@ void main() {
       await Database.auth.atualizarPerfil(
         nome: 'Maria Silva Santos',
         escola: 'Instituto Federal',
-        disciplinaPrincipal: 'Física',
         notificacoesEmail: false,
       );
 
       final usuarioDepois = await Database.auth.carregarUsuario();
       expect(usuarioDepois?.nome, 'Maria Silva Santos');
       expect(usuarioDepois?.escola, 'Instituto Federal');
-      expect(usuarioDepois?.disciplinaPrincipal, 'Física');
       expect(usuarioDepois?.notificacoesEmail, isFalse);
     });
 
@@ -60,7 +58,7 @@ void main() {
       expect(find.text('Maria Silva'), findsWidgets);
       expect(find.text('maria@escola.com'), findsWidgets);
       expect(find.text('Colégio Estadual'), findsOneWidget);
-      expect(find.text('Matemática'), findsOneWidget);
+      expect(find.text('Disciplina Principal'), findsNothing);
 
       // Edita o nome
       final nomeField = find.widgetWithText(TextField, 'Maria Silva');
@@ -132,6 +130,28 @@ void main() {
       // Confirma que a tela de perfil foi aberta
       expect(find.text('Perfil e Configurações'), findsOneWidget);
       expect(find.text('Dados Pessoais e Profissionais'), findsOneWidget);
+    });
+
+    testWidgets('não mostra notificações e o botão Sair leva ao login', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await configurarBancoFalso();
+
+      await tester.pumpWidget(const MaterialApp(home: DashboardScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.notifications_none), findsNothing);
+
+      await tester.tap(find.byTooltip('Sair'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Entrar'), findsOneWidget);
+      expect(Database.auth.uid, isNull);
     });
 
     testWidgets('abre ProfileSettingsScreen ao clicar no avatar do professor', (

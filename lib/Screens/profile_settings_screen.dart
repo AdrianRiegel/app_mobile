@@ -18,7 +18,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   final _nomeController = TextEditingController();
   final _emailController = TextEditingController();
   final _escolaController = TextEditingController();
-  final _disciplinaController = TextEditingController();
 
   bool _notificacoesEmail = true;
   bool _carregando = true;
@@ -37,7 +36,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     _nomeController.dispose();
     _emailController.dispose();
     _escolaController.dispose();
-    _disciplinaController.dispose();
     super.dispose();
   }
 
@@ -55,7 +53,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         _nomeController.text = usuario.nome;
         _emailController.text = usuario.email;
         _escolaController.text = usuario.escola ?? '';
-        _disciplinaController.text = usuario.disciplinaPrincipal ?? '';
         _notificacoesEmail = usuario.notificacoesEmail;
       }
     } catch (e) {
@@ -86,7 +83,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       await Database.auth.atualizarPerfil(
         nome: nome,
         escola: _escolaController.text.trim(),
-        disciplinaPrincipal: _disciplinaController.text.trim(),
         notificacoesEmail: _notificacoesEmail,
       );
 
@@ -139,7 +135,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
     if (confirmar != true || !mounted) return;
 
-    await Database.auth.sair();
+    await runWithLoader(context, Database.auth.sair, message: 'Saindo...');
     if (!mounted) return;
 
     Navigator.pushAndRemoveUntil(
@@ -291,13 +287,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               controller: _escolaController,
               hintText: 'Ex: Escola Estadual Modelo',
             ),
-            const SizedBox(height: 14),
-
-            LabeledTextField(
-              label: 'Disciplina Principal',
-              controller: _disciplinaController,
-              hintText: 'Ex: Matemática, Física, etc.',
-            ),
 
             const SizedBox(height: 28),
 
@@ -437,6 +426,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             // Botão Salvar
             PrimaryButton(
               label: _salvando ? 'Salvando...' : 'Salvar alterações',
+              loading: _salvando,
               icon: Icons.save_outlined,
               verticalPadding: 14,
               onPressed: _salvando ? null : _salvar,

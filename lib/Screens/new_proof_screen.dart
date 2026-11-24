@@ -176,6 +176,7 @@ class _NewProofScreenState extends State<NewProofScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             child: PrimaryButton(
               label: _salvando ? 'Salvando...' : 'Salvar prova',
+              loading: _salvando,
               onPressed: _salvando ? null : _save,
             ),
           ),

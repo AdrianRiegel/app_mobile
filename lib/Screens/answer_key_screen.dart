@@ -257,6 +257,7 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             child: PrimaryButton(
               label: _salvando ? 'Salvando...' : 'Salvar gabarito',
+              loading: _salvando,
               icon: Icons.check,
               verticalPadding: 14,
               fontSize: 13,

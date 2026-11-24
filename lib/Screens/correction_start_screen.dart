@@ -598,6 +598,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           const SizedBox(height: 18),
           PrimaryButton(
             label: _salvando ? 'Salvando...' : 'Continuar para resultado',
+            loading: _salvando,
             verticalPadding: 14,
             onPressed: _salvando ? null : _salvarResultado,
           ),
