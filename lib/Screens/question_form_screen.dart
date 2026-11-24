@@ -33,16 +33,40 @@ class QuestionFormScreen extends StatefulWidget {
 }
 
 class _QuestionFormScreenState extends State<QuestionFormScreen> {
-  static const _totalAlternativas = 4;
+  /// Limites aceitos pela folha de respostas, pela leitura (OMR) e pelo PDF.
+  static const minAlternativas = 2;
+  static const maxAlternativas = 5;
+  static const _alternativasPadrao = 4;
 
   late final _statementController = TextEditingController(
     text: widget.initialQuestion?.statement ?? '',
   );
-  late final _optionsControllers = List.generate(_totalAlternativas, (i) {
-    final options = widget.initialQuestion?.options ?? const <String>[];
-    return TextEditingController(text: i < options.length ? options[i] : '');
-  });
+  late final List<TextEditingController> _optionsControllers = [
+    for (final option
+        in widget.initialQuestion?.options ??
+            List.filled(_alternativasPadrao, ''))
+      TextEditingController(text: option),
+  ];
   late int _correctIndex = widget.initialQuestion?.correctIndex ?? 0;
+
+  void _adicionarAlternativa() {
+    if (_optionsControllers.length >= maxAlternativas) return;
+    setState(() => _optionsControllers.add(TextEditingController()));
+  }
+
+  /// Remove a alternativa [index], mantendo a marcação da correta na mesma
+  /// alternativa (ou voltando para a primeira, se a removida era a correta).
+  void _removerAlternativa(int index) {
+    if (_optionsControllers.length <= minAlternativas) return;
+    setState(() {
+      _optionsControllers.removeAt(index).dispose();
+      if (_correctIndex == index) {
+        _correctIndex = 0;
+      } else if (_correctIndex > index) {
+        _correctIndex--;
+      }
+    });
+  }
 
   final _csvController = TextEditingController();
   CsvProofQuestionsResult? _csvResultado;
@@ -79,7 +103,7 @@ class _QuestionFormScreenState extends State<QuestionFormScreen> {
     }
     final options = _optionsControllers.map((c) => c.text.trim()).toList();
     if (options.any((option) => option.isEmpty)) {
-      _mostrarAviso('Preencha todas as $_totalAlternativas alternativas');
+      _mostrarAviso('Preencha todas as ${options.length} alternativas');
       return;
     }
     Navigator.pop(context, [
@@ -140,7 +164,10 @@ class _QuestionFormScreenState extends State<QuestionFormScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                     tabs: const [
-                      Tab(text: 'Preencher', icon: Icon(Icons.edit_note, size: 20)),
+                      Tab(
+                        text: 'Preencher',
+                        icon: Icon(Icons.edit_note, size: 20),
+                      ),
                       Tab(
                         text: 'Importar CSV',
                         icon: Icon(Icons.file_upload_outlined, size: 20),
@@ -250,7 +277,7 @@ class _QuestionFormScreenState extends State<QuestionFormScreen> {
         const SizedBox(height: 18),
         _rotulo('Alternativas (selecione a correta)'),
         const SizedBox(height: 8),
-        for (var index = 0; index < _totalAlternativas; index++)
+        for (var index = 0; index < _optionsControllers.length; index++)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(
@@ -279,9 +306,36 @@ class _QuestionFormScreenState extends State<QuestionFormScreen> {
                     ),
                   ),
                 ),
+                if (_optionsControllers.length > minAlternativas)
+                  IconButton(
+                    tooltip:
+                        'Remover alternativa ${String.fromCharCode(65 + index)}',
+                    icon: Icon(
+                      Icons.remove_circle_outline,
+                      color: context.colors.muted,
+                    ),
+                    onPressed: () => _removerAlternativa(index),
+                  ),
               ],
             ),
           ),
+        if (_optionsControllers.length < maxAlternativas)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _adicionarAlternativa,
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(
+                'Adicionar alternativa '
+                '${String.fromCharCode(65 + _optionsControllers.length)}',
+              ),
+            ),
+          ),
+        Text(
+          'De $minAlternativas a $maxAlternativas alternativas por questão '
+          '(A a ${String.fromCharCode(64 + maxAlternativas)}).',
+          style: TextStyle(fontSize: 11, color: context.colors.muted),
+        ),
       ],
     );
   }
@@ -293,9 +347,13 @@ class _QuestionFormScreenState extends State<QuestionFormScreen> {
       children: [
         Text(
           'Importe várias questões de uma vez. Cada linha é uma questão, com '
-          'as colunas enunciado, a, b, c, d e correta (letra de A a D), '
+          'as colunas enunciado, a, b, c, d, e (opcional) e correta, '
           'separadas por ponto e vírgula ou vírgula.',
-          style: TextStyle(fontSize: 12, color: context.colors.muted, height: 1.4),
+          style: TextStyle(
+            fontSize: 12,
+            color: context.colors.muted,
+            height: 1.4,
+          ),
         ),
         const SizedBox(height: 12),
         CsvFilePicker(
@@ -398,7 +456,10 @@ class _QuestionFormScreenState extends State<QuestionFormScreen> {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       erro,
-                      style: TextStyle(fontSize: 11, color: context.colors.danger),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: context.colors.danger,
+                      ),
                     ),
                   ),
                 if (resultado.erros.length > maxErros)
@@ -406,7 +467,10 @@ class _QuestionFormScreenState extends State<QuestionFormScreen> {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       'e mais ${resultado.erros.length - maxErros}',
-                      style: TextStyle(fontSize: 11, color: context.colors.danger),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: context.colors.danger,
+                      ),
                     ),
                   ),
               ],
