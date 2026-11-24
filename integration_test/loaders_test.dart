@@ -92,8 +92,10 @@ void main() {
       await _aguardar(tester, find.text('3º Ano A - Matemática'));
       await tester.tap(find.byIcon(Icons.add).last);
       await _aguardar(tester, find.text('Criar turma'));
-      final campos = find.byType(TextField);
-      await tester.enterText(campos.at(campos.evaluate().length - 3), 'Turma Loader');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Ex: 3º Ano A - Matemática'),
+        'Turma Loader',
+      );
       await tester.tap(find.text('Criar turma'));
       await _aguardar(tester, find.text('Turma Loader'));
       expect(find.byType(LoadingDialog), findsNothing);

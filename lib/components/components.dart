@@ -9,6 +9,7 @@ export 'chips/app_filter_chip.dart';
 export 'feedback/empty_state_view.dart';
 export 'feedback/load_error_view.dart';
 export 'feedback/loading_overlay.dart';
+export 'inputs/labeled_dropdown.dart';
 export 'inputs/labeled_text_field.dart';
 export 'inputs/search_field.dart';
 export 'lists/infinite_scroll_list.dart';

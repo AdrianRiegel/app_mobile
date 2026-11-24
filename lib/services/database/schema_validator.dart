@@ -1,3 +1,5 @@
+import '../../models/turma.dart';
+
 /// Validador de esquemas das coleções do Firestore para o EduTurmas.
 ///
 /// Garante a conformidade dos dados antes da persistência e verifica a
@@ -25,8 +27,10 @@ abstract final class SchemaValidator {
     _requireNonEmptyString(data['professorId'], 'turmas.professorId');
     _requireNonEmptyString(data['descricao'], 'turmas.descricao');
     final semestre = data['semestre'];
-    if (semestre is! num || semestre < 1 || semestre > 2) {
-      throw const SchemaValidationException('turmas.semestre deve ser 1 ou 2');
+    if (semestre is! num || !Turma.semestreValido(semestre)) {
+      throw const SchemaValidationException(
+        'turmas.semestre deve estar entre 1 e ${Turma.semestreMaximo}',
+      );
     }
     final ano = data['ano'];
     if (ano is! num || ano < 2000) {

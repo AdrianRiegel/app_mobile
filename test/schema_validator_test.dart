@@ -44,11 +44,25 @@ void main() {
         () => SchemaValidator.validateTurma({
           'professorId': 'prof-1',
           'descricao': '3º Ano A',
-          'semestre': 3, // inválido
+          'semestre': 11, // inválido: vai do 1º ao 10º
           'ano': 2026,
         }),
         throwsA(isA<SchemaValidationException>()),
       );
+
+      for (final (semestre, valido) in [(0, false), (1, true), (10, true)]) {
+        void validar() => SchemaValidator.validateTurma({
+          'professorId': 'prof-1',
+          'descricao': '3º Ano A',
+          'semestre': semestre,
+          'ano': 2026,
+        });
+        expect(
+          validar,
+          valido ? returnsNormally : throwsA(isA<SchemaValidationException>()),
+          reason: 'semestre $semestre',
+        );
+      }
     });
 
     test('valida aluno e exige matrícula preenchida', () {
