@@ -34,14 +34,12 @@ class _AuthLenta extends FakeAuthRepository {
   Future<void> atualizarPerfil({
     required String nome,
     String? escola,
-    String? disciplinaPrincipal,
     bool? notificacoesEmail,
   }) async {
     await Future<void>.delayed(atraso);
     return super.atualizarPerfil(
       nome: nome,
       escola: escola,
-      disciplinaPrincipal: disciplinaPrincipal,
       notificacoesEmail: notificacoesEmail,
     );
   }

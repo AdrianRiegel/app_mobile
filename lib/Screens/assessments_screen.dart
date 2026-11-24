@@ -6,7 +6,6 @@ import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 import 'assessment_detail_screen.dart';
 import 'correction_start_screen.dart';
-import 'new_assessment_screen.dart';
 
 enum _AssessmentViewState { loading, content, empty, error }
 
@@ -57,19 +56,6 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
       backgroundColor: context.colors.background,
       appBar: const StandardAppBar(title: 'Avaliações'),
       body: SafeArea(top: false, child: _buildBody()),
-      floatingActionButton: _viewState == _AssessmentViewState.content
-          ? FloatingActionButton.extended(
-              onPressed: _createAssessment,
-              backgroundColor: context.colors.accent,
-              foregroundColor: Colors.white,
-              elevation: 3,
-              icon: const Icon(Icons.add, size: 19),
-              label: const Text(
-                'Nova avaliação',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-            )
-          : null,
     );
   }
 
@@ -126,11 +112,20 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
             children: [
               _filterChip('Todas', null),
               const SizedBox(width: 7),
-              _filterChip(AssessmentStatus.draft.pluralLabel, AssessmentStatus.draft),
+              _filterChip(
+                AssessmentStatus.draft.pluralLabel,
+                AssessmentStatus.draft,
+              ),
               const SizedBox(width: 7),
-              _filterChip(AssessmentStatus.scheduled.pluralLabel, AssessmentStatus.scheduled),
+              _filterChip(
+                AssessmentStatus.scheduled.pluralLabel,
+                AssessmentStatus.scheduled,
+              ),
               const SizedBox(width: 7),
-              _filterChip(AssessmentStatus.completed.pluralLabel, AssessmentStatus.completed),
+              _filterChip(
+                AssessmentStatus.completed.pluralLabel,
+                AssessmentStatus.completed,
+              ),
             ],
           ),
         ),
@@ -176,10 +171,7 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
         ),
       ),
       title: assessment.title,
-      titleTrailing: StatusBadge.assessment(
-        assessment.status,
-        fontSize: 8,
-      ),
+      titleTrailing: StatusBadge.assessment(assessment.status, fontSize: 8),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -213,14 +205,6 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
       iconColor: context.colors.accent,
       title: 'Nenhuma avaliação criada',
       message: 'Crie a primeira avaliação para configurar o gabarito e iniciar as correções.',
-      action: PrimaryButton(
-        label: 'Criar avaliação',
-        icon: Icons.add,
-        fullWidth: false,
-        verticalPadding: 13,
-        horizontalPadding: 20,
-        onPressed: _createAssessment,
-      ),
     );
   }
 
@@ -229,7 +213,11 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
   Widget _smallFilteredEmptyState() {
     return Column(
       children: [
-        Icon(Icons.filter_alt_off_outlined, color: context.colors.muted, size: 30),
+        Icon(
+          Icons.filter_alt_off_outlined,
+          color: context.colors.muted,
+          size: 30,
+        ),
         SizedBox(height: 8),
         Text(
           'Nenhuma avaliação neste filtro',
@@ -245,25 +233,6 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
           style: TextStyle(color: context.colors.muted, fontSize: 10),
         ),
       ],
-    );
-  }
-
-  Future<void> _createAssessment() async {
-    final assessment = await Navigator.push<Assessment>(
-      context,
-      MaterialPageRoute(builder: (_) => const NewAssessmentScreen()),
-    );
-    if (assessment == null || !mounted) {
-      return;
-    }
-
-    setState(() {
-      _assessments.insert(0, assessment);
-      _viewState = _AssessmentViewState.content;
-      _filter = null;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Avaliação criada como rascunho')),
     );
   }
 
