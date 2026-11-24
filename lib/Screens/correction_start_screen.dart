@@ -61,13 +61,21 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       if (!mounted) return;
       setState(() {
         _availableAssessments = avaliacoes
-            .where((avaliacao) => avaliacao.gabaritoConfigurado)
+            .where((avaliacao) =>
+                avaliacao.gabaritoConfigurado &&
+                avaliacao.status != AssessmentStatus.completed)
             .toList();
         _selectedAssessment = _availableAssessments
             .where((avaliacao) => avaliacao.id == widget.assessment?.id)
             .firstOrNull;
         _carregando = false;
       });
+      if (widget.assessment != null &&
+          widget.assessment!.status == AssessmentStatus.completed) {
+        _mostrarMensagem(
+          'Esta avaliação já foi encerrada e não pode mais receber correções',
+        );
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -78,6 +86,14 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
   }
 
   Future<void> _irParaAlunos() async {
+    if (_selectedAssessment == null) return;
+    if (_selectedAssessment!.status == AssessmentStatus.completed) {
+      _mostrarMensagem(
+        'Esta avaliação já foi encerrada e não pode mais receber correções',
+      );
+      return;
+    }
+
     setState(() {
       _currentStage = 1;
       _carregandoAlunos = true;
@@ -115,10 +131,12 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         _currentStage = 3;
         _salvando = false;
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() => _salvando = false);
-      _mostrarMensagem('Não foi possível salvar a correção');
+      _mostrarMensagem(
+        e is StateError ? e.message : 'Não foi possível salvar a correção',
+      );
     }
   }
 
