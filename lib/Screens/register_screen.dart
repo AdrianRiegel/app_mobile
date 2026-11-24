@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
 import '../services/database/database.dart';
+import '../services/email_service.dart';
 import '../theme/app_colors.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -44,6 +47,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _cadastrando = true);
     try {
       await Database.auth.cadastrar(nome: nome, email: email, senha: senha);
+      // Em segundo plano: uma falha no e-mail não impede o cadastro.
+      unawaited(Emails.boasVindas(nome: nome, email: email));
       // O Firebase já entra na conta nova; o fluxo pede um login explícito.
       await Database.auth.sair();
       if (!mounted) return;

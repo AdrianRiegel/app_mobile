@@ -9,6 +9,7 @@ import 'package:app_mobile/models/assessment.dart';
 import 'package:app_mobile/models/question.dart';
 import 'package:app_mobile/models/turma.dart';
 import 'package:app_mobile/services/database/database.dart';
+import 'package:app_mobile/services/csv_import_service.dart';
 import 'package:app_mobile/services/pdf/prova_pdf.dart';
 import 'package:app_mobile/services/random_exam_service.dart';
 import 'package:flutter/material.dart';
@@ -414,6 +415,62 @@ void main() {
       criada.questions.map((q) => q.toMap()),
     );
   });
+
+  testWidgets(
+    'questões da nova página CSV mantêm conteúdo e correta ao salvar embaralhadas',
+    (tester) async {
+      tester.view.physicalSize = const Size(430, 940);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await configurarBancoFalso();
+      await tester.pumpWidget(MaterialApp(home: NewProofScreen(turma: turma)));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextField).first,
+        'Prova importada N3',
+      );
+      await tester.tap(find.text('Embaralhar alternativas'));
+      await tester.tap(find.text('Embaralhar questões'));
+      await tester.ensureVisible(
+        find.widgetWithText(OutlinedButton, 'Adicionar questão'),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Adicionar questão'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Importar CSV'));
+      await tester.pumpAndSettle();
+      const csv =
+          'enunciado;a;b;c;d;correta\n'
+          'Quanto é 7 × 8?;54;56;58;60;B\n'
+          'Qual fração equivale a 0,5?;1/2;1/4;2/3;3/4;A';
+      await tester.enterText(find.byType(TextField).last, csv);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Importar 2 questões'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Salvar prova'));
+      await tester.pumpAndSettle();
+      final salva = (await AvaliacaoRepository().listar(turmaId: turma.id))
+          .singleWhere((p) => p.title == 'Prova importada N3');
+      final originais = CsvImportService.parseProofQuestions(csv).questoes;
+      expect(salva.questions.length, 2);
+      expect(salva.shuffleQuestions, isTrue);
+      expect(salva.shuffleOptions, isTrue);
+      for (final question in salva.questions) {
+        final original = originais.singleWhere(
+          (q) => q.statement == question.statement,
+        );
+        expect(
+          question.options[question.correctIndex],
+          original.options[original.correctIndex],
+        );
+        expect(question.options.toSet(), original.options.toSet());
+      }
+      ProvaPdf.validar(salva, [aluno]);
+    },
+  );
 
   testWidgets('exportação antiga explica ausência de enunciados', (
     tester,

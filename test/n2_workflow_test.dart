@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:app_mobile/Screens/class_detail_screen.dart';
 import 'package:app_mobile/Screens/classes_screen.dart';
+import 'package:app_mobile/components/components.dart';
 import 'package:app_mobile/models/turma.dart';
 import 'package:app_mobile/services/database/database.dart';
 import 'package:app_mobile/services/proof_qr_payload.dart';
@@ -73,6 +74,84 @@ void main() {
     expect(salva.totalAlunos, 2);
   });
 
+  test('edição aceita até o 10º semestre', () async {
+    await configurarBancoFalso();
+    final repo = TurmaRepository();
+    await repo.editar(
+      id: turma.id,
+      descricao: turma.descricao,
+      semestre: 10,
+      ano: 2026,
+    );
+    expect((await repo.buscar(turma.id)).semestre, 10);
+    expect(
+      () => repo.editar(
+        id: turma.id,
+        descricao: turma.descricao,
+        semestre: 11,
+        ano: 2026,
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  testWidgets('nova turma escolhe o semestre no combo', (tester) async {
+    final db = await configurarBancoFalso();
+    await tester.pumpWidget(const MaterialApp(home: ClassesScreen()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    // O semestre é um combo, não um campo de texto.
+    expect(find.byType(DropdownButtonFormField<int>), findsOneWidget);
+    expect(find.text('1º semestre'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Ex: 3º Ano A - Matemática'),
+      'Turma do combo',
+    );
+    await tester.tap(find.text('1º semestre'));
+    await tester.pumpAndSettle();
+    // O combo vai do 1º ao 10º semestre.
+    for (var s = 1; s <= 10; s++) {
+      expect(find.text('$sº semestre'), findsWidgets);
+    }
+    expect(find.text('11º semestre'), findsNothing);
+    await tester.tap(find.text('10º semestre').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Criar turma'));
+    await tester.pumpAndSettle();
+
+    final salvas = await db
+        .collection('turmas')
+        .where('descricao', isEqualTo: 'Turma do combo')
+        .get();
+    expect(salvas.docs.single.data()['semestre'], 10);
+  });
+
+  testWidgets('editar turma abre o combo no semestre atual', (tester) async {
+    final db = await configurarBancoFalso();
+    await db.collection('turmas').doc(turma.id).update({'semestre': 2});
+    await tester.pumpWidget(const MaterialApp(home: ClassesScreen()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Ações da turma'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Editar turma'));
+    await tester.pumpAndSettle();
+    expect(find.text('2º semestre'), findsOneWidget);
+
+    await tester.tap(find.text('2º semestre'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('1º semestre').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Salvar alterações'));
+    await tester.pumpAndSettle();
+
+    final salva = await db.collection('turmas').doc(turma.id).get();
+    expect(salva.data()!['semestre'], 1);
+  });
+
   test('exclusão remove turma, alunos e provas ainda não aplicadas', () async {
     final db = await configurarBancoFalso();
     await TurmaRepository().excluir(turma.id);
@@ -110,50 +189,78 @@ void main() {
     );
   }
 
-  testWidgets('turmas do banco paginam e busca volta à primeira página', (
+  /// Rola a lista com infinite scroll até [finder] aparecer.
+  Future<void> rolarAte(WidgetTester tester, Finder finder) {
+    return tester.scrollUntilVisible(
+      finder,
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byType(InfiniteScrollList),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+  }
+
+  testWidgets('turmas carregam com infinite scroll e a busca reinicia', (
     tester,
   ) async {
     final db = await configurarBancoFalso();
-    for (var i = 0; i < 9; i++) {
-      await db.collection('turmas').doc('extra-$i').set({
+    for (var i = 0; i < 30; i++) {
+      final n = i.toString().padLeft(2, '0');
+      await db.collection('turmas').doc('extra-$n').set({
         'professorId': professorId,
-        'descricao': 'Turma $i',
+        'descricao': 'Turma $n',
         'semestre': 1,
         'ano': 2026,
       });
     }
     await tester.pumpWidget(const MaterialApp(home: ClassesScreen()));
     await tester.pumpAndSettle();
-    expect(find.text('Página 1 de 2'), findsOneWidget);
-    await tester.tap(find.text('Próxima ›'));
+
+    // Só o primeiro lote é montado; o fim da lista ainda não existe.
+    expect(find.text('Turma 29'), findsNothing);
+    expect(find.text('Próxima ›'), findsNothing);
+
+    await rolarAte(tester, find.text('Turma 29'));
     await tester.pumpAndSettle();
-    expect(find.text('Página 2 de 2'), findsOneWidget);
+    expect(find.text('Turma 29'), findsOneWidget);
+    // Tudo carregado: sem indicador de "carregando mais".
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
     await tester.enterText(find.byType(TextField).first, 'Matemática');
     await tester.pumpAndSettle();
-    expect(find.text('Página 1 de 1'), findsOneWidget);
     expect(find.text(turma.descricao), findsOneWidget);
+    expect(find.text('Turma 29'), findsNothing);
   });
 
-  testWidgets('alunos do banco paginam e gesto abre provas', (tester) async {
+  testWidgets('alunos carregam com infinite scroll e gesto abre provas', (
+    tester,
+  ) async {
     final db = await configurarBancoFalso();
-    for (var i = 0; i < 9; i++) {
-      await db.collection('alunos').doc('extra-$i').set({
+    for (var i = 0; i < 30; i++) {
+      final n = i.toString().padLeft(2, '0');
+      await db.collection('alunos').doc('extra-$n').set({
         'professorId': professorId,
         'turmaId': turma.id,
-        'nome': 'Estudante $i',
-        'matricula': 'extra-$i',
+        'nome': 'Estudante $n',
+        'matricula': 'extra-$n',
       });
     }
     await tester.pumpWidget(
       const MaterialApp(home: ClassDetailScreen(turma: turma)),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Página 1 de 2'), findsOneWidget);
-    await tester.tap(find.text('Próxima ›'));
+    expect(find.text('32 alunos'), findsOneWidget);
+    expect(find.text('Estudante 29'), findsNothing);
+    expect(find.textContaining('Página'), findsNothing);
+
+    await rolarAte(tester, find.text('Estudante 29'));
     await tester.pumpAndSettle();
-    expect(find.text('Página 2 de 2'), findsOneWidget);
-    expect(find.text('Ana Beatriz'), findsNothing);
-    await tester.fling(find.text('Estudante 6'), const Offset(-300, 0), 1000);
+    expect(find.text('Estudante 29'), findsOneWidget);
+
+    await tester.fling(find.text('Estudante 29'), const Offset(-300, 0), 1000);
     await tester.pumpAndSettle();
     expect(find.text('Provas · 3º Ano A'), findsOneWidget);
   });
@@ -186,6 +293,75 @@ void main() {
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('aba Provas filtra as provas pela situação', (tester) async {
+    final db = await configurarBancoFalso();
+    for (final (id, titulo, status) in [
+      ('aval-2', 'Prova rascunho', 'rascunho'),
+      ('aval-3', 'Prova concluída', 'concluida'),
+    ]) {
+      await db.collection('avaliacoes').doc(id).set({
+        'turmaId': turma.id,
+        'professorId': professorId,
+        'titulo': titulo,
+        'disciplina': 'Matemática',
+        'status': status,
+        'gabarito': [
+          {'questao': 1, 'alternativaCorreta': 'A', 'peso': 1.0},
+        ],
+      });
+    }
+    await tester.pumpWidget(
+      const MaterialApp(home: ClassDetailScreen(turma: turma)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Provas'));
+    await tester.pumpAndSettle();
+
+    const agendada = 'Avaliação bimestral — Cap. 4';
+    expect(find.text('3 provas'), findsOneWidget);
+    expect(find.text(agendada), findsOneWidget);
+    expect(find.text('Prova rascunho'), findsOneWidget);
+    expect(find.text('Prova concluída'), findsOneWidget);
+
+    await tester.tap(find.text('Rascunhos'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 prova'), findsOneWidget);
+    expect(find.text('Prova rascunho'), findsOneWidget);
+    expect(find.text(agendada), findsNothing);
+    expect(find.text('Prova concluída'), findsNothing);
+
+    await tester.tap(find.text('Agendadas'));
+    await tester.pumpAndSettle();
+    expect(find.text(agendada), findsOneWidget);
+    expect(find.text('Prova rascunho'), findsNothing);
+
+    await tester.tap(find.text('Concluídas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Prova concluída'), findsOneWidget);
+    expect(find.text(agendada), findsNothing);
+
+    await tester.tap(find.text('Todas'));
+    await tester.pumpAndSettle();
+    expect(find.text('3 provas'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('filtro sem provas na situação mostra aviso', (tester) async {
+    await configurarBancoFalso();
+    await tester.pumpWidget(
+      const MaterialApp(home: ClassDetailScreen(turma: turma)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Provas'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Concluídas'));
+    await tester.pumpAndSettle();
+    expect(find.text('0 provas'), findsOneWidget);
+    expect(find.text('Nenhuma prova nesta situação'), findsOneWidget);
+    expect(find.text('Avaliação bimestral — Cap. 4'), findsNothing);
   });
 
   test('payload preserva IDs e rejeita identificadores vazios', () {

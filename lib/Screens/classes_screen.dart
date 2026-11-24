@@ -16,11 +16,8 @@ class ClassesScreen extends StatefulWidget {
 }
 
 class _ClassesScreenState extends State<ClassesScreen> {
-  static const _turmasPorPagina = 8;
-
   final _repository = TurmaRepository();
   int _selectedIndex = 1;
-  int _currentPage = 1;
   String _busca = '';
 
   List<Turma> _turmas = [];
@@ -34,14 +31,6 @@ class _ClassesScreenState extends State<ClassesScreen> {
         .where((turma) => turma.descricao.toLowerCase().contains(termo))
         .toList();
   }
-
-  int get _totalPages =>
-      (_turmasFiltradas.length / _turmasPorPagina).ceil().clamp(1, 999);
-
-  List<Turma> get _turmasDaPagina => _turmasFiltradas
-      .skip((_currentPage - 1) * _turmasPorPagina)
-      .take(_turmasPorPagina)
-      .toList();
 
   @override
   void initState() {
@@ -59,7 +48,6 @@ class _ClassesScreenState extends State<ClassesScreen> {
       if (!mounted) return;
       setState(() {
         _turmas = turmas;
-        _currentPage = _currentPage.clamp(1, _totalPages);
         _carregando = false;
       });
     } catch (_) {
@@ -115,36 +103,10 @@ class _ClassesScreenState extends State<ClassesScreen> {
                   children: [
                     SearchField(
                       hintText: 'Buscar turma por nome',
-                      onChanged: (value) => setState(() {
-                        _busca = value;
-                        _currentPage = 1;
-                      }),
+                      onChanged: (value) => setState(() => _busca = value),
                     ),
                     const SizedBox(height: 12),
                     Expanded(child: _buildLista()),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _pageButton(
-                          '‹ Anterior',
-                          enabled: _currentPage > 1,
-                          onTap: () => setState(() => _currentPage--),
-                        ),
-                        Text(
-                          'Página $_currentPage de $_totalPages',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: context.colors.muted,
-                          ),
-                        ),
-                        _pageButton(
-                          'Próxima ›',
-                          enabled: _currentPage < _totalPages,
-                          onTap: () => setState(() => _currentPage++),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
@@ -199,7 +161,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
     if (_erro) {
       return LoadErrorView(onRetry: _carregar);
     }
-    final turmas = _turmasDaPagina;
+    final turmas = _turmasFiltradas;
     if (turmas.isEmpty) {
       return EmptyStateView(
         icon: Icons.people_outline,
@@ -213,10 +175,11 @@ class _ClassesScreenState extends State<ClassesScreen> {
             : 'Tente buscar por outro nome.',
       );
     }
-    return ListView.separated(
-      padding: EdgeInsets.zero,
+    return InfiniteScrollList(
+      // Nova busca recomeça do primeiro lote, no topo da lista.
+      key: ValueKey(_busca),
+      padding: const EdgeInsets.only(bottom: 80),
       itemCount: turmas.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) => _buildTurmaItem(turmas[index]),
     );
   }
@@ -265,26 +228,6 @@ class _ClassesScreenState extends State<ClassesScreen> {
         // O total de alunos pode ter mudado dentro da turma.
         _carregar();
       },
-    );
-  }
-
-  Widget _pageButton(
-    String label, {
-    required bool enabled,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: enabled
-              ? context.colors.accent
-              : context.colors.muted.withValues(alpha: 0.4),
-        ),
-      ),
     );
   }
 
@@ -413,9 +356,7 @@ class _NovaTurmaSheet extends StatefulWidget {
 
 class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
   final TextEditingController _descricaoController = TextEditingController();
-  final TextEditingController _semestreController = TextEditingController(
-    text: '1º semestre',
-  );
+  int _semestre = 1;
   final TextEditingController _anoController = TextEditingController(
     text: '${DateTime.now().year}',
   );
@@ -426,7 +367,8 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
     final turma = widget.turma;
     if (turma != null) {
       _descricaoController.text = turma.descricao;
-      _semestreController.text = '${turma.semestre}º semestre';
+      // Valor fora da faixa (dado antigo) volta para o 1º semestre.
+      _semestre = Turma.semestreValido(turma.semestre) ? turma.semestre : 1;
       _anoController.text = '${turma.ano}';
     }
   }
@@ -434,24 +376,17 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
   @override
   void dispose() {
     _descricaoController.dispose();
-    _semestreController.dispose();
     _anoController.dispose();
     super.dispose();
   }
 
   void _criar() {
     final descricao = _descricaoController.text.trim();
-    // Aceita "1º semestre", "1" etc.: usa apenas os dígitos.
-    final semestre = int.tryParse(
-      _semestreController.text.replaceAll(RegExp(r'\D'), ''),
-    );
     final ano = int.tryParse(_anoController.text.trim());
 
     final String? erro;
     if (descricao.isEmpty) {
       erro = 'Informe a descrição da turma';
-    } else if (semestre == null || semestre < 1 || semestre > 2) {
-      erro = 'Informe o semestre (1 ou 2)';
     } else if (ano == null || ano < 2000 || ano > 2100) {
       erro = 'Informe um ano válido';
     } else {
@@ -462,7 +397,7 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(erro)));
       return;
     }
-    widget.onCreate(descricao, semestre!, ano!);
+    widget.onCreate(descricao, _semestre, ano!);
   }
 
   @override
@@ -508,9 +443,14 @@ class _NovaTurmaSheetState extends State<_NovaTurmaSheet> {
               dense: true,
             ),
             const SizedBox(height: 12),
-            LabeledTextField(
+            LabeledDropdown<int>(
               label: 'Semestre',
-              controller: _semestreController,
+              value: _semestre,
+              items: {
+                for (var s = 1; s <= Turma.semestreMaximo; s++)
+                  s: '$sº semestre',
+              },
+              onChanged: (valor) => setState(() => _semestre = valor ?? 1),
               dense: true,
             ),
             const SizedBox(height: 12),

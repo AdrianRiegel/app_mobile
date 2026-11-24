@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 
 import '../models/assessment.dart';
+import '../models/question.dart';
 
 /// Arquivo CSV selecionado pelo usuário, já decodificado como texto.
 class CsvFile {
@@ -55,6 +56,16 @@ class CsvQuestionsResult {
   const CsvQuestionsResult({required this.questoes, required this.erros});
 
   final List<QuestaoGabarito> questoes;
+  final List<String> erros;
+
+  bool get temQuestoes => questoes.isNotEmpty;
+}
+
+/// Questões completas (enunciado e alternativas) lidas de um CSV.
+class CsvProofQuestionsResult {
+  const CsvProofQuestionsResult({required this.questoes, required this.erros});
+
+  final List<Question> questoes;
   final List<String> erros;
 
   bool get temQuestoes => questoes.isNotEmpty;
@@ -299,6 +310,113 @@ abstract final class CsvImportService {
     questoes.sort((a, b) => a.questao.compareTo(b.questao));
 
     return CsvQuestionsResult(questoes: questoes, erros: erros);
+  }
+
+  /// Colunas esperadas em [parseProofQuestions], na ordem sem cabeçalho.
+  static const proofQuestionsColumns = 'enunciado;a;b;c;d;correta';
+
+  /// Converte um CSV em questões completas de prova, com 4 alternativas.
+  ///
+  /// Com cabeçalho, as colunas podem vir em qualquer ordem: `enunciado` (ou
+  /// `pergunta`), `a`, `b`, `c`, `d` (ou `alternativa a`, `opção a`...) e
+  /// `correta` (ou `resposta`, `gabarito`). Sem cabeçalho, vale a ordem de
+  /// [proofQuestionsColumns]. A correta é a letra da alternativa (A a D).
+  static CsvProofQuestionsResult parseProofQuestions(String content) {
+    final lines = const LineSplitter().convert(content);
+    final questoes = <Question>[];
+    final erros = <String>[];
+
+    final firstIndex = lines.indexWhere((line) => line.trim().isNotEmpty);
+    if (firstIndex == -1) {
+      return const CsvProofQuestionsResult(
+        questoes: [],
+        erros: ['O arquivo está vazio'],
+      );
+    }
+
+    final delimiter = _detectDelimiter(lines[firstIndex]);
+    final header = _splitLine(
+      lines[firstIndex],
+      delimiter,
+    ).map(_normalizeHeader).toList();
+
+    var enunciadoIndex = 0;
+    var alternativasIndex = [1, 2, 3, 4];
+    var corretaIndex = 5;
+    var startIndex = firstIndex;
+
+    final cabecalhoEnunciado = header.indexWhere(
+      (h) => h.contains('enunciado') || h.contains('pergunta'),
+    );
+    if (cabecalhoEnunciado != -1) {
+      enunciadoIndex = cabecalhoEnunciado;
+      alternativasIndex = [
+        for (final letra in ['a', 'b', 'c', 'd'])
+          header.indexWhere((h) => _letraDaColuna(h) == letra),
+      ];
+      corretaIndex = header.indexWhere(
+        (h) =>
+            h.contains('correta') ||
+            h.contains('resposta') ||
+            h.contains('gabarito'),
+      );
+      if (alternativasIndex.contains(-1) || corretaIndex == -1) {
+        return const CsvProofQuestionsResult(
+          questoes: [],
+          erros: [
+            'Cabeçalho deve ter as colunas enunciado, a, b, c, d e correta',
+          ],
+        );
+      }
+      startIndex = firstIndex + 1;
+    }
+
+    for (var i = startIndex; i < lines.length; i++) {
+      if (lines[i].trim().isEmpty) continue;
+
+      final lineNumber = i + 1;
+      final fields = _splitLine(lines[i], delimiter);
+      final enunciado = _fieldAt(fields, enunciadoIndex);
+      final alternativas = [
+        for (final index in alternativasIndex) _fieldAt(fields, index),
+      ];
+      final correta = _fieldAt(fields, corretaIndex).toUpperCase();
+
+      if (enunciado.isEmpty) {
+        erros.add('Linha $lineNumber: enunciado vazio');
+        continue;
+      }
+      if (alternativas.any((alternativa) => alternativa.isEmpty)) {
+        erros.add('Linha $lineNumber: preencha as 4 alternativas');
+        continue;
+      }
+      if (!RegExp(r'^[A-D]$').hasMatch(correta)) {
+        erros.add(
+          'Linha $lineNumber: alternativa correta "$correta" inválida '
+          '(use A, B, C ou D)',
+        );
+        continue;
+      }
+
+      questoes.add(
+        Question(
+          statement: enunciado,
+          options: alternativas,
+          correctIndex: correta.codeUnitAt(0) - 65,
+        ),
+      );
+    }
+
+    return CsvProofQuestionsResult(questoes: questoes, erros: erros);
+  }
+
+  /// `a`, `alternativa a`, `alternativa_a`, `opcao a` → `a`; senão `null`.
+  static String? _letraDaColuna(String header) {
+    final letra = header
+        .replaceAll('alternativa', '')
+        .replaceAll('opcao', '')
+        .replaceAll(RegExp(r'[\s_\-]'), '');
+    return RegExp(r'^[a-e]$').hasMatch(letra) ? letra : null;
   }
 
   static String _detectDelimiter(String line) {

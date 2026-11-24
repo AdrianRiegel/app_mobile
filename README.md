@@ -351,6 +351,14 @@ analysis_options.yaml  # regras do linter
    ```
 
    - Configure o envio de e-mail somente se for utilizá-lo. As credenciais SMTP não devem ser publicadas no GitHub. Não substitua a configuração Firebase real por um arquivo temporário de testes para gerar o APK de entrega.
+   - **E-mails do app** (`lib/services/email_service.dart`): boas-vindas ao criar a conta e resumo ao encerrar a correção de uma avaliação (só para quem mantém "Notificações por e-mail" ligado no perfil). O envio é feito pelo SMTP do Gmail com uma [senha de app](https://myaccount.google.com/apppasswords) (`GMAIL_USER` e `GMAIL_APP_PASSWORD`; a senha pode ser colada com ou sem espaços). Sem as credenciais, o app funciona normalmente e apenas não envia e-mails.
+   - O envio funciona no Android, iOS e desktop. **No navegador não há envio**: o SMTP exige conexão direta, que a web não permite.
+   - Como o `.env` é empacotado como asset, a senha de app fica dentro do app gerado. Use uma conta Gmail exclusiva para o EduTurmas.
+   - Para testar o envio real (manda 2 e-mails para o próprio `GMAIL_USER`):
+
+   ```bash
+   EMAIL_LIVE=1 flutter test test/email_smtp_live_test.dart
+   ```
 
 4. Execute a aplicação:
 

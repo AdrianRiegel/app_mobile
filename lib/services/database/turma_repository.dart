@@ -61,8 +61,7 @@ class TurmaRepository extends FirestoreRepository {
     required int ano,
   }) async {
     if (descricao.trim().isEmpty ||
-        semestre < 1 ||
-        semestre > 2 ||
+        !Turma.semestreValido(semestre) ||
         ano < 2000 ||
         ano > 2100) {
       throw ArgumentError('Informe descrição, semestre e ano válidos');
