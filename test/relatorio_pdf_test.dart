@@ -193,5 +193,29 @@ void main() {
       );
       expect(find.text('75% · mais errada Q4'), findsOneWidget);
     });
+
+    testWidgets('exibe prévia ao vivo ao abrir e alternar o tipo', (
+      tester,
+    ) async {
+      final firestore = await configurarBancoFalso();
+      await adicionarResultado(
+        firestore,
+        alunoId: 'aluno-1',
+        acertos: [true, true, true, false],
+      );
+
+      await tester.pumpWidget(const MaterialApp(home: ReportScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Prévia do relatório em PDF'), findsOneWidget);
+      expect(find.text('Relatório de desempenho'), findsOneWidget);
+
+      await tester.tap(find.text(TipoRelatorio.desempenho.label));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(TipoRelatorio.estatisticas.label).last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Relatório de estatísticas'), findsOneWidget);
+    });
   });
 }

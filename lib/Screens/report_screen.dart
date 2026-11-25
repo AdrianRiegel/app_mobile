@@ -29,7 +29,7 @@ enum TipoRelatorio {
 /// Tela 7 — Gerar relatório (PDF).
 ///
 /// Permite escolher a turma, o tipo de relatório e, opcionalmente, uma
-/// prova. Gera o PDF com os dados do banco e mostra um resumo na prévia.
+/// prova. Gera o PDF com os dados do banco e exibe a prévia ao vivo.
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key, this.compartilharPdf});
 
@@ -48,7 +48,14 @@ class _ReportScreenState extends State<ReportScreen> {
   late ClassStatistics _selectedClass;
   ExamStatistics? _selectedExam; // null = todas as provas
   TipoRelatorio _tipo = TipoRelatorio.desempenho;
-  bool _generated = false;
+
+  Uint8List? _previewBytes;
+  String? _previewFileName;
+  List<Uint8List> _previewPages = [];
+  bool _carregandoPrevia = false;
+  bool _erroPrevia = false;
+  int _previewRequestId = 0;
+
   bool _gerando = false;
 
   @override
@@ -70,6 +77,9 @@ class _ReportScreenState extends State<ReportScreen> {
         if (classes.isNotEmpty) _selectedClass = classes.first;
         _carregando = false;
       });
+      if (classes.isNotEmpty) {
+        _atualizarPrevia();
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -77,6 +87,65 @@ class _ReportScreenState extends State<ReportScreen> {
         _carregando = false;
       });
     }
+  }
+
+  Future<void> _atualizarPrevia() async {
+    if (_classes.isEmpty) return;
+    final requestId = ++_previewRequestId;
+    setState(() {
+      _carregandoPrevia = true;
+      _erroPrevia = false;
+    });
+
+    try {
+      final (bytes, nome) = await _montarPdf();
+      final paginas = await _rasterizarPaginas(bytes);
+      if (!mounted || requestId != _previewRequestId) return;
+      setState(() {
+        _previewBytes = bytes;
+        _previewFileName = nome;
+        _previewPages = paginas;
+        _carregandoPrevia = false;
+      });
+    } catch (_) {
+      if (!mounted || requestId != _previewRequestId) return;
+      setState(() {
+        _erroPrevia = true;
+        _carregandoPrevia = false;
+      });
+    }
+  }
+
+  Future<List<Uint8List>> _rasterizarPaginas(Uint8List bytes) async {
+    try {
+      final info = await Printing.info();
+      if (!info.canRaster) return const [];
+      final paginas = <Uint8List>[];
+      await for (final pagina in Printing.raster(bytes, dpi: 110)) {
+        paginas.add(await pagina.toPng());
+      }
+      return paginas;
+    } catch (_) {
+      // Ambientes sem suporte nativo de rasterização (ex.: testes headless)
+      // usam o resumo estruturado como prévia.
+      return const [];
+    }
+  }
+
+  void _abrirPreviaTelaCheia() {
+    final bytes = _previewBytes;
+    final nome = _previewFileName;
+    if (bytes == null || nome == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PdfPreviewPage(
+          title: 'Prévia do PDF',
+          fileName: nome,
+          bytes: bytes,
+        ),
+      ),
+    );
   }
 
   @override
@@ -118,12 +187,14 @@ class _ReportScreenState extends State<ReportScreen> {
                 items: _classes,
                 labelBuilder: (c) => c.displayName,
                 onChanged: (value) {
-                  if (value == null) return;
+                  if (value == null || value == _selectedClass) return;
                   setState(() {
                     _selectedClass = value;
                     _selectedExam = null;
-                    _generated = false;
+                    _previewBytes = null;
+                    _previewPages = [];
                   });
+                  _atualizarPrevia();
                 },
               ),
               const SizedBox(height: 16),
@@ -133,11 +204,13 @@ class _ReportScreenState extends State<ReportScreen> {
                 items: TipoRelatorio.values,
                 labelBuilder: (tipo) => tipo.label,
                 onChanged: (value) {
-                  if (value == null) return;
+                  if (value == null || value == _tipo) return;
                   setState(() {
                     _tipo = value;
-                    _generated = false;
+                    _previewBytes = null;
+                    _previewPages = [];
                   });
+                  _atualizarPrevia();
                 },
               ),
               const SizedBox(height: 16),
@@ -147,10 +220,13 @@ class _ReportScreenState extends State<ReportScreen> {
                 items: <ExamStatistics?>[null, ..._selectedClass.exams],
                 labelBuilder: (e) => e?.assessmentTitle ?? 'Todas as provas',
                 onChanged: (value) {
+                  if (value == _selectedExam) return;
                   setState(() {
                     _selectedExam = value;
-                    _generated = false;
+                    _previewBytes = null;
+                    _previewPages = [];
                   });
+                  _atualizarPrevia();
                 },
               ),
               const SizedBox(height: 20),
@@ -215,34 +291,138 @@ class _ReportScreenState extends State<ReportScreen> {
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 280),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: context.colors.input,
         border: Border.all(color: context.colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: _generated
-          ? _previewContent()
-          : Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.picture_as_pdf_outlined,
-                      size: 34,
-                      color: context.colors.muted,
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      'Prévia do relatório em PDF',
-                      style: TextStyle(color: context.colors.muted, fontSize: 12),
-                    ),
-                  ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.picture_as_pdf_outlined,
+                size: 16,
+                color: context.colors.accent,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Prévia do relatório em PDF',
+                  style: TextStyle(
+                    color: context.colors.text,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
+              if (_previewBytes != null)
+                TextButton.icon(
+                  onPressed: _abrirPreviaTelaCheia,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: Icon(
+                    Icons.open_in_full,
+                    size: 14,
+                    color: context.colors.accent,
+                  ),
+                  label: Text(
+                    'Ampliar',
+                    style: TextStyle(
+                      color: context.colors.accent,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (_erroPrevia)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 48),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 30,
+                    color: context.colors.danger,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Não foi possível carregar a prévia.',
+                    style: TextStyle(color: context.colors.muted, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: _atualizarPrevia,
+                    child: const Text('Tentar novamente'),
+                  ),
+                ],
+              ),
+            )
+          else if (_previewPages.isNotEmpty)
+            _renderedPages()
+          else ...[
+            if (_carregandoPrevia)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Renderizando páginas do PDF...',
+                  style: TextStyle(color: context.colors.muted, fontSize: 11),
+                ),
+              ),
+            _previewContent(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _renderedPages() {
+    return Column(
+      children: [
+        for (var i = 0; i < _previewPages.length; i++) ...[
+          GestureDetector(
+            onTap: _abrirPreviaTelaCheia,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: context.colors.border),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Image.memory(
+                _previewPages[i],
+                fit: BoxFit.contain,
+                width: double.infinity,
+              ),
             ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Página ${i + 1} de ${_previewPages.length}',
+            style: TextStyle(color: context.colors.muted, fontSize: 10),
+          ),
+          if (i < _previewPages.length - 1) const SizedBox(height: 12),
+        ],
+      ],
     );
   }
 
@@ -266,7 +446,9 @@ class _ReportScreenState extends State<ReportScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Relatório de desempenho',
+            _tipo == TipoRelatorio.desempenho
+                ? 'Relatório de desempenho'
+                : 'Relatório de estatísticas',
             style: TextStyle(
               color: context.colors.text,
               fontSize: 15,
@@ -279,10 +461,15 @@ class _ReportScreenState extends State<ReportScreen> {
             style: TextStyle(color: context.colors.muted, fontSize: 10),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             child: Divider(height: 1, color: context.colors.border),
           ),
-          _previewLine('Tipo', _tipo.label),
+          _previewLine(
+            'Tipo',
+            _tipo == TipoRelatorio.desempenho
+                ? 'Notas por aluno'
+                : 'Acerto por questão',
+          ),
           _previewLine('Turma', _selectedClass.displayName),
           _previewLine(
             'Prova',
@@ -369,10 +556,15 @@ class _ReportScreenState extends State<ReportScreen> {
     setState(() => _gerando = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final (bytes, nome) = await _montarPdf();
+      final (bytes, nome) = _previewBytes != null && _previewFileName != null
+          ? (_previewBytes!, _previewFileName!)
+          : await _montarPdf();
       await (widget.compartilharPdf ?? _compartilharComPrinting)(bytes, nome);
       if (!mounted) return;
-      setState(() => _generated = true);
+      setState(() {
+        _previewBytes = bytes;
+        _previewFileName = nome;
+      });
       messenger.showSnackBar(
         SnackBar(content: Text('Relatório gerado: $nome')),
       );

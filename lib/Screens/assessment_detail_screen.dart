@@ -932,6 +932,42 @@ class _ExportarProvaSheetState extends State<_ExportarProvaSheet> {
   bool _gerando = false;
   String? _erro;
 
+  Future<void> _visualizarPrevia() async {
+    if (_gerando) return;
+    setState(() {
+      _gerando = true;
+      _erro = null;
+    });
+    try {
+      final alunos = _alunoId == null
+          ? widget.alunos
+          : widget.alunos.where((aluno) => aluno.id == _alunoId).toList();
+      final bytes = await ProvaPdf.gerar(prova: widget.prova, alunos: alunos);
+      if (!mounted) return;
+      setState(() => _gerando = false);
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PdfPreviewPage(
+            title: 'Prévia da prova',
+            fileName: ProvaPdf.nomeArquivo(widget.prova),
+            bytes: bytes,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _erro = error is StateError
+              ? error.message.toString()
+              : 'Não foi possível gerar a prévia. Tente novamente.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _gerando = false);
+    }
+  }
+
   Future<void> _gerar() async {
     if (_gerando) return;
     setState(() {
@@ -1022,6 +1058,12 @@ class _ExportarProvaSheetState extends State<_ExportarProvaSheet> {
                 ),
               ),
             const SizedBox(height: 20),
+            SecondaryButton(
+              label: 'Visualizar prévia do PDF',
+              icon: Icons.visibility_outlined,
+              onPressed: _gerando ? null : _visualizarPrevia,
+            ),
+            const SizedBox(height: 10),
             PrimaryButton(
               label: _gerando ? 'Gerando PDF...' : 'Gerar e compartilhar PDF',
               loading: _gerando,

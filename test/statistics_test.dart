@@ -1,5 +1,6 @@
 import 'package:app_mobile/Screens/exam_statistics_screen.dart';
 import 'package:app_mobile/Screens/statistics_screen.dart';
+import 'package:app_mobile/components/components.dart';
 import 'package:app_mobile/models/statistics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -89,8 +90,52 @@ void main() {
     );
 
     expect(find.text('Acertos por questão'), findsOneWidget);
+    expect(find.byType(VerticalBarChartCard), findsOneWidget);
+    expect(find.byType(PerformanceDonutCard), findsOneWidget);
     // Uma barra de progresso (FractionallySizedBox) para cada questão.
     expect(find.byType(FractionallySizedBox), findsNWidgets(6));
+  });
+
+  testWidgets('estatísticas gerais exibem gráficos de turma e evolução', (
+    tester,
+  ) async {
+    final firestore = await configurarBancoFalso();
+    await adicionarResultado(
+      firestore,
+      alunoId: 'aluno-1',
+      acertos: [true, true, true, false],
+    );
+    await firestore.collection('avaliacoes').doc('aval-2').set({
+      'professorId': professorId,
+      'turmaId': 'turma-1',
+      'disciplina': 'Matemática',
+      'titulo': 'Simulado — Cap. 5',
+      'status': 'concluida',
+      'gabarito': [
+        {'questao': 1, 'alternativaCorreta': 'A', 'peso': 1.0},
+        {'questao': 2, 'alternativaCorreta': 'B', 'peso': 1.0},
+        {'questao': 3, 'alternativaCorreta': 'C', 'peso': 1.0},
+        {'questao': 4, 'alternativaCorreta': 'D', 'peso': 1.0},
+      ],
+    });
+    await firestore.collection('resultados').doc('aval-2_aluno-1').set({
+      'avaliacaoId': 'aval-2',
+      'turmaId': 'turma-1',
+      'professorId': professorId,
+      'alunoId': 'aluno-1',
+      'respostasAluno': [
+        for (var i = 1; i <= 4; i++)
+          {'questao': i, 'alternativaMarcada': 'A', 'correta': true},
+      ],
+      'totalAcertos': 4,
+      'notaCalculada': 10.0,
+    });
+
+    await tester.pumpWidget(const MaterialApp(home: StatisticsScreen()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Desempenho médio por turma'), findsOneWidget);
+    expect(find.text('Evolução nas provas'), findsOneWidget);
   });
 
   // A geração do PDF da tela de relatório é testada em relatorio_pdf_test.dart.
