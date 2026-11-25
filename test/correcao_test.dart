@@ -133,7 +133,7 @@ void main() {
   });
 
   test(
-    'corrigir o mesmo aluno de novo substitui o resultado anterior',
+    'impede correção duplicada de prova já corrigida a menos que permitirSobrescrita seja true',
     () async {
       final firestore = await configurarBancoFalso();
       final avaliacao = await AvaliacaoRepository().buscar('aval-1');
@@ -149,10 +149,39 @@ void main() {
         aluno: aluno,
         respostas: ['A', 'A', 'A', 'A'],
       );
+
+      // Verifica helper de consulta
+      expect(
+        await ResultadoRepository().alunoJaCorrigido(
+          avaliacaoId: avaliacao.id,
+          alunoId: aluno.id,
+        ),
+        isTrue,
+      );
+      final resultadoExistente = await ResultadoRepository()
+          .buscarPorAvaliacaoEAluno(
+            avaliacaoId: avaliacao.id,
+            alunoId: aluno.id,
+          );
+      expect(resultadoExistente, isNotNull);
+      expect(resultadoExistente!.alunoId, aluno.id);
+
+      // Segunda tentativa sem permitirSobrescrita deve lançar StateError
+      expect(
+        () => ResultadoRepository().salvar(
+          avaliacao: avaliacao,
+          aluno: aluno,
+          respostas: ['A', 'B', 'C', 'D'],
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      // Segunda tentativa com permitirSobrescrita: true substitui o resultado anterior
       await ResultadoRepository().salvar(
         avaliacao: avaliacao,
         aluno: aluno,
         respostas: ['A', 'B', 'C', 'D'],
+        permitirSobrescrita: true,
       );
 
       final resultados = await firestore

@@ -14,6 +14,25 @@ class ResultadoRepository extends FirestoreRepository {
     return snapshot.docs.map(fromDoc).toList();
   }
 
+  /// Busca o resultado de um aluno específico em uma avaliação.
+  Future<Resultado?> buscarPorAvaliacaoEAluno({
+    required String avaliacaoId,
+    required String alunoId,
+  }) async {
+    final doc = await resultados.doc('${avaliacaoId}_$alunoId').get();
+    if (!doc.exists) return null;
+    return fromDoc(doc);
+  }
+
+  /// Verifica se a prova de um aluno específico já foi corrigida na avaliação.
+  Future<bool> alunoJaCorrigido({
+    required String avaliacaoId,
+    required String alunoId,
+  }) async {
+    final doc = await resultados.doc('${avaliacaoId}_$alunoId').get();
+    return doc.exists;
+  }
+
   Future<List<Resultado>> listarTodos() async {
     final snapshot = await resultados
         .where('professorId', isEqualTo: professorId)
@@ -23,16 +42,31 @@ class ResultadoRepository extends FirestoreRepository {
 
   /// Corrige as [respostas] do aluno e salva o resultado.
   ///
-  /// O documento usa o id `{avaliacaoId}_{alunoId}`, então corrigir o mesmo
-  /// aluno de novo substitui o resultado anterior. Quando todos os alunos da
-  /// turma têm resultado, a avaliação passa a `concluida`.
+  /// Impede a correção duplicada caso a prova do aluno já tenha sido corrigida,
+  /// a menos que [permitirSobrescrita] seja explicitamente verdadeiro.
+  /// Quando todos os alunos da turma têm resultado, a avaliação passa a `concluida`.
   Future<Resultado> salvar({
     required Assessment avaliacao,
     required Aluno aluno,
     required List<String?> respostas,
+    bool permitirSobrescrita = false,
   }) async {
+    if (avaliacao.status == AssessmentStatus.completed) {
+      throw StateError(
+        'Não é possível registrar correção para uma avaliação já encerrada',
+      );
+    }
+
+    final docId = '${avaliacao.id}_${aluno.id}';
+    final docExistente = await resultados.doc(docId).get();
+    if (docExistente.exists && !permitirSobrescrita) {
+      throw StateError(
+        'A prova deste aluno já foi corrigida nesta avaliação',
+      );
+    }
+
     final resultado = corrigir(
-      id: '${avaliacao.id}_${aluno.id}',
+      id: docId,
       avaliacao: avaliacao,
       alunoId: aluno.id,
       respostas: respostas,
