@@ -148,10 +148,13 @@ void main() {
       expect(rascunho.isDraft, isTrue);
       expect(rascunho.gabaritoConfigurado, isFalse);
 
-      final agendada = await repo.salvarGabarito(
+      final comGabarito = await repo.salvarGabarito(
         rascunho,
         ['A', 'B', 'C', 'D', 'E'],
       );
+      expect(comGabarito.gabaritoConfigurado, isTrue);
+
+      final agendada = await repo.marcarComoPronta(comGabarito);
       expect(agendada.status, AssessmentStatus.scheduled);
       expect(agendada.isScheduled, isTrue);
       expect(agendada.gabaritoConfigurado, isTrue);
