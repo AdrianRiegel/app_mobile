@@ -12,8 +12,8 @@ enum _StatisticsViewState { loading, content, empty, error }
 
 /// Tela 6 — Estatísticas gerais.
 ///
-/// Lista as turmas e, dentro de cada uma, as provas com o acerto médio.
-/// Tocar em uma prova abre a [ExamStatisticsScreen] (tela 5.6).
+/// Mostra gráficos comparativos entre turmas, evolução das provas e lista
+/// detalhada. Tocar em uma prova abre a [ExamStatisticsScreen] (tela 5.6).
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
 
@@ -92,11 +92,34 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   Widget _content() {
-    return ListView.separated(
+    final turmasComProvas = _classes
+        .where((turma) => turma.exams.isNotEmpty)
+        .toList();
+
+    return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      itemCount: _classes.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 10),
-      itemBuilder: (context, index) => _classCard(_classes[index], index == 0),
+      children: [
+        if (turmasComProvas.isNotEmpty) ...[
+          VerticalBarChartCard(
+            title: 'Desempenho médio por turma',
+            subtitle: 'Comparativo do percentual médio de acertos',
+            height: 132,
+            showBandLegend: false,
+            entries: [
+              for (final turma in turmasComProvas)
+                ChartDataPoint(
+                  label: turma.className,
+                  value: turma.averageScore.toDouble(),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
+        for (var index = 0; index < _classes.length; index++) ...[
+          _classCard(_classes[index], index == 0),
+          if (index < _classes.length - 1) const SizedBox(height: 10),
+        ],
+      ],
     );
   }
 
@@ -135,6 +158,19 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ),
           ),
           children: [
+            if (classStats.exams.length >= 2) ...[
+              LineTrendChartCard(
+                title: 'Evolução nas provas',
+                entries: [
+                  for (final exam in classStats.exams)
+                    ChartDataPoint(
+                      label: exam.shortLabel,
+                      value: exam.averageScore.toDouble(),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
             for (final exam in classStats.exams)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),

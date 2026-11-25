@@ -1,6 +1,8 @@
+import 'package:app_mobile/Screens/correction_start_screen.dart';
 import 'package:app_mobile/models/aluno.dart';
 import 'package:app_mobile/models/assessment.dart';
 import 'package:app_mobile/services/database/database.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers/fake_database.dart';
@@ -192,4 +194,30 @@ void main() {
       expect(resultados.docs.single.data()['notaCalculada'], 10.0);
     },
   );
+
+  testWidgets('etapa de leitura não exibe botão de simular leitura da folha', (
+    tester,
+  ) async {
+    await configurarBancoFalso();
+    final avaliacao = await AvaliacaoRepository().buscar('aval-1');
+
+    await tester.pumpWidget(
+      MaterialApp(home: CorrectionStartScreen(assessment: avaliacao)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Continuar para identificação do aluno'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Selecione um aluno...'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ana Beatriz (2026041)').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Continuar para leitura da folha'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Abrir câmera e fotografar'), findsOneWidget);
+    expect(find.text('Simular leitura da Folha'), findsNothing);
+  });
 }

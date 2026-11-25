@@ -628,7 +628,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         ),
         const SizedBox(height: 5),
         Text(
-          'Enquadre a folha inteira na câmera\nEsta etapa é uma simulação visual.',
+          'Enquadre a folha inteira na câmera para ler as respostas.',
           textAlign: TextAlign.center,
           style: TextStyle(color: context.colors.muted, fontSize: 11),
         ),
@@ -638,13 +638,6 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           icon: Icons.camera_alt_outlined,
           verticalPadding: 14,
           onPressed: _reading ? null : _abrirCamera,
-        ),
-        const SizedBox(height: 10),
-        SecondaryButton(
-          label: 'Simular leitura da Folha',
-          icon: Icons.refresh,
-          verticalPadding: 14,
-          onPressed: _reading ? null : _simulateRead,
         ),
       ],
     );
