@@ -41,6 +41,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
   Aluno? _selectedStudent;
 
   List<String?> _respostasLidas = [];
+  CapturedImage? _capturedImage;
   Resultado? _resultado;
   bool _salvando = false;
 
@@ -129,6 +130,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       _readSuccess = false;
       _showGabarito = false;
       _resultado = null;
+      _capturedImage = null;
     });
   }
 
@@ -589,6 +591,17 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
+          if (_capturedImage != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Foto capturada: ${_capturedImage!.name}',
+              style: TextStyle(
+                color: context.colors.accent,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
           const SizedBox(height: 4),
           Text(
             'Ao continuar, a correção será salva e o resultado exibido.',
@@ -820,6 +833,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       MaterialPageRoute(builder: (_) => const CameraCaptureScreen()),
     );
     if (image == null || !mounted) return;
+    setState(() => _capturedImage = image);
     await _simulateRead();
   }
 
