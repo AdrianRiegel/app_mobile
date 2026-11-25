@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+import 'package:camera/camera.dart' hide CameraLensDirection, CameraException;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
@@ -13,24 +16,46 @@ class CameraCaptureScreen extends StatefulWidget {
   State<CameraCaptureScreen> createState() => _CameraCaptureScreenState();
 }
 
-class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
+class _CameraCaptureScreenState extends State<CameraCaptureScreen>
+    with WidgetsBindingObserver {
   late final CameraService _cameraService =
       widget.service ?? CameraService.instance;
+
+  CameraController? _controller;
+  List<CameraDescription> _availableCameras = [];
+  bool _isCameraInitialized = false;
 
   CameraPermissionStatus _permission = CameraPermissionStatus.granted;
   bool _checkingPermission = true;
   bool _isCapturing = false;
   bool _flashOn = false;
-  CameraLensDirection _lensDirection = CameraLensDirection.back;
   CapturedImage? _capturedImage;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _flashOn = _cameraService.isFlashOn;
-    _lensDirection = _cameraService.lensDirection;
+    WidgetsBinding.instance.addObserver(this);
     _checkPermission();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+
+    if (state == AppLifecycleState.inactive) {
+      controller.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      _initLiveCameraController();
+    }
   }
 
   Future<void> _checkPermission() async {
@@ -54,6 +79,10 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
         _permission = status;
         _checkingPermission = false;
       });
+
+      if (status == CameraPermissionStatus.granted && widget.service == null) {
+        await _initLiveCameraController();
+      }
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
@@ -62,21 +91,122 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     }
   }
 
+  Future<void> _initLiveCameraController() async {
+    if (kIsWeb) return;
+    if (!Platform.isAndroid && !Platform.isIOS) return;
+
+    try {
+      _availableCameras = await availableCameras();
+      if (_availableCameras.isEmpty) return;
+
+      final lensDirection = _cameraService.lensDirection == CameraLensDirection.front
+          ? CameraLensDirection.front
+          : CameraLensDirection.back;
+
+      final targetCamera = _availableCameras.firstWhere(
+        (c) => c.lensDirection.name == lensDirection.name,
+        orElse: () => _availableCameras.first,
+      );
+
+      final controller = CameraController(
+        targetCamera,
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
+
+      await controller.initialize();
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+
+      setState(() {
+        _controller?.dispose();
+        _controller = controller;
+        _isCameraInitialized = true;
+      });
+    } catch (_) {
+      // Falha graciosa: caso o controller do CameraX/AVFoundation falhe,
+      // a captura funcionará diretamente via ImagePicker nativo
+      _controller = null;
+      _isCameraInitialized = false;
+    }
+  }
+
   Future<void> _requestPermission() async {
     final status = await _cameraService.requestPermission();
     setState(() => _permission = status);
+    if (status == CameraPermissionStatus.granted && widget.service == null) {
+      await _initLiveCameraController();
+    }
   }
 
   Future<void> _toggleFlash() async {
-    final newState = await _cameraService.toggleFlash();
-    if (!mounted) return;
-    setState(() => _flashOn = newState);
+    final nextFlash = !_flashOn;
+    setState(() => _flashOn = nextFlash);
+    await _cameraService.toggleFlash();
+
+    if (_controller != null && _controller!.value.isInitialized) {
+      try {
+        await _controller!.setFlashMode(
+          nextFlash ? FlashMode.torch : FlashMode.off,
+        );
+      } catch (_) {}
+    }
   }
 
   Future<void> _switchCamera() async {
-    final newDirection = await _cameraService.switchCamera();
-    if (!mounted) return;
-    setState(() => _lensDirection = newDirection);
+    await _cameraService.switchCamera();
+    if (_availableCameras.length > 1) {
+      await _initLiveCameraController();
+    }
+  }
+
+  Future<void> _takePicture() async {
+    setState(() => _isCapturing = true);
+    try {
+      CapturedImage? image;
+
+      if (_controller != null && _controller!.value.isInitialized) {
+        try {
+          final xFile = await _controller!.takePicture();
+          final bytes = await xFile.readAsBytes();
+          image = CapturedImage(
+            path: xFile.path,
+            name: xFile.name.isNotEmpty ? xFile.name : 'folha_resposta.jpg',
+            bytes: bytes,
+            sizeInBytes: bytes.length,
+          );
+        } catch (_) {
+          // Fallback para CameraService caso takePicture do controller falhe
+          image = await _cameraService.captureImage();
+        }
+      } else {
+        image = await _cameraService.captureImage();
+      }
+
+      if (!mounted) return;
+      if (image != null) {
+        setState(() {
+          _capturedImage = image;
+          _isCapturing = false;
+        });
+      } else {
+        setState(() => _isCapturing = false);
+      }
+    } on CameraException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.message;
+        _isCapturing = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Erro inesperado ao capturar a foto da folha.';
+        _isCapturing = false;
+      });
+    }
   }
 
   Future<void> _pickFromGallery() async {
@@ -92,34 +222,10 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       } else {
         setState(() => _isCapturing = false);
       }
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Erro ao selecionar imagem da galeria.';
-        _isCapturing = false;
-      });
-    }
-  }
-
-  Future<void> _takePicture() async {
-    setState(() => _isCapturing = true);
-    try {
-      final image = await _cameraService.captureImage();
-      if (!mounted) return;
-      setState(() {
-        _capturedImage = image;
-        _isCapturing = false;
-      });
-    } on CameraException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = e.message;
-        _isCapturing = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = 'Erro inesperado ao capturar a foto.';
+        _errorMessage = e.toString();
         _isCapturing = false;
       });
     }
@@ -159,11 +265,11 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: _flashOn ? 'Desativar flash' : 'Ativar flash',
             icon: Icon(
               _flashOn ? Icons.flash_on : Icons.flash_off,
               color: _flashOn ? Colors.amber : Colors.white70,
             ),
+            tooltip: 'Alternar Flash',
             onPressed: _toggleFlash,
           ),
         ],
@@ -197,33 +303,11 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   }
 
   Widget _buildCameraViewfinder() {
+    final hasLivePreview =
+        _isCameraInitialized && _controller != null && _controller!.value.isInitialized;
+
     return Column(
       children: [
-        if (_flashOn)
-          Container(
-            margin: const EdgeInsets.only(top: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.amber),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.flash_on, color: Colors.amber, size: 14),
-                SizedBox(width: 4),
-                Text(
-                  'Flash Ativado',
-                  style: TextStyle(
-                    color: Colors.amber,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Text(
@@ -242,54 +326,61 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
                 borderRadius: BorderRadius.circular(16),
                 color: const Color(0x66000000),
               ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: _cornerMarker(top: true, left: true),
-                  ),
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: _cornerMarker(top: true, left: false),
-                  ),
-                  Positioned(
-                    bottom: 12,
-                    left: 12,
-                    child: _cornerMarker(top: false, left: true),
-                  ),
-                  Positioned(
-                    bottom: 12,
-                    right: 12,
-                    child: _cornerMarker(top: false, left: false),
-                  ),
-                  Center(
-                    child: Icon(
-                      Icons.document_scanner,
-                      size: 64,
-                      color: const Color(0x4DFFFFFF),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (hasLivePreview)
+                      Center(
+                        child: CameraPreview(_controller!),
+                      )
+                    else
+                      Center(
+                        child: Icon(
+                          Icons.document_scanner,
+                          size: 64,
+                          color: const Color(0x4DFFFFFF),
+                        ),
+                      ),
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: _cornerMarker(top: true, left: true),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: _cornerMarker(top: true, left: false),
+                    ),
+                    Positioned(
+                      bottom: 12,
+                      left: 12,
+                      child: _cornerMarker(top: false, left: true),
+                    ),
+                    Positioned(
+                      bottom: 12,
+                      right: 12,
+                      child: _cornerMarker(top: false, left: false),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
+              // Botão Galeria
               IconButton(
-                icon: const Icon(
-                  Icons.photo_library_outlined,
-                  color: Colors.white,
-                  size: 28,
-                ),
-                tooltip: 'Galeria',
                 onPressed: _isCapturing ? null : _pickFromGallery,
+                icon: const Icon(Icons.photo_library, color: Colors.white, size: 28),
+                tooltip: 'Escolher da Galeria',
               ),
+              // Botão Principal Disparador
               GestureDetector(
                 onTap: _isCapturing ? null : _takePicture,
                 child: Container(
@@ -311,16 +402,11 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
                         ),
                 ),
               ),
+              // Botão Alternar Câmera
               IconButton(
-                icon: Icon(
-                  _lensDirection == CameraLensDirection.front
-                      ? Icons.camera_front_outlined
-                      : Icons.flip_camera_ios_outlined,
-                  color: Colors.white,
-                  size: 28,
-                ),
-                tooltip: 'Alternar câmera',
                 onPressed: _isCapturing ? null : _switchCamera,
+                icon: const Icon(Icons.flip_camera_ios, color: Colors.white, size: 28),
+                tooltip: 'Alternar Lente',
               ),
             ],
           ),
@@ -353,6 +439,8 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   }
 
   Widget _buildPreviewState() {
+    final imageBytes = _capturedImage?.bytes;
+
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -360,62 +448,76 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
           Expanded(
             child: Container(
               width: double.infinity,
-              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: const Color(0xFF1F222A),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: context.colors.border),
               ),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (_capturedImage?.hasBytes == true)
-                    Image.memory(
-                      _capturedImage!.bytes!,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _buildPlaceholderPreview(),
-                    )
-                  else
-                    _buildPlaceholderPreview(),
-                  Positioned(
-                    top: 16,
-                    left: 16,
-                    right: 16,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.65),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Imagem Capturada com Sucesso',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (imageBytes != null && imageBytes.isNotEmpty)
+                      Image.memory(
+                        imageBytes,
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (context, error, stackTrace) =>
+                            _buildFallbackPreview(),
+                      )
+                    else
+                      _buildFallbackPreview(),
+                    Positioned(
+                      bottom: 16,
+                      left: 16,
+                      right: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  color: context.colors.success,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Imagem Capturada com Sucesso',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _capturedImage?.name ?? 'folha.jpg',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 11,
+                            const SizedBox(height: 4),
+                            Text(
+                              _capturedImage?.name ?? 'folha.jpg',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -444,28 +546,29 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     );
   }
 
-  Widget _buildPlaceholderPreview() {
+  Widget _buildFallbackPreview() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(
-          Icons.document_scanner_outlined,
+          Icons.document_scanner,
           color: context.colors.accent,
           size: 64,
         ),
         const SizedBox(height: 12),
-        Text(
-          _capturedImage?.name ?? 'folha.jpg',
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        const Text(
+          'Imagem Capturada',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
   }
 
   Widget _buildPermissionDeniedState() {
-    final bool permanentlyDenied =
-        _permission == CameraPermissionStatus.permanentlyDenied;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -478,23 +581,19 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
               color: Colors.white60,
             ),
             const SizedBox(height: 16),
-            Text(
-              permanentlyDenied
-                  ? 'Acesso à Câmera Bloqueado'
-                  : 'Acesso à Câmera Negado',
-              style: const TextStyle(
+            const Text(
+              'Acesso à Câmera Negado',
+              style: TextStyle(
                 color: Colors.white,
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              permanentlyDenied
-                  ? 'O acesso à câmera foi permanentemente negado. Conceda a permissão nas configurações do seu sistema operacional para continuar.'
-                  : 'O EduTurmas precisa de permissão de câmera para fotografar e ler o cartão de respostas.',
+            const Text(
+              'O EduTurmas precisa de permissão de câmera para fotografar e ler o cartão de respostas.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
+              style: TextStyle(color: Colors.white70, fontSize: 13),
             ),
             const SizedBox(height: 24),
             PrimaryButton(

@@ -1,5 +1,6 @@
-import 'package:file_picker/file_picker.dart';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 
 enum CameraPermissionStatus {
   granted,
@@ -15,7 +16,7 @@ enum CameraLensDirection {
 }
 
 /// Bytes válidos de um PNG 1x1 transparente para evitar erros de decodificação
-/// nativa durante testes, pré-visualizações e emuladores.
+/// nativa durante testes, pré-visualizações e emuladores/desktop.
 final Uint8List kValid1x1PngBytes = Uint8List.fromList(const [
   0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
   0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
@@ -75,11 +76,15 @@ abstract class CameraService {
   Future<CameraLensDirection> switchCamera();
 }
 
-/// Implementação padrão de CameraService com tratamento robusto para
-/// dispositivos móveis, emuladores e ambientes de teste/desktop.
+/// Implementação de CameraService que se integra à câmera nativa do dispositivo
+/// móvel via `image_picker`, com fallback seguro e determinístico para testes e desktop.
 class DefaultCameraService implements CameraService {
+  DefaultCameraService({ImagePicker? picker}) : _picker = picker ?? ImagePicker();
+
+  final ImagePicker _picker;
   CameraPermissionStatus _status = CameraPermissionStatus.granted;
   bool _available = true;
+  bool _isMockMode = false;
   bool _flashOn = false;
   CameraLensDirection _lensDirection = CameraLensDirection.back;
 
@@ -96,6 +101,12 @@ class DefaultCameraService implements CameraService {
   }) {
     _status = status;
     _available = available;
+    _isMockMode = true;
+  }
+
+  bool get _isMobile {
+    if (kIsWeb) return false;
+    return Platform.isAndroid || Platform.isIOS;
   }
 
   @override
@@ -140,31 +151,73 @@ class DefaultCameraService implements CameraService {
       throw const CameraException('Permissão de acesso à câmera não concedida.');
     }
 
-    return CapturedImage(
-      path: 'camera_capture_${DateTime.now().millisecondsSinceEpoch}.jpg',
-      name: 'folha_resposta.jpg',
-      bytes: kValid1x1PngBytes,
-      sizeInBytes: kValid1x1PngBytes.length,
-    );
+    if (_isMockMode || !_isMobile) {
+      return CapturedImage(
+        path: 'camera_capture_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        name: 'folha_resposta.jpg',
+        bytes: kValid1x1PngBytes,
+        sizeInBytes: kValid1x1PngBytes.length,
+      );
+    }
+
+    try {
+      final preferredDevice = _lensDirection == CameraLensDirection.front
+          ? CameraDevice.front
+          : CameraDevice.rear;
+
+      final xFile = await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: preferredDevice,
+        imageQuality: 95,
+      );
+
+      if (xFile == null) return null; // Usuário cancelou ou fechou a câmera
+
+      final bytes = await xFile.readAsBytes();
+      return CapturedImage(
+        path: xFile.path,
+        name: xFile.name.isNotEmpty ? xFile.name : 'folha_resposta.jpg',
+        bytes: bytes,
+        sizeInBytes: bytes.length,
+      );
+    } catch (e) {
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('denied') || errStr.contains('permission')) {
+        _status = CameraPermissionStatus.denied;
+        throw const CameraException('Permissão de acesso à câmera negada pelo usuário.');
+      }
+      throw CameraException('Falha ao abrir a câmera do celular: $e');
+    }
   }
 
   @override
   Future<CapturedImage?> pickImageFromGallery() async {
-    try {
-      final file = await FilePicker.pickFile(
-        type: FileType.image,
-      );
-      if (file == null) return null;
-      final bytes = await file.readAsBytes();
+    if (_isMockMode || !_isMobile) {
       return CapturedImage(
-        path: file.path ?? file.name,
-        name: file.name,
-        bytes: bytes,
-        sizeInBytes: file.lengthSync() ?? bytes.length,
+        path: 'gallery_image_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        name: 'folha_resposta_galeria.jpg',
+        bytes: kValid1x1PngBytes,
+        sizeInBytes: kValid1x1PngBytes.length,
       );
-    } catch (_) {
-      // Fallback em caso de indisponibilidade do picker nativo
-      return captureImage();
+    }
+
+    try {
+      final xFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 95,
+      );
+
+      if (xFile == null) return null;
+
+      final bytes = await xFile.readAsBytes();
+      return CapturedImage(
+        path: xFile.path,
+        name: xFile.name.isNotEmpty ? xFile.name : 'folha_resposta_galeria.jpg',
+        bytes: bytes,
+        sizeInBytes: bytes.length,
+      );
+    } catch (e) {
+      throw CameraException('Falha ao selecionar imagem da galeria: $e');
     }
   }
 }

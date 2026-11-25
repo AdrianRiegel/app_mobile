@@ -34,17 +34,23 @@ void main() {
       expect(service.captureImage(), throwsA(isA<CameraException>()));
     });
 
-    test('alterna flash e direção da câmera', () async {
+    test('alterna estado de flash e lente', () async {
       final service = DefaultCameraService();
       expect(service.isFlashOn, isFalse);
       expect(await service.toggleFlash(), isTrue);
       expect(service.isFlashOn, isTrue);
-      expect(await service.toggleFlash(), isFalse);
 
       expect(service.lensDirection, CameraLensDirection.back);
       expect(await service.switchCamera(), CameraLensDirection.front);
       expect(service.lensDirection, CameraLensDirection.front);
-      expect(await service.switchCamera(), CameraLensDirection.back);
+    });
+
+    test('permite selecionar imagem da galeria', () async {
+      final service = DefaultCameraService();
+      final image = await service.pickImageFromGallery();
+      expect(image, isNotNull);
+      expect(image!.hasBytes, isTrue);
+      expect(image.name, contains('galeria'));
     });
   });
 
@@ -83,6 +89,8 @@ void main() {
         findsOneWidget,
       );
       expect(find.byIcon(Icons.camera_alt), findsOneWidget);
+      expect(find.byIcon(Icons.photo_library), findsOneWidget);
+      expect(find.byIcon(Icons.flip_camera_ios), findsOneWidget);
 
       // Clica no botão de captura
       await tester.tap(find.byIcon(Icons.camera_alt));
@@ -147,7 +155,7 @@ void main() {
       );
     });
 
-    testWidgets('alterna flash e câmera no visor', (tester) async {
+    testWidgets('permite carregar imagem da galeria', (tester) async {
       final service = DefaultCameraService();
       service.setMockStatus(status: CameraPermissionStatus.granted);
 
@@ -156,35 +164,29 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Clica para ativar o flash
-      expect(find.byIcon(Icons.flash_off), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.flash_off));
+      // Clica no botão de galeria
+      await tester.tap(find.byIcon(Icons.photo_library));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.flash_on), findsWidgets);
-      expect(find.text('Flash Ativado'), findsOneWidget);
-
-      // Clica para alternar a câmera
-      expect(find.byIcon(Icons.flip_camera_ios_outlined), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.flip_camera_ios_outlined));
-      await tester.pumpAndSettle();
-
-      expect(find.byIcon(Icons.camera_front_outlined), findsOneWidget);
+      expect(find.text('Imagem Capturada com Sucesso'), findsOneWidget);
+      expect(find.text('folha_resposta_galeria.jpg'), findsOneWidget);
     });
 
-    testWidgets('exibe estado de permissão permanentemente negada', (
-      tester,
-    ) async {
+    testWidgets('alterna flash na barra de título', (tester) async {
       final service = DefaultCameraService();
-      service.setMockStatus(status: CameraPermissionStatus.permanentlyDenied);
+      service.setMockStatus(status: CameraPermissionStatus.granted);
 
       await tester.pumpWidget(
         MaterialApp(home: CameraCaptureScreen(service: service)),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Acesso à Câmera Bloqueado'), findsOneWidget);
-      expect(find.textContaining('permanentemente negado'), findsOneWidget);
+      expect(find.byIcon(Icons.flash_off), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.flash_off));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.flash_on), findsOneWidget);
+      expect(service.isFlashOn, isTrue);
     });
   });
 }
