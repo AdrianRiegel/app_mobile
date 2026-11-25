@@ -276,6 +276,13 @@ void main() {
 
       expect(find.text('2 questões'), findsOneWidget);
       expect(find.text('1. Quanto é 7 × 8?'), findsOneWidget);
+      // Com a configuração de embaralhamento acima da lista, a segunda
+      // questão fica fora da janela de 800x600 usada no teste.
+      await tester.scrollUntilVisible(
+        find.text('2. Qual fração equivale a 0,5?'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('2. Qual fração equivale a 0,5?'), findsOneWidget);
       expect(find.text('2 questões importadas com sucesso'), findsOneWidget);
     });
@@ -375,6 +382,10 @@ Future<void> _abrirNovaQuestao(WidgetTester tester) async {
     200,
     scrollable: find.byType(Scrollable).first,
   );
+  await tester.ensureVisible(
+    find.widgetWithText(OutlinedButton, 'Adicionar questão'),
+  );
+  await tester.pumpAndSettle();
   await tester.tap(find.text('Adicionar questão'));
   await tester.pumpAndSettle();
 }

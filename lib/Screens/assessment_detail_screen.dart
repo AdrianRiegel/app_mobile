@@ -1,21 +1,29 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 
 import '../components/components.dart';
 import '../models/assessment.dart';
+import '../models/aluno.dart';
 import '../services/database/database.dart';
 import '../services/email_service.dart';
-import '../services/random_exam_service.dart';
+import '../services/pdf/prova_pdf.dart';
 import '../theme/app_colors.dart';
 import 'answer_key_screen.dart';
 import 'correction_start_screen.dart';
 import 'exam_statistics_screen.dart';
 
 class AssessmentDetailScreen extends StatefulWidget {
-  const AssessmentDetailScreen({super.key, required this.assessment});
+  const AssessmentDetailScreen({
+    super.key,
+    required this.assessment,
+    this.compartilharProva,
+  });
 
   final Assessment assessment;
+  final Future<void> Function(Uint8List bytes, String nome)? compartilharProva;
 
   @override
   State<AssessmentDetailScreen> createState() => _AssessmentDetailScreenState();
@@ -24,6 +32,7 @@ class AssessmentDetailScreen extends StatefulWidget {
 class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
   late Assessment assessment = widget.assessment;
   bool _carregandoEstatisticas = false;
+  bool _carregandoPdf = false;
 
   /// Recarrega após correções ou alterações.
   Future<void> _recarregar() async {
@@ -60,11 +69,15 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
             if (!mounted) return;
             setState(() => assessment = atualizada);
             messenger.showSnackBar(
-              const SnackBar(content: Text('Informações da prova atualizadas com sucesso')),
+              const SnackBar(
+                content: Text('Informações da prova atualizadas com sucesso'),
+              ),
             );
           } catch (_) {
             messenger.showSnackBar(
-              const SnackBar(content: Text('Não foi possível atualizar a avaliação')),
+              const SnackBar(
+                content: Text('Não foi possível atualizar a avaliação'),
+              ),
             );
           }
         },
@@ -96,7 +109,9 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Excluir avaliação'),
-        content: Text('Deseja realmente excluir a avaliação "${assessment.title}"? Esta ação não pode ser desfeita.'),
+        content: Text(
+          'Deseja realmente excluir a avaliação "${assessment.title}"? Esta ação não pode ser desfeita.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -132,18 +147,64 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
     }
   }
 
-  void _gerarProvaRandomicaPdf() {
-    final variantes = RandomExamService.gerarVariantes(
-      assessment: assessment,
-      quantidade: 2,
-    );
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _VisualizarVariantesSheet(variantes: variantes),
-    );
+  Future<void> _exportarProva() async {
+    if (_carregandoPdf) return;
+    if (!assessment.hasPrintableQuestions) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Esta prova antiga tem apenas gabarito. Crie uma nova prova com '
+            'enunciados e alternativas para exportar o PDF.',
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() => _carregandoPdf = true);
+    try {
+      // Consulta novamente para exportar o conteúdo e o gabarito efetivamente
+      // salvos, inclusive depois de editar o gabarito em outra tela.
+      final (prova, alunos) = await (
+        AvaliacaoRepository().buscar(assessment.id),
+        AlunoRepository().listarPorTurma(assessment.turmaId),
+      ).wait;
+      if (!mounted) return;
+      setState(() {
+        assessment = prova;
+        _carregandoPdf = false;
+      });
+      if (alunos.isEmpty) {
+        throw StateError(
+          'Cadastre ao menos um aluno para gerar a folha com QRCode.',
+        );
+      }
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => _ExportarProvaSheet(
+          prova: prova,
+          alunos: alunos,
+          compartilhar:
+              widget.compartilharProva ??
+              (bytes, nome) =>
+                  Printing.sharePdf(bytes: bytes, filename: nome).then((_) {}),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is StateError
+                ? error.message.toString()
+                : 'Não foi possível preparar o PDF. Tente novamente.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _carregandoPdf = false);
+    }
   }
 
   @override
@@ -158,17 +219,35 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
         title: 'Detalhes da avaliação',
         actions: [
           IconButton(
-            icon: Icon(Icons.shuffle, size: 20, color: context.colors.accent),
-            tooltip: 'Gerar PDF randômico',
-            onPressed: _gerarProvaRandomicaPdf,
+            icon: _carregandoPdf
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    Icons.picture_as_pdf_outlined,
+                    size: 20,
+                    color: context.colors.accent,
+                  ),
+            tooltip: 'Exportar prova em PDF',
+            onPressed: _carregandoPdf ? null : _exportarProva,
           ),
           IconButton(
-            icon: Icon(Icons.edit_outlined, size: 20, color: context.colors.accent),
+            icon: Icon(
+              Icons.edit_outlined,
+              size: 20,
+              color: context.colors.accent,
+            ),
             tooltip: 'Editar informações',
             onPressed: _openEditarInformacoes,
           ),
           IconButton(
-            icon: Icon(Icons.delete_outline, size: 20, color: context.colors.danger),
+            icon: Icon(
+              Icons.delete_outline,
+              size: 20,
+              color: context.colors.danger,
+            ),
             tooltip: 'Excluir avaliação',
             onPressed: _confirmarExclusao,
           ),
@@ -233,7 +312,11 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                           'Questões',
                         ),
                       ),
-                      Container(width: 1, height: 40, color: context.colors.border),
+                      Container(
+                        width: 1,
+                        height: 40,
+                        color: context.colors.border,
+                      ),
                       Expanded(
                         child: _metric(
                           Icons.people_outline,
@@ -241,7 +324,11 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                           'Alunos',
                         ),
                       ),
-                      Container(width: 1, height: 40, color: context.colors.border),
+                      Container(
+                        width: 1,
+                        height: 40,
+                        color: context.colors.border,
+                      ),
                       Expanded(
                         child: _metric(
                           Icons.event_outlined,
@@ -258,7 +345,10 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                     children: [
                       Text(
                         'Correções realizadas',
-                        style: TextStyle(color: context.colors.muted, fontSize: 11),
+                        style: TextStyle(
+                          color: context.colors.muted,
+                          fontSize: 11,
+                        ),
                       ),
                       Text(
                         '${assessment.correctedStudents} de ${assessment.totalStudents} alunos',
@@ -295,19 +385,44 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                TextButton(
-                  onPressed: () => _openAnswerKey(context),
-                  child: Text(
-                    'Editar',
-                    style: TextStyle(
-                      color: context.colors.accent,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                if (assessment.gabaritoEditavel)
+                  TextButton(
+                    onPressed: () => _openAnswerKey(context),
+                    child: Text(
+                      'Editar',
+                      style: TextStyle(
+                        color: context.colors.accent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
+            if (!assessment.gabaritoEditavel)
+              Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      size: 14,
+                      color: context.colors.muted,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Gabarito bloqueado: a prova já está pronta para '
+                        'leitura e correção.',
+                        style: TextStyle(
+                          color: context.colors.muted,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Container(
               padding: const EdgeInsets.all(13),
               decoration: BoxDecoration(
@@ -354,19 +469,31 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
               ),
             ),
             const SizedBox(height: 24),
+            if (assessment.status == AssessmentStatus.draft) ...[
+              SecondaryButton(
+                label: 'Marcar como pronta',
+                icon: Icons.event_available_outlined,
+                verticalPadding: 14,
+                borderColor: context.colors.accent,
+                onPressed: _confirmarProntaParaAplicacao,
+              ),
+              const SizedBox(height: 10),
+            ],
             PrimaryButton(
               label: 'Iniciar correção',
               icon: Icons.qr_code_scanner,
               verticalPadding: 14,
               onPressed: () => _iniciarCorrecao(context),
             ),
-            const SizedBox(height: 10),
-            SecondaryButton(
-              label: 'Configurar gabarito',
-              icon: Icons.edit_note_outlined,
-              verticalPadding: 14,
-              onPressed: () => _openAnswerKey(context),
-            ),
+            if (assessment.gabaritoEditavel) ...[
+              const SizedBox(height: 10),
+              SecondaryButton(
+                label: 'Configurar gabarito',
+                icon: Icons.edit_note_outlined,
+                verticalPadding: 14,
+                onPressed: () => _openAnswerKey(context),
+              ),
+            ],
             const SizedBox(height: 10),
             SecondaryButton(
               label: _carregandoEstatisticas
@@ -393,6 +520,71 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
         ),
       ),
     );
+  }
+
+  /// Passa a prova de rascunho para agendada, depois de confirmar.
+  Future<void> _confirmarProntaParaAplicacao() async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (!assessment.gabaritoConfigurado) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Configure o gabarito antes de marcar a prova como pronta',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Marcar prova como pronta?'),
+        content: const Text(
+          'A prova deixa de ser rascunho e passa para a situação Agendada, '
+          'pronta para ser aplicada e corrigida.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: context.colors.accent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Marcar como pronta'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+
+    try {
+      final atualizada = await runWithLoader(
+        context,
+        () => AvaliacaoRepository().marcarComoPronta(assessment),
+        message: 'Atualizando situação...',
+      );
+      if (!mounted) return;
+      setState(() => assessment = atualizada);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Prova marcada como pronta (Agendada)')),
+      );
+    } catch (erro) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            erro is StateError
+                ? erro.message
+                : 'Não foi possível atualizar a situação da prova',
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _confirmarEncerramento(BuildContext context) async {
@@ -424,17 +616,13 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
     if (confirmar != true || !mounted) return;
 
     try {
-      final ausentes = await runWithLoader(
-        this.context,
-        () async {
-          final ausentes = await ResultadoRepository().encerrarCorrecao(
-            avaliacao: assessment,
-          );
-          await _recarregar();
-          return ausentes;
-        },
-        message: 'Encerrando correção...',
-      );
+      final ausentes = await runWithLoader(this.context, () async {
+        final ausentes = await ResultadoRepository().encerrarCorrecao(
+          avaliacao: assessment,
+        );
+        await _recarregar();
+        return ausentes;
+      }, message: 'Encerrando correção...');
       unawaited(
         Emails.notificarCorrecaoEncerrada(
           avaliacao: assessment,
@@ -529,10 +717,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(color: context.colors.muted, fontSize: 9),
-        ),
+        Text(label, style: TextStyle(color: context.colors.muted, fontSize: 9)),
       ],
     );
   }
@@ -554,10 +739,7 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
 }
 
 class _EditarProvaSheet extends StatefulWidget {
-  const _EditarProvaSheet({
-    required this.assessment,
-    required this.onSave,
-  });
+  const _EditarProvaSheet({required this.assessment, required this.onSave});
 
   final Assessment assessment;
   final void Function(String titulo, String disciplina, DateTime data) onSave;
@@ -659,7 +841,10 @@ class _EditarProvaSheetState extends State<_EditarProvaSheet> {
               onTap: _selecionarData,
               borderRadius: BorderRadius.circular(10),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: context.colors.input,
                   borderRadius: BorderRadius.circular(10),
@@ -670,7 +855,10 @@ class _EditarProvaSheetState extends State<_EditarProvaSheet> {
                   children: [
                     Text(
                       AvaliacaoRepository.formatarData(_dataAplicacao),
-                      style: TextStyle(fontSize: 13, color: context.colors.text),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: context.colors.text,
+                      ),
                     ),
                     Icon(
                       Icons.calendar_today_outlined,
@@ -715,138 +903,129 @@ class _EditarProvaSheetState extends State<_EditarProvaSheet> {
   }
 }
 
-class _VisualizarVariantesSheet extends StatefulWidget {
-  const _VisualizarVariantesSheet({required this.variantes});
+class _ExportarProvaSheet extends StatefulWidget {
+  const _ExportarProvaSheet({
+    required this.prova,
+    required this.alunos,
+    required this.compartilhar,
+  });
 
-  final List<RandomizedExamVariant> variantes;
+  final Assessment prova;
+  final List<Aluno> alunos;
+  final Future<void> Function(Uint8List bytes, String nome) compartilhar;
 
   @override
-  State<_VisualizarVariantesSheet> createState() =>
-      _VisualizarVariantesSheetState();
+  State<_ExportarProvaSheet> createState() => _ExportarProvaSheetState();
 }
 
-class _VisualizarVariantesSheetState extends State<_VisualizarVariantesSheet> {
-  int _varianteSelecionada = 0;
+class _ExportarProvaSheetState extends State<_ExportarProvaSheet> {
+  String? _alunoId;
+  bool _gerando = false;
+  String? _erro;
+
+  Future<void> _gerar() async {
+    if (_gerando) return;
+    setState(() {
+      _gerando = true;
+      _erro = null;
+    });
+    try {
+      final alunos = _alunoId == null
+          ? widget.alunos
+          : widget.alunos.where((aluno) => aluno.id == _alunoId).toList();
+      final bytes = await ProvaPdf.gerar(prova: widget.prova, alunos: alunos);
+      if (!mounted) return;
+      await widget.compartilhar(bytes, ProvaPdf.nomeArquivo(widget.prova));
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _erro = error is StateError
+              ? error.message.toString()
+              : 'Não foi possível exportar. Tente novamente.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _gerando = false);
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
-    if (widget.variantes.isEmpty) {
-      return const SizedBox();
-    }
-    final variante = widget.variantes[_varianteSelecionada];
-
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
+  Widget build(BuildContext context) => SafeArea(
+    child: Container(
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: context.colors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(top: 4, bottom: 12),
-              decoration: BoxDecoration(
-                color: context.colors.border,
-                borderRadius: BorderRadius.circular(3),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Exportar prova em PDF',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: context.colors.text,
               ),
             ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'PDF da Prova Randômica',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: context.colors.text,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, size: 20),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: widget.variantes.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final item = entry.value;
-              final ativa = idx == _varianteSelecionada;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  label: Text(item.variantLabel),
-                  selected: ativa,
-                  selectedColor: context.colors.accent,
-                  labelStyle: TextStyle(
-                    color: ativa ? Colors.white : context.colors.text,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  onSelected: (selected) {
-                    if (selected) setState(() => _varianteSelecionada = idx);
-                  },
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Gabarito desta versão: ${variante.gabaritoResumido}',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: context.colors.accent,
+            const SizedBox(height: 10),
+            Text(widget.prova.title, style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 12),
+            const Text(
+              'Caderno de questões + folha de respostas em página '
+              'separada, com QRCode individual.',
+              style: TextStyle(fontSize: 12),
             ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: context.colors.input,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: context.colors.border),
-              ),
-              child: SingleChildScrollView(
+            const SizedBox(height: 8),
+            const Text(
+              'A impressão usa a ordem salva e o mesmo gabarito da '
+              'correção. As respostas corretas não são impressas.',
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: _alunoId ?? '',
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Aluno'),
+              items: [
+                DropdownMenuItem(
+                  value: '',
+                  child: Text('Todos os alunos (${widget.alunos.length})'),
+                ),
+                for (final aluno in widget.alunos)
+                  DropdownMenuItem(value: aluno.id, child: Text(aluno.nome)),
+              ],
+              onChanged: _gerando
+                  ? null
+                  : (value) =>
+                        setState(() => _alunoId = value == '' ? null : value),
+            ),
+            if (_erro != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
                 child: Text(
-                  variante.gerarLayoutProvaPdf(),
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 11,
-                    height: 1.4,
-                    color: context.colors.text,
-                  ),
+                  _erro!,
+                  style: TextStyle(color: context.colors.danger),
                 ),
               ),
+            const SizedBox(height: 20),
+            PrimaryButton(
+              label: _gerando ? 'Gerando PDF...' : 'Gerar e compartilhar PDF',
+              loading: _gerando,
+              icon: Icons.picture_as_pdf_outlined,
+              onPressed: _gerando ? null : _gerar,
             ),
-          ),
-          const SizedBox(height: 14),
-          PrimaryButton(
-            label: 'Exportar / Baixar Prova e Gabarito',
-            icon: Icons.picture_as_pdf_outlined,
-            verticalPadding: 13,
-            fontSize: 13,
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    '${variante.variantLabel} gerada com sucesso para impressão!',
-                  ),
-                ),
-              );
-              Navigator.pop(context);
-            },
-          ),
-        ],
+            TextButton(
+              onPressed: _gerando ? null : () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+          ],
+        ),
       ),
-    );
-  }
+    ),
+  );
 }

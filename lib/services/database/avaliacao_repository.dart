@@ -1,14 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../models/assessment.dart';
+import '../../models/question.dart';
+import '../random_exam_service.dart';
 import '../../models/turma.dart';
 import 'database.dart';
 
 /// Avaliações (`avaliacoes`) convertidas para o model [Assessment] usado nas
 /// telas, com o nome da turma e o total de correções já preenchidos.
 ///
-/// Ciclo de status: `rascunho` ao criar → `agendada` ao salvar o gabarito →
-/// `concluida` quando todos os alunos da turma foram corrigidos.
+/// Ciclo de status: `rascunho` ao criar → `agendada` quando o professor marca
+/// a prova como pronta ([marcarComoPronta]) → `concluida` quando todos os
+/// alunos da turma foram corrigidos.
 class AvaliacaoRepository extends FirestoreRepository {
   /// Avaliações do professor (opcionalmente de uma turma), mais recentes
   /// primeiro.
@@ -54,12 +57,34 @@ class AvaliacaoRepository extends FirestoreRepository {
     required int totalQuestoes,
     DateTime? dataAplicacao,
     List<String>? respostas,
+    List<Question>? questoes,
+    bool embaralharQuestoes = false,
+    bool embaralharAlternativas = false,
   }) async {
+    if (totalQuestoes <= 0 ||
+        (respostas != null && respostas.length != totalQuestoes)) {
+      throw ArgumentError('Quantidade de respostas diferente da prova.');
+    }
+    if (questoes != null && questoes.length != totalQuestoes) {
+      throw ArgumentError('Quantidade de questões diferente do conteúdo.');
+    }
+    final conteudo = RandomExamService.prepararQuestoes(
+      questoes ?? const [],
+      embaralharQuestoes: embaralharQuestoes,
+      embaralharAlternativas: embaralharAlternativas,
+    );
+    if (conteudo.isEmpty && (embaralharQuestoes || embaralharAlternativas)) {
+      throw ArgumentError(
+        'Cadastre o conteúdo das questões antes de embaralhar.',
+      );
+    }
     final gabarito = List.generate(
       totalQuestoes,
       (index) => QuestaoGabarito(
         questao: index + 1,
-        alternativaCorreta: respostas?[index],
+        alternativaCorreta: conteudo.isNotEmpty
+            ? conteudo[index].correctLetter
+            : respostas?[index],
       ),
     );
     final ref = await avaliacoes.add({
@@ -68,9 +93,13 @@ class AvaliacaoRepository extends FirestoreRepository {
       'titulo': titulo,
       'disciplina': disciplina,
       'status': _statusParaBanco(AssessmentStatus.draft),
-      'dataAplicacao':
-          dataAplicacao != null ? Timestamp.fromDate(dataAplicacao) : null,
+      'dataAplicacao': dataAplicacao != null
+          ? Timestamp.fromDate(dataAplicacao)
+          : null,
       'gabarito': gabarito.map(_gabaritoParaBanco).toList(),
+      'questoes': conteudo.map((question) => question.toMap()).toList(),
+      'embaralharQuestoes': embaralharQuestoes,
+      'embaralharAlternativas': embaralharAlternativas,
       'criadoEm': FieldValue.serverTimestamp(),
     });
 
@@ -78,11 +107,15 @@ class AvaliacaoRepository extends FirestoreRepository {
       id: ref.id,
       turmaId: turma.id,
       gabarito: gabarito,
+      questions: conteudo,
+      shuffleQuestions: embaralharQuestoes,
+      shuffleOptions: embaralharAlternativas,
       title: titulo,
       subject: disciplina,
       className: turma.nome,
-      dateLabel:
-          dataAplicacao != null ? formatarData(dataAplicacao) : 'Sem data',
+      dateLabel: dataAplicacao != null
+          ? formatarData(dataAplicacao)
+          : 'Sem data',
       dataAplicacao: dataAplicacao,
       status: AssessmentStatus.draft,
       totalQuestions: totalQuestoes,
@@ -128,12 +161,20 @@ class AvaliacaoRepository extends FirestoreRepository {
     await batch.commit();
   }
 
-  /// Salva o gabarito e, se a avaliação ainda era rascunho, a marca como
-  /// agendada.
+  /// Salva o gabarito sem mudar o status: uma prova em rascunho continua em
+  /// rascunho até ser marcada como pronta.
+  ///
+  /// Lança [StateError] se a prova já não for rascunho
+  /// ([Assessment.gabaritoEditavel]).
   Future<Assessment> salvarGabarito(
     Assessment avaliacao,
     List<String> respostas,
   ) async {
+    if (!(await buscar(avaliacao.id)).gabaritoEditavel) {
+      throw StateError(
+        'O gabarito não pode ser alterado depois que a prova está pronta',
+      );
+    }
     final gabarito = [
       for (var i = 0; i < respostas.length; i++)
         QuestaoGabarito(
@@ -142,15 +183,47 @@ class AvaliacaoRepository extends FirestoreRepository {
           peso: i < avaliacao.gabarito.length ? avaliacao.gabarito[i].peso : 1,
         ),
     ];
-    final status = avaliacao.status == AssessmentStatus.draft
-        ? AssessmentStatus.scheduled
-        : avaliacao.status;
-
+    final conteudo = avaliacao.questions;
+    if (conteudo.isNotEmpty && respostas.length != conteudo.length) {
+      throw ArgumentError('O gabarito deve corresponder às questões salvas.');
+    }
+    final atualizado = <Question>[];
+    for (var i = 0; i < conteudo.length; i++) {
+      if (respostas[i].length != 1) {
+        throw ArgumentError('Informe uma alternativa para a questão ${i + 1}.');
+      }
+      final correta = respostas[i].codeUnitAt(0) - 65;
+      if (correta < 0 || correta >= conteudo[i].options.length) {
+        throw ArgumentError('Alternativa fora das opções da questão ${i + 1}.');
+      }
+      atualizado.add(conteudo[i].copyWith(correctIndex: correta));
+    }
     await avaliacoes.doc(avaliacao.id).update({
       'gabarito': gabarito.map(_gabaritoParaBanco).toList(),
-      'status': _statusParaBanco(status),
+      if (conteudo.isNotEmpty)
+        'questoes': atualizado.map((question) => question.toMap()).toList(),
     });
     return buscar(avaliacao.id);
+  }
+
+  /// Marca uma prova em rascunho como pronta, passando-a para `agendada`.
+  ///
+  /// Lança [StateError] se a prova não estiver em rascunho ou se o gabarito
+  /// ainda tiver questões sem alternativa correta.
+  Future<Assessment> marcarComoPronta(Assessment avaliacao) async {
+    final atual = await buscar(avaliacao.id);
+    if (atual.status != AssessmentStatus.draft) {
+      throw StateError(
+        'Apenas provas em rascunho podem ser marcadas como prontas',
+      );
+    }
+    if (!atual.gabaritoConfigurado) {
+      throw StateError(
+        'Configure o gabarito antes de marcar a prova como pronta',
+      );
+    }
+    await atualizarStatus(atual.id, AssessmentStatus.scheduled);
+    return buscar(atual.id);
   }
 
   Future<void> atualizarStatus(String id, AssessmentStatus status) {
@@ -189,6 +262,13 @@ class AvaliacaoRepository extends FirestoreRepository {
       id: doc.id,
       turmaId: data['turmaId'] as String? ?? '',
       gabarito: gabarito,
+      questions: ((data['questoes'] as List?) ?? const [])
+          .map(
+            (item) => Question.fromMap(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList(),
+      shuffleQuestions: data['embaralharQuestoes'] == true,
+      shuffleOptions: data['embaralharAlternativas'] == true,
       title: data['titulo'] as String? ?? '',
       subject: data['disciplina'] as String? ?? turma?.disciplina ?? '',
       className: turma?.nome ?? 'Turma removida',

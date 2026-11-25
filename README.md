@@ -440,3 +440,27 @@ Instale o APK em Android e confira login, persistência de turmas e alunos após
 - Login e cadastro continuam utilizando o Firebase Authentication da versão atual. Os dados em memória usados na demonstração anterior foram retirados.
 
 Para validar esses complementos: `flutter test test/n2_workflow_test.dart`. Os testes utilizam o Firestore falso apenas em ambiente de teste.
+
+## N3 — prova em PDF e embaralhamento (#63, #69)
+
+Ao criar uma prova pela turma, informe questões com enunciado e alternativas.
+As opções **Embaralhar questões** e **Embaralhar alternativas** são independentes.
+O sorteio acontece uma única vez ao salvar; o conteúdo completo, a ordem e a
+resposta correta são persistidos no Firestore (`avaliacoes.questoes`). A
+correção usa o gabarito correspondente à mesma ordem salva.
+
+Em **Detalhes da prova → Exportar prova em PDF**, selecione todos os alunos
+ou um aluno cadastrado. O arquivo contém o caderno de questões e, em páginas
+separadas, folhas de resposta com QRCode individual (IDs de turma, prova e
+aluno). As respostas corretas não são impressas no arquivo dos alunos.
+Exportar novamente não embaralha a prova e não muda seu gabarito. O menu do
+sistema permite salvar, compartilhar ou imprimir o PDF. Fontes são assets
+locais; a geração não baixa fontes da internet.
+
+Provas antigas criadas apenas com gabarito continuam disponíveis para os
+fluxos existentes, mas a exportação do caderno é bloqueada com uma orientação
+clara: seus enunciados e alternativas não foram armazenados. Crie uma nova
+prova com o conteúdo real. Não são inventadas questões ou respostas.
+
+O PDF de estatísticas e suas barras de desempenho já existentes foram
+preservados. Esta implementação não integra PRs de outros integrantes.

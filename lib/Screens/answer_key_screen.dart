@@ -42,11 +42,17 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
       );
       if (!mounted) return;
       Navigator.pop(context, atualizada);
-    } catch (_) {
+    } catch (erro) {
       if (!mounted) return;
       setState(() => _salvando = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível salvar o gabarito')),
+        SnackBar(
+          content: Text(
+            erro is StateError
+                ? erro.message
+                : 'Não foi possível salvar o gabarito',
+          ),
+        ),
       );
     }
   }
@@ -228,10 +234,7 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
                   const SizedBox(height: 3),
                   Text(
                     '${widget.assessment.className} · ${widget.assessment.totalQuestions} questões',
-                    style: TextStyle(
-                      color: context.colors.muted,
-                      fontSize: 11,
-                    ),
+                    style: TextStyle(color: context.colors.muted, fontSize: 11),
                   ),
                 ],
               ),
@@ -270,6 +273,10 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
   }
 
   Widget _questionRow(int index) {
+    final totalOpcoes = index < widget.assessment.questions.length
+        ? widget.assessment.questions[index].options.length
+        : _options.length;
+    final opcoesDaQuestao = _options.take(totalOpcoes);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
@@ -293,7 +300,7 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
           Expanded(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: _options.map((option) {
+              children: opcoesDaQuestao.map((option) {
                 final selected = _answers[index] == option;
                 return GestureDetector(
                   onTap: () => setState(() => _answers[index] = option),

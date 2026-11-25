@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../models/assessment.dart';
+import '../models/question.dart';
 
 /// Uma variante gerada de forma randômica a partir de uma avaliação base.
 class RandomizedExamVariant {
@@ -34,7 +35,9 @@ class RandomizedExamVariant {
   String gerarLayoutProvaPdf() {
     final buffer = StringBuffer();
     buffer.writeln('========================================================');
-    buffer.writeln('                AVALIAÇÃO ESCOLAR - ${variantLabel.toUpperCase()}');
+    buffer.writeln(
+      '                AVALIAÇÃO ESCOLAR - ${variantLabel.toUpperCase()}',
+    );
     buffer.writeln('========================================================');
     buffer.writeln('Turma: ${originalAssessment.className}');
     buffer.writeln('Disciplina: ${originalAssessment.subject}');
@@ -47,13 +50,20 @@ class RandomizedExamVariant {
     buffer.writeln('1. Esta prova é a $variantLabel.');
     buffer.writeln('2. Responda às questões com caneta azul ou preta.');
     buffer.writeln('3. Preencha o cartão de respostas ao final.');
-    buffer.writeln('--------------------------------------------------------\n');
+    buffer.writeln(
+      '--------------------------------------------------------\n',
+    );
 
     for (final questao in questoes) {
       final originalNum = mapaQuestoes.entries
-          .firstWhere((e) => e.value == questao.questao, orElse: () => MapEntry(questao.questao, questao.questao))
+          .firstWhere(
+            (e) => e.value == questao.questao,
+            orElse: () => MapEntry(questao.questao, questao.questao),
+          )
           .key;
-      buffer.writeln('Questão ${questao.questao} (Peso: ${questao.peso.toStringAsFixed(1)}):');
+      buffer.writeln(
+        'Questão ${questao.questao} (Peso: ${questao.peso.toStringAsFixed(1)}):',
+      );
       buffer.writeln('  [Enunciado da questão original #$originalNum]');
       buffer.writeln('  ( ) A    ( ) B    ( ) C    ( ) D    ( ) E\n');
     }
@@ -76,7 +86,9 @@ class RandomizedExamVariant {
   String gerarGabaritoPdf() {
     final buffer = StringBuffer();
     buffer.writeln('GABARITO DO PROFESSOR - ${variantLabel.toUpperCase()}');
-    buffer.writeln('Prova: ${originalAssessment.title} (${originalAssessment.className})');
+    buffer.writeln(
+      'Prova: ${originalAssessment.title} (${originalAssessment.className})',
+    );
     buffer.writeln('Data: ${originalAssessment.dateLabel}');
     buffer.writeln('--------------------------------------------------------');
     for (final q in questoes) {
@@ -89,6 +101,37 @@ class RandomizedExamVariant {
 }
 
 abstract final class RandomExamService {
+  /// Sorteia o conteúdo uma única vez antes da persistência. Índices das
+  /// alternativas (e não seus textos) preservam a correta mesmo com duplicatas.
+  static List<Question> prepararQuestoes(
+    List<Question> questions, {
+    bool embaralharQuestoes = false,
+    bool embaralharAlternativas = false,
+    int? seed,
+  }) {
+    final random = seed == null ? Random() : Random(seed);
+    final prepared = questions.map((question) {
+      if (question.statement.trim().isEmpty ||
+          question.options.length < 2 ||
+          question.options.length > 5 ||
+          question.options.any((option) => option.trim().isEmpty) ||
+          question.correctIndex < 0 ||
+          question.correctIndex >= question.options.length) {
+        throw ArgumentError(
+          'Questão com enunciado, alternativas ou resposta inválidos.',
+        );
+      }
+      final indices = List.generate(question.options.length, (index) => index);
+      if (embaralharAlternativas) indices.shuffle(random);
+      return question.copyWith(
+        options: [for (final index in indices) question.options[index]],
+        correctIndex: indices.indexOf(question.correctIndex),
+      );
+    }).toList();
+    if (embaralharQuestoes) prepared.shuffle(random);
+    return prepared;
+  }
+
   /// Gera [quantidade] variantes da avaliação com as questões embaralhadas de forma randômica.
   /// Um [seed] opcional pode ser fornecido para garantir reprodutibilidade.
   static List<RandomizedExamVariant> gerarVariantes({
@@ -111,7 +154,8 @@ abstract final class RandomExamService {
     }
 
     for (var i = 0; i < quantidade; i++) {
-      final label = 'Tipo ${i < letras.length ? letras[i] : (i + 1).toString()}';
+      final label =
+          'Tipo ${i < letras.length ? letras[i] : (i + 1).toString()}';
       final embaralhadas = [...questoesOriginais]..shuffle(random);
 
       final novasQuestoes = <QuestaoGabarito>[];

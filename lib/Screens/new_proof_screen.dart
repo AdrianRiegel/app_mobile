@@ -20,6 +20,8 @@ class _NewProofScreenState extends State<NewProofScreen> {
   final _titleController = TextEditingController();
   DateTime? _dataAplicacao;
   bool _salvando = false;
+  bool _embaralharQuestoes = false;
+  bool _embaralharAlternativas = false;
 
   final List<Question> _questions = [];
 
@@ -111,6 +113,37 @@ class _NewProofScreenState extends State<NewProofScreen> {
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 12),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                'Embaralhar questões',
+                style: TextStyle(fontSize: 13),
+              ),
+              value: _embaralharQuestoes,
+              onChanged: _salvando
+                  ? null
+                  : (value) => setState(() => _embaralharQuestoes = value),
+            ),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                'Embaralhar alternativas',
+                style: TextStyle(fontSize: 13),
+              ),
+              subtitle: const Text(
+                'A resposta correta acompanha a nova ordem.',
+                style: TextStyle(fontSize: 11),
+              ),
+              value: _embaralharAlternativas,
+              onChanged: _salvando
+                  ? null
+                  : (value) => setState(() => _embaralharAlternativas = value),
+            ),
+            Text(
+              'A ordem é definida ao salvar e mantida nas próximas exportações.',
+              style: TextStyle(fontSize: 11, color: context.colors.muted),
             ),
             const SizedBox(height: 18),
             Row(
@@ -360,6 +393,9 @@ class _NewProofScreenState extends State<NewProofScreen> {
         disciplina: widget.turma.disciplina,
         totalQuestoes: _questions.length,
         dataAplicacao: _dataAplicacao,
+        questoes: _questions,
+        embaralharQuestoes: _embaralharQuestoes,
+        embaralharAlternativas: _embaralharAlternativas,
         respostas: [
           for (final question in _questions)
             String.fromCharCode(65 + question.correctIndex),
