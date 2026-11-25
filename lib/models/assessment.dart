@@ -120,6 +120,11 @@ class Assessment {
       gabarito.isNotEmpty &&
       gabarito.every((questao) => questao.alternativaCorreta != null);
 
+  /// O gabarito só pode ser alterado enquanto a prova é rascunho: depois de
+  /// marcada como pronta ela entra na fase de leitura do QR Code e correção,
+  /// e mudar o gabarito deixaria as notas já calculadas inconsistentes.
+  bool get gabaritoEditavel => status == AssessmentStatus.draft;
+
   /// Rótulo padronizado da situação da prova.
   String get statusLabel => status.label;
 

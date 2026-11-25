@@ -385,19 +385,44 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                TextButton(
-                  onPressed: () => _openAnswerKey(context),
-                  child: Text(
-                    'Editar',
-                    style: TextStyle(
-                      color: context.colors.accent,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                if (assessment.gabaritoEditavel)
+                  TextButton(
+                    onPressed: () => _openAnswerKey(context),
+                    child: Text(
+                      'Editar',
+                      style: TextStyle(
+                        color: context.colors.accent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
+            if (!assessment.gabaritoEditavel)
+              Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      size: 14,
+                      color: context.colors.muted,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Gabarito bloqueado: a prova já está pronta para '
+                        'leitura e correção.',
+                        style: TextStyle(
+                          color: context.colors.muted,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Container(
               padding: const EdgeInsets.all(13),
               decoration: BoxDecoration(
@@ -444,19 +469,31 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
               ),
             ),
             const SizedBox(height: 24),
+            if (assessment.status == AssessmentStatus.draft) ...[
+              SecondaryButton(
+                label: 'Marcar como pronta',
+                icon: Icons.event_available_outlined,
+                verticalPadding: 14,
+                borderColor: context.colors.accent,
+                onPressed: _confirmarProntaParaAplicacao,
+              ),
+              const SizedBox(height: 10),
+            ],
             PrimaryButton(
               label: 'Iniciar correção',
               icon: Icons.qr_code_scanner,
               verticalPadding: 14,
               onPressed: () => _iniciarCorrecao(context),
             ),
-            const SizedBox(height: 10),
-            SecondaryButton(
-              label: 'Configurar gabarito',
-              icon: Icons.edit_note_outlined,
-              verticalPadding: 14,
-              onPressed: () => _openAnswerKey(context),
-            ),
+            if (assessment.gabaritoEditavel) ...[
+              const SizedBox(height: 10),
+              SecondaryButton(
+                label: 'Configurar gabarito',
+                icon: Icons.edit_note_outlined,
+                verticalPadding: 14,
+                onPressed: () => _openAnswerKey(context),
+              ),
+            ],
             const SizedBox(height: 10),
             SecondaryButton(
               label: _carregandoEstatisticas
@@ -483,6 +520,71 @@ class _AssessmentDetailScreenState extends State<AssessmentDetailScreen> {
         ),
       ),
     );
+  }
+
+  /// Passa a prova de rascunho para agendada, depois de confirmar.
+  Future<void> _confirmarProntaParaAplicacao() async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (!assessment.gabaritoConfigurado) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Configure o gabarito antes de marcar a prova como pronta',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Marcar prova como pronta?'),
+        content: const Text(
+          'A prova deixa de ser rascunho e passa para a situação Agendada, '
+          'pronta para ser aplicada e corrigida.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: context.colors.accent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Marcar como pronta'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+
+    try {
+      final atualizada = await runWithLoader(
+        context,
+        () => AvaliacaoRepository().marcarComoPronta(assessment),
+        message: 'Atualizando situação...',
+      );
+      if (!mounted) return;
+      setState(() => assessment = atualizada);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Prova marcada como pronta (Agendada)')),
+      );
+    } catch (erro) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            erro is StateError
+                ? erro.message
+                : 'Não foi possível atualizar a situação da prova',
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _confirmarEncerramento(BuildContext context) async {

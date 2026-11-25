@@ -42,11 +42,17 @@ class _AnswerKeyScreenState extends State<AnswerKeyScreen> {
       );
       if (!mounted) return;
       Navigator.pop(context, atualizada);
-    } catch (_) {
+    } catch (erro) {
       if (!mounted) return;
       setState(() => _salvando = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível salvar o gabarito')),
+        SnackBar(
+          content: Text(
+            erro is StateError
+                ? erro.message
+                : 'Não foi possível salvar o gabarito',
+          ),
+        ),
       );
     }
   }

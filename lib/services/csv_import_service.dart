@@ -315,12 +315,14 @@ abstract final class CsvImportService {
   /// Colunas esperadas em [parseProofQuestions], na ordem sem cabeçalho.
   static const proofQuestionsColumns = 'enunciado;a;b;c;d;correta';
 
-  /// Converte um CSV em questões completas de prova, com 4 alternativas.
+  /// Converte um CSV em questões completas de prova, com 4 ou 5 alternativas.
   ///
   /// Com cabeçalho, as colunas podem vir em qualquer ordem: `enunciado` (ou
   /// `pergunta`), `a`, `b`, `c`, `d` (ou `alternativa a`, `opção a`...) e
-  /// `correta` (ou `resposta`, `gabarito`). Sem cabeçalho, vale a ordem de
-  /// [proofQuestionsColumns]. A correta é a letra da alternativa (A a D).
+  /// `correta` (ou `resposta`, `gabarito`); a coluna `e` é opcional e, quando
+  /// preenchida, vira a 5ª alternativa. Sem cabeçalho, vale a ordem de
+  /// [proofQuestionsColumns], ou `enunciado;a;b;c;d;e;correta` em linhas com
+  /// 7 colunas. A correta é a letra de uma das alternativas da linha.
   static CsvProofQuestionsResult parseProofQuestions(String content) {
     final lines = const LineSplitter().convert(content);
     final questoes = <Question>[];
@@ -343,6 +345,8 @@ abstract final class CsvImportService {
     var enunciadoIndex = 0;
     var alternativasIndex = [1, 2, 3, 4];
     var corretaIndex = 5;
+    var quintaIndex = -1; // coluna `e` opcional
+    var comCabecalho = false;
     var startIndex = firstIndex;
 
     final cabecalhoEnunciado = header.indexWhere(
@@ -354,6 +358,8 @@ abstract final class CsvImportService {
         for (final letra in ['a', 'b', 'c', 'd'])
           header.indexWhere((h) => _letraDaColuna(h) == letra),
       ];
+      quintaIndex = header.indexWhere((h) => _letraDaColuna(h) == 'e');
+      comCabecalho = true;
       corretaIndex = header.indexWhere(
         (h) =>
             h.contains('correta') ||
@@ -380,7 +386,17 @@ abstract final class CsvImportService {
       final alternativas = [
         for (final index in alternativasIndex) _fieldAt(fields, index),
       ];
-      final correta = _fieldAt(fields, corretaIndex).toUpperCase();
+      // 5ª alternativa: coluna `e` do cabeçalho ou 7 colunas sem cabeçalho.
+      final linhaCom5 = !comCabecalho && fields.length >= 7;
+      final quinta = comCabecalho
+          ? (quintaIndex == -1 ? '' : _fieldAt(fields, quintaIndex))
+          : (linhaCom5 ? _fieldAt(fields, 5) : '');
+      if (quinta.isNotEmpty) alternativas.add(quinta);
+      final correta = _fieldAt(
+        fields,
+        linhaCom5 ? 6 : corretaIndex,
+      ).toUpperCase();
+      final ultimaLetra = String.fromCharCode(64 + alternativas.length);
 
       if (enunciado.isEmpty) {
         erros.add('Linha $lineNumber: enunciado vazio');
@@ -390,10 +406,10 @@ abstract final class CsvImportService {
         erros.add('Linha $lineNumber: preencha as 4 alternativas');
         continue;
       }
-      if (!RegExp(r'^[A-D]$').hasMatch(correta)) {
+      if (!RegExp('^[A-$ultimaLetra]\$').hasMatch(correta)) {
         erros.add(
           'Linha $lineNumber: alternativa correta "$correta" inválida '
-          '(use A, B, C ou D)',
+          '(use ${alternativas.length == 5 ? 'A, B, C, D ou E' : 'A, B, C ou D'})',
         );
         continue;
       }

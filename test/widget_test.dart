@@ -46,6 +46,10 @@ void main() {
 
   testWidgets('navega do painel até o gabarito e salva', (tester) async {
     final firestore = await configurarBancoFalso();
+    // O gabarito só é editável enquanto a prova é rascunho (#67).
+    await firestore.collection('avaliacoes').doc('aval-1').update({
+      'status': 'rascunho',
+    });
     await tester.pumpWidget(const EduTurmasApp(logado: true));
     await tester.pumpAndSettle();
 
