@@ -179,6 +179,14 @@ void main() {
 
     await _passo('Correção de um aluno', () async {
       await tester.tap(find.text('Iniciar correção'));
+      // Sem câmera no navegador automatizado: escolha manual do aluno.
+      await _aguardar(
+        tester,
+        find.text('QR Code ilegível? Escolher avaliação e aluno'),
+      );
+      await tester.tap(
+        find.text('QR Code ilegível? Escolher avaliação e aluno'),
+      );
       await _aguardar(
         tester,
         find.text('Continuar para identificação do aluno'),
@@ -192,8 +200,15 @@ void main() {
       await _aguardar(tester, find.text('Continuar para leitura da folha'));
       await tester.tap(find.text('Continuar para leitura da folha'));
 
-      await _aguardar(tester, find.text('Simular leitura da Folha'));
-      await tester.tap(find.text('Simular leitura da Folha'));
+      await _aguardar(tester, find.text('Digitar respostas'));
+      await tester.tap(find.text('Digitar respostas'));
+      await _aguardar(tester, find.text('Revisão do Cartão'));
+      await tester.scrollUntilVisible(
+        find.text('Confirmar respostas e continuar'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Confirmar respostas e continuar'));
       await _aguardar(tester, find.text('Continuar para resultado'));
       await tester.tap(find.text('Continuar para resultado'));
       await _aguardar(tester, find.text('Nota Final'));

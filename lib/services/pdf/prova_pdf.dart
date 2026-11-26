@@ -6,6 +6,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../../models/aluno.dart';
 import '../../models/assessment.dart';
+import '../omr/answer_sheet_layout.dart';
 import '../proof_qr_payload.dart';
 
 /// Exporta o conteúdo definitivo salvo, sem sortear outra versão na impressão.
@@ -105,84 +106,116 @@ abstract final class ProvaPdf {
           ],
         ),
       );
-      // Folhas de resposta começam sempre numa página própria. O QR se repete
-      // em cada continuação; não contém nem expõe as alternativas corretas.
-      for (var inicio = 0; inicio < prova.questions.length; inicio += 15) {
-        final fim = (inicio + 15).clamp(0, prova.questions.length);
-        doc.addPage(
-          pw.Page(
-            pageFormat: PdfPageFormat.a4,
-            margin: const pw.EdgeInsets.all(36),
-            build: (_) => pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-              children: [
-                _identificacao(prova, aluno, 'Folha de respostas'),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Expanded(
-                      child: pw.Text(
-                        'Preencha somente uma alternativa por questão.\n'
-                        'Use caneta azul ou preta. Não rasure o QRCode.\n'
-                        'Questões ${inicio + 1} a $fim de ${prova.questions.length}.',
-                        style: const pw.TextStyle(fontSize: 10, lineSpacing: 4),
-                      ),
-                    ),
-                    pw.SizedBox(width: 16),
-                    pw.Container(
-                      padding: const pw.EdgeInsets.all(8),
-                      color: PdfColors.white,
-                      child: pw.BarcodeWidget(
-                        barcode: pw.Barcode.qrCode(),
-                        data: ProofQrPayload(
-                          classId: prova.turmaId,
-                          proofId: prova.id,
-                          studentId: aluno.id,
-                        ).encode(),
-                        width: 100,
-                        height: 100,
-                      ),
-                    ),
-                  ],
-                ),
-                pw.SizedBox(height: 18),
-                for (var i = inicio; i < fim; i++)
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.symmetric(vertical: 5),
-                    child: pw.Row(
-                      children: [
-                        pw.SizedBox(width: 45, child: pw.Text('${i + 1}.')),
-                        for (
-                          var j = 0;
-                          j < prova.questions[i].options.length;
-                          j++
-                        )
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.only(right: 22),
-                            child: pw.Container(
-                              width: 19,
-                              height: 19,
-                              alignment: pw.Alignment.center,
-                              decoration: pw.BoxDecoration(
-                                shape: pw.BoxShape.circle,
-                                border: pw.Border.all(color: PdfColors.black),
-                              ),
-                              child: pw.Text(
-                                String.fromCharCode(65 + j),
-                                style: const pw.TextStyle(fontSize: 10),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
+      // Folhas de resposta começam sempre numa página própria, com geometria
+      // fixa (AnswerSheetLayout) para a leitura pela câmera. O QR se repete
+      // em cada folha; não contém nem expõe as alternativas corretas.
+      final folhas = AnswerSheetLayout.pageCount(prova.questions.length);
+      for (var folha = 0; folha < folhas; folha++) {
+        doc.addPage(_folhaDeRespostas(prova, aluno, folha, folhas));
       }
     }
     return doc.save();
+  }
+
+  static pw.Page _folhaDeRespostas(
+    Assessment prova,
+    Aluno aluno,
+    int folha,
+    int folhas,
+  ) {
+    final total = prova.questions.length;
+    final (inicio, fim) = AnswerSheetLayout.questionRange(folha, total);
+
+    pw.Widget marcador((double, double) centro) => pw.Positioned(
+      left: centro.$1 - AnswerSheetLayout.markerSize / 2,
+      top: centro.$2 - AnswerSheetLayout.markerSize / 2,
+      child: pw.Container(
+        width: AnswerSheetLayout.markerSize,
+        height: AnswerSheetLayout.markerSize,
+        color: PdfColors.black,
+      ),
+    );
+
+    return pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      margin: pw.EdgeInsets.zero,
+      build: (_) => pw.Stack(
+        children: [
+          for (final centro in AnswerSheetLayout.markerCenters) marcador(centro),
+          pw.Positioned(
+            left: 72,
+            top: 64,
+            child: pw.SizedBox(
+              width: 340,
+              child: _identificacao(prova, aluno, 'Folha de respostas'),
+            ),
+          ),
+          pw.Positioned(
+            left: 72,
+            top: 182,
+            child: pw.SizedBox(
+              width: 340,
+              child: pw.Text(
+                'Pinte a bolha inteira de uma alternativa por questão, com '
+                'caneta azul ou preta. Não rasure o QR Code nem os quadrados '
+                'pretos dos cantos.\n'
+                'Questões ${inicio + 1} a $fim de $total'
+                '${folhas > 1 ? ' · Folha ${folha + 1} de $folhas' : ''}.',
+                style: const pw.TextStyle(fontSize: 9, lineSpacing: 3),
+              ),
+            ),
+          ),
+          pw.Positioned(
+            left: AnswerSheetLayout.qrLeft,
+            top: AnswerSheetLayout.qrTop,
+            child: pw.BarcodeWidget(
+              barcode: pw.Barcode.qrCode(),
+              data: ProofQrPayload(
+                classId: prova.turmaId,
+                proofId: prova.id,
+                studentId: aluno.id,
+              ).encode(),
+              width: AnswerSheetLayout.qrSize,
+              height: AnswerSheetLayout.qrSize,
+            ),
+          ),
+          for (var i = inicio; i < fim; i++) ...[
+            pw.Positioned(
+              left: AnswerSheetLayout.numberOrigin(i - inicio).$1,
+              top: AnswerSheetLayout.numberOrigin(i - inicio).$2,
+              child: pw.Text(
+                '${i + 1}.',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
+            for (var j = 0; j < prova.questions[i].options.length; j++)
+              pw.Positioned(
+                left: AnswerSheetLayout.bubbleCenter(i - inicio, j).$1 - AnswerSheetLayout.bubbleRadius,
+                top: AnswerSheetLayout.bubbleCenter(i - inicio, j).$2 - AnswerSheetLayout.bubbleRadius,
+                child: pw.Container(
+                  width: AnswerSheetLayout.bubbleRadius * 2,
+                  height: AnswerSheetLayout.bubbleRadius * 2,
+                  alignment: pw.Alignment.center,
+                  decoration: pw.BoxDecoration(
+                    shape: pw.BoxShape.circle,
+                    border: pw.Border.all(color: PdfColors.grey700, width: 0.8),
+                  ),
+                  child: pw.Text(
+                    AnswerSheetLayout.letters[j],
+                    style: const pw.TextStyle(
+                      fontSize: 7,
+                      color: PdfColors.grey700,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
   }
 
   static pw.Widget _identificacao(

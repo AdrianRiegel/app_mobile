@@ -195,7 +195,7 @@ void main() {
     },
   );
 
-  testWidgets('etapa de leitura não exibe botão de simular leitura da folha', (
+  testWidgets('correção começa pela foto da folha, sem simulação', (
     tester,
   ) async {
     await configurarBancoFalso();
@@ -206,18 +206,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Continuar para identificação do aluno'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Selecione um aluno...'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Ana Beatriz (2026041)').last);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Continuar para leitura da folha'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Abrir câmera e fotografar'), findsOneWidget);
+    expect(find.text('Fotografar folha'), findsOneWidget);
+    expect(find.text('Selecione um aluno...'), findsNothing);
     expect(find.text('Simular leitura da Folha'), findsNothing);
   });
 }

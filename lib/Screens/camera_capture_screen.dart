@@ -8,9 +8,12 @@ import '../services/camera_service.dart';
 import '../theme/app_colors.dart';
 
 class CameraCaptureScreen extends StatefulWidget {
-  const CameraCaptureScreen({super.key, this.service});
+  const CameraCaptureScreen({super.key, this.service, this.instruction});
 
   final CameraService? service;
+
+  /// Orientação exibida acima do visor.
+  final String? instruction;
 
   @override
   State<CameraCaptureScreen> createState() => _CameraCaptureScreenState();
@@ -308,12 +311,14 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
 
     return Column(
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Text(
-            'Enquadre o cartão de respostas dentro da área delimitada',
+            widget.instruction ??
+                'Enquadre a folha de respostas inteira, com os 4 quadrados '
+                    'pretos dos cantos visíveis',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 13),
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
         ),
         Expanded(
