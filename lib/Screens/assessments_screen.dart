@@ -236,15 +236,11 @@ class _AssessmentsScreenState extends State<AssessmentsScreen> {
     );
   }
 
+  /// A prova e o aluno vêm do QR Code de cada folha fotografada.
   Future<void> _startQuickCorrection() async {
-    final selected = _assessments
-        .where((item) => item.status == AssessmentStatus.scheduled)
-        .firstOrNull;
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => CorrectionStartScreen(assessment: selected),
-      ),
+      MaterialPageRoute(builder: (_) => const CorrectionStartScreen()),
     );
     _carregar();
   }

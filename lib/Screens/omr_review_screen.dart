@@ -153,7 +153,9 @@ class _OmrReviewScreenState extends State<OmrReviewScreen> {
                     Wrap(
                       spacing: 8,
                       children: [
-                        for (final opt in options)
+                        for (final opt in question.bubbles.isEmpty
+                            ? options
+                            : question.bubbles.map((b) => b.alternativa))
                           ChoiceChip(
                             label: Text(opt),
                             selected: currentSelection == opt,

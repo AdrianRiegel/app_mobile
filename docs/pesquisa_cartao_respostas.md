@@ -28,13 +28,13 @@ Adotou-se a **Abordagem 3 (Motor Algorítmico Puro em Dart)** combinada com um *
 ## 3. Especificação do Cartão de Resposta
 
 ### 3.1. Geometria e Âncoras (Fiduciais)
-- **Formato**: Proporção retangular (A5 ou 10 × 15 cm).
-- **Fiduciais nos Cantos**: Quatro quadrados pretos sólidos (15 × 15 mm) localizados nos quatro vértices do cartão. São utilizados para detectar os cantos do documento e aplicar a transformação de perspectiva (Homografia 2D).
-- **Identificação da Prova/Aluno**: Bloco com QR Code no topo para identificar automaticamente `avaliacaoId` e `alunoId`.
+A geometria fica em `lib/services/omr/answer_sheet_layout.dart` e é a mesma usada pelo PDF (`ProvaPdf`) e pelo leitor da foto (`OmrImageReader`).
+- **Formato**: página A4 (595 × 842 pontos), uma folha para cada 40 questões.
+- **Fiduciais nos Cantos**: quatro quadrados pretos sólidos (28 × 28 pt, a 28 pt das bordas). O leitor localiza os quatro e calcula a homografia entre a folha e a foto, o que corrige perspectiva e inclinação.
+- **Identificação da Prova/Aluno**: QR Code no canto superior direito com `class_id`, `proof_id` e `student_id`. A região escura do QR também indica se a foto está girada (90°, 180°).
 - **Grade de Respostas**:
-  - Linhas: Questões numeradas de 1 a N.
-  - Colunas: 5 alternativas por questão (`A`, `B`, `C`, `D`, `E`).
-  - Bolhas circulares com raio de 4 mm e espaçamento regular.
+  - 2 colunas de 20 questões, numeradas.
+  - De 2 a 5 bolhas por questão (só as alternativas que a questão tem), raio de 8,5 pt e espaçamento de 30 pt.
 
 ---
 
@@ -92,7 +92,7 @@ Quando o processador OMR identifica que o cartão possui confiança global $< 70
 
 Os testes automatizados cobrem todos os cenários lógicos e de borda do motor OMR:
 ```bash
-flutter test test/omr_test.dart
+flutter test test/omr_test.dart test/omr_image_reader_test.dart test/leitura_folha_test.dart
 ```
 Cenários validados:
 - Cartão com 100% de confiança e respostas nítidas.

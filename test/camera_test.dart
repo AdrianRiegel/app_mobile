@@ -85,7 +85,7 @@ void main() {
 
       expect(find.text('Escanear Folha de Resposta'), findsOneWidget);
       expect(
-        find.text('Enquadre o cartão de respostas dentro da área delimitada'),
+        find.textContaining('4 quadrados pretos dos cantos'),
         findsOneWidget,
       );
       expect(find.byIcon(Icons.camera_alt), findsOneWidget);
@@ -150,7 +150,7 @@ void main() {
 
       // Volta ao visor
       expect(
-        find.text('Enquadre o cartão de respostas dentro da área delimitada'),
+        find.textContaining('4 quadrados pretos dos cantos'),
         findsOneWidget,
       );
     });

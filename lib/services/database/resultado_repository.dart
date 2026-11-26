@@ -58,8 +58,16 @@ class ResultadoRepository extends FirestoreRepository {
     }
 
     final docId = '${avaliacao.id}_${aluno.id}';
-    final docExistente = await resultados.doc(docId).get();
-    if (docExistente.exists && !permitirSobrescrita) {
+    // Consulta filtrada pelo professor em vez de `doc(docId).get()`: as
+    // regras do Firestore negam a leitura de um resultado que ainda não
+    // existe (`resource` é nulo), o que fazia toda primeira correção falhar.
+    final existentes = await resultados
+        .where('professorId', isEqualTo: professorId)
+        .where('avaliacaoId', isEqualTo: avaliacao.id)
+        .where('alunoId', isEqualTo: aluno.id)
+        .limit(1)
+        .get();
+    if (existentes.docs.isNotEmpty && !permitirSobrescrita) {
       throw StateError(
         'A prova deste aluno já foi corrigida nesta avaliação',
       );

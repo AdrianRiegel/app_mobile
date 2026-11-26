@@ -1,35 +1,65 @@
-import 'dart:math';
-
+import 'package:firebase_core/firebase_core.dart' show FirebaseException;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../components/components.dart';
 import '../models/aluno.dart';
 import '../models/assessment.dart';
 import '../models/resultado.dart';
+import '../services/omr/answer_sheet_layout.dart';
+import '../services/omr/omr_image_reader.dart';
+import '../services/omr/omr_models.dart';
 import '../services/omr/omr_processor.dart';
+import '../services/proof_qr_payload.dart';
 import 'omr_review_screen.dart';
 import '../services/camera_service.dart';
 import 'camera_capture_screen.dart';
 import '../services/database/database.dart';
 import '../theme/app_colors.dart';
 
-class CorrectionStartScreen extends StatefulWidget {
-  const CorrectionStartScreen({super.key, this.assessment});
+/// Lê uma foto da folha: o QR Code e o preenchimento das bolhas. Devolve a
+/// leitura ou a mensagem de erro para o professor.
+typedef LeitorFolha =
+    Future<(AnswerSheetScan?, String?)> Function(Uint8List foto);
 
-  /// Avaliação pré-selecionada; sem ela, o professor escolhe na lista.
+class CorrectionStartScreen extends StatefulWidget {
+  const CorrectionStartScreen({super.key, this.assessment, this.leitorFolha});
+
+  /// Avaliação de onde a correção foi aberta. As folhas fotografadas
+  /// precisam ser dela; sem ela, vale a avaliação indicada no QR Code.
   final Assessment? assessment;
+
+  /// Leitura da foto; por padrão roda em outro isolate para não travar a
+  /// tela. Os testes passam uma versão síncrona.
+  final LeitorFolha? leitorFolha;
+
+  static Future<(AnswerSheetScan?, String?)> lerEmIsolate(Uint8List foto) =>
+      compute(lerFolhaAgora, foto);
+
+  static (AnswerSheetScan?, String?) lerFolhaAgora(Uint8List foto) {
+    try {
+      return (OmrImageReader.scan(foto), null);
+    } on AnswerSheetReadException catch (e) {
+      return (null, e.message);
+    } catch (_) {
+      return (null, 'Não foi possível ler a foto da folha.');
+    }
+  }
 
   @override
   State<CorrectionStartScreen> createState() => _CorrectionStartScreenState();
 }
 
 class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
-  int _currentStage = 0; // 0 = Avaliação, 1 = Aluno, 2 = Folha, 3 = Resultado
+  // 0 = Avaliação, 1 = Aluno, 2 = Folha, 3 = Resultado. Pelo QR Code (padrão)
+  // começa direto na Folha: a avaliação e o aluno vêm do QR.
+  int _currentStage = 2;
+
+  /// Avaliação e aluno escolhidos na lista, para folhas sem QR legível.
+  bool _modoManual = false;
   bool _reading = false;
   bool _readSuccess = false;
   bool _showGabarito = false;
-
-  final _random = Random();
 
   List<Assessment> _availableAssessments = [];
   bool _carregando = true;
@@ -49,6 +79,15 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedAssessment = widget.assessment;
+  }
+
+  void _escolherManualmente() {
+    setState(() {
+      _modoManual = true;
+      _currentStage = 0;
+      _selectedStudent = null;
+    });
     _carregarAvaliacoes();
   }
 
@@ -126,16 +165,22 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
       if (!mounted) return;
       setState(() => _salvando = false);
       _mostrarMensagem(e.message);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Erro ao salvar a correção: $e');
       if (!mounted) return;
       setState(() => _salvando = false);
-      _mostrarMensagem('Não foi possível salvar a correção');
+      _mostrarMensagem(
+        e is FirebaseException && e.code == 'permission-denied'
+            ? 'Sem permissão para salvar a correção. Entre de novo na conta.'
+            : 'Não foi possível salvar a correção. Verifique a conexão.',
+      );
     }
   }
 
   void _corrigirProximoAluno() {
     setState(() {
-      _currentStage = 1;
+      _currentStage = _modoManual ? 1 : 2;
+      if (!_modoManual) _selectedAssessment = widget.assessment;
       _selectedStudent = null;
       _readSuccess = false;
       _showGabarito = false;
@@ -158,7 +203,9 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         onBack: () {
           if (_currentStage == 3 && _showGabarito) {
             setState(() => _showGabarito = false);
-          } else if (_currentStage > 0) {
+          } else if (!_modoManual && _currentStage == 3) {
+            _corrigirProximoAluno();
+          } else if (_modoManual && _currentStage > 0) {
             setState(() {
               _currentStage--;
               _readSuccess = false;
@@ -262,8 +309,12 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
   }
 
   Widget _steps() {
-    const labels = ['Avaliação', 'Aluno', 'Folha', 'Resultado'];
-    int currentStep = _currentStage;
+    final labels = _modoManual
+        ? const ['Avaliação', 'Aluno', 'Folha', 'Resultado']
+        : const ['Folha', 'Resultado'];
+    final currentStep = _modoManual
+        ? _currentStage
+        : (_currentStage == 3 ? 1 : 0);
 
     return Row(
       children: List.generate(labels.length, (index) {
@@ -619,7 +670,11 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         ),
         const SizedBox(height: 18),
         Text(
-          _reading ? 'Lendo...' : 'Folha de respostas',
+          _reading
+              ? 'Lendo...'
+              : _modoManual
+              ? 'Folha de ${_selectedStudent?.nome ?? 'aluno'}'
+              : 'Fotografe a folha de respostas',
           style: TextStyle(
             color: context.colors.text,
             fontSize: 14,
@@ -628,17 +683,37 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         ),
         const SizedBox(height: 5),
         Text(
-          'Enquadre a folha inteira na câmera para ler as respostas.',
+          _modoManual
+              ? 'Enquadre a folha inteira, com os 4 quadrados pretos dos '
+                    'cantos visíveis.'
+              : 'O QR Code da folha identifica a prova e o aluno. Enquadre a '
+                    'folha inteira, com os 4 quadrados pretos dos cantos e o QR '
+                    'Code visíveis.',
           textAlign: TextAlign.center,
           style: TextStyle(color: context.colors.muted, fontSize: 11),
         ),
         const SizedBox(height: 22),
         PrimaryButton(
-          label: 'Abrir câmera e fotografar',
+          label: 'Fotografar folha',
           icon: Icons.camera_alt_outlined,
           verticalPadding: 14,
           onPressed: _reading ? null : _abrirCamera,
         ),
+        const SizedBox(height: 10),
+        if (_modoManual)
+          SecondaryButton(
+            label: 'Digitar respostas',
+            icon: Icons.edit_note,
+            onPressed: _reading ? null : _digitarRespostas,
+          )
+        else
+          TextButton(
+            onPressed: _reading ? null : _escolherManualmente,
+            child: Text(
+              'QR Code ilegível? Escolher avaliação e aluno',
+              style: TextStyle(color: context.colors.accent, fontSize: 12),
+            ),
+          ),
       ],
     );
   }
@@ -677,6 +752,19 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
+          if (_selectedStudent != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Aluno(a): ${_selectedStudent!.nome} · '
+              'Matrícula ${_selectedStudent!.matricula}',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.colors.text,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
           if (_capturedImage != null) ...[
             const SizedBox(height: 6),
             Text(
@@ -818,7 +906,7 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
         ),
         const SizedBox(height: 10),
         PrimaryButton(
-          label: 'Corrigir próximo aluno',
+          label: _modoManual ? 'Corrigir próximo aluno' : 'Corrigir próxima folha',
           verticalPadding: 14,
           onPressed: _corrigirProximoAluno,
         ),
@@ -913,41 +1001,214 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
     );
   }
 
-  Future<void> _abrirCamera() async {
-    final image = await Navigator.push<CapturedImage>(
-      context,
-      MaterialPageRoute(builder: (_) => const CameraCaptureScreen()),
-    );
-    if (image == null || !mounted) return;
-    setState(() => _capturedImage = image);
-    await _simulateRead();
+  /// Alternativas impressas de cada questão (provas antigas, sem o conteúdo
+  /// das questões, usam A a E).
+  List<int> get _alternativasPorQuestao {
+    final prova = _selectedAssessment!;
+    if (prova.questions.length == prova.gabarito.length) {
+      return [for (final q in prova.questions) q.options.length];
+    }
+    return List.filled(prova.gabarito.length, AnswerSheetLayout.letters.length);
   }
 
-  /// Simula a leitura óptica da folha: cada questão tem 70% de chance de vir
-  /// com a alternativa correta do gabarito.
-  Future<void> _simulateRead({bool simularAmbiguidade = false}) async {
-    setState(() => _reading = true);
-    await Future<void>.delayed(const Duration(milliseconds: 900));
-    if (!mounted) return;
+  Future<void> _abrirCamera() async {
+    final leitor = widget.leitorFolha ?? CorrectionStartScreen.lerEmIsolate;
+    final leituras = <AnswerSheetScan>[];
+    int? folhas;
 
-    const alternativas = ['A', 'B', 'C', 'D', 'E'];
-    final rawRespostas = [
-      for (final questao in _selectedAssessment!.gabarito)
-        _random.nextDouble() < 0.7
-            ? questao.alternativaCorreta
-            : alternativas[_random.nextInt(alternativas.length)],
+    for (var folha = 0; folhas == null || folha < folhas; folha++) {
+      final image = await Navigator.push<CapturedImage>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CameraCaptureScreen(
+            instruction: folhas != null && folhas > 1
+                ? 'Folha ${folha + 1} de $folhas de '
+                      '${_selectedStudent?.nome ?? 'aluno'}: enquadre a folha '
+                      'inteira, com os 4 quadrados pretos dos cantos'
+                : null,
+          ),
+        ),
+      );
+      if (image == null || !mounted) {
+        _cancelarLeitura();
+        return;
+      }
+      setState(() {
+        _capturedImage = image;
+        _reading = true;
+      });
+
+      final (scan, erroLeitura) = await leitor(image.bytes ?? Uint8List(0));
+      if (!mounted) return;
+      final erro =
+          erroLeitura ??
+          (scan == null
+              ? 'Não foi possível ler a foto da folha.'
+              : await _identificar(scan.qrText));
+      if (!mounted) return;
+      if (erro != null) {
+        _cancelarLeitura();
+        _mostrarMensagem(erro);
+        return;
+      }
+      leituras.add(scan!);
+      folhas ??= AnswerSheetLayout.pageCount(_alternativasPorQuestao.length);
+    }
+
+    final alternativas = _alternativasPorQuestao;
+    final densidades = <List<double>>[
+      for (var folha = 0; folha < leituras.length; folha++)
+        ...() {
+          final (inicio, fim) = AnswerSheetLayout.questionRange(
+            folha,
+            alternativas.length,
+          );
+          return leituras[folha].densities(alternativas.sublist(inicio, fim));
+        }(),
     ];
 
-    final matrix = OmrProcessor.createDensityMatrix(
-      answers: rawRespostas,
-      ambiguousQuestions: simularAmbiguidade && rawRespostas.isNotEmpty
-          ? {1}
-          : null,
+    final omrResult = OmrProcessor.processDensityMatrix(
+      densidades,
+      options: AnswerSheetLayout.letters,
     );
+    await _concluirLeitura(omrResult);
+  }
 
-    final omrResult = OmrProcessor.processDensityMatrix(matrix);
-    List<String?> respostasFinais = omrResult.formattedAnswers;
+  /// Desfaz uma leitura interrompida. Pelo QR Code, a próxima foto volta a
+  /// identificar a prova e o aluno.
+  void _cancelarLeitura() {
+    if (!mounted) return;
+    setState(() {
+      _reading = false;
+      _capturedImage = null;
+      if (!_modoManual) {
+        _selectedStudent = null;
+        _selectedAssessment = widget.assessment;
+      }
+    });
+  }
 
+  /// Identifica a prova e o aluno pelo QR Code da folha. Devolve a mensagem
+  /// de erro, ou `null` se a folha pode ser corrigida.
+  Future<String?> _identificar(String? qrText) async {
+    final jaIdentificado =
+        _selectedAssessment != null && _selectedStudent != null;
+    if (qrText == null) {
+      // Na escolha manual (ou nas folhas seguintes), a foto basta.
+      if (jaIdentificado) return null;
+      return 'Não consegui ler o QR Code da folha. Fotografe de novo com o '
+          'QR Code nítido ou escolha a avaliação e o aluno.';
+    }
+
+    final ProofQrPayload qr;
+    try {
+      qr = ProofQrPayload.decode(qrText);
+    } on FormatException {
+      return 'Este QR Code não é de uma folha de respostas do EduTurmas.';
+    }
+
+    if (jaIdentificado) {
+      if (qr.proofId != _selectedAssessment!.id) {
+        return 'Esta folha é de outra prova, não de '
+            '"${_selectedAssessment!.title}".';
+      }
+      if (qr.studentId != _selectedStudent!.id) {
+        final dono = _alunos.where((a) => a.id == qr.studentId).firstOrNull;
+        return 'Esta folha é de ${dono?.nome ?? 'outro aluno'}, não de '
+            '${_selectedStudent!.nome}.';
+      }
+      return null;
+    }
+
+    final esperada = widget.assessment;
+    if (esperada != null && qr.proofId != esperada.id) {
+      return 'Esta folha é de outra prova, não de "${esperada.title}".';
+    }
+
+    final Assessment prova;
+    final List<Aluno> alunos;
+    final List<Resultado> resultados;
+    try {
+      prova = await AvaliacaoRepository().buscar(qr.proofId);
+      if (prova.turmaId != qr.classId) {
+        return 'O QR Code não corresponde à turma desta prova.';
+      }
+      alunos = await AlunoRepository().listarPorTurma(prova.turmaId);
+      resultados = await ResultadoRepository().listarPorAvaliacao(prova.id);
+    } on StateError {
+      return 'A prova desta folha não foi encontrada. Ela pode ter sido '
+          'excluída.';
+    } on FirebaseException catch (e) {
+      // Prova de outro professor: as regras negam a leitura.
+      if (e.code == 'permission-denied') {
+        return 'A prova desta folha não foi encontrada na sua conta.';
+      }
+      return 'Não foi possível carregar a prova desta folha. Verifique a '
+          'conexão e tente de novo.';
+    } catch (_) {
+      return 'Não foi possível carregar a prova desta folha. Verifique a '
+          'conexão e tente de novo.';
+    }
+
+    if (prova.isCompleted) {
+      return 'A correção de "${prova.title}" já foi encerrada.';
+    }
+    if (!prova.gabaritoConfigurado) {
+      return 'Configure o gabarito de "${prova.title}" antes de corrigir.';
+    }
+    final aluno = alunos.where((a) => a.id == qr.studentId).firstOrNull;
+    if (aluno == null) {
+      return 'O aluno desta folha não está mais cadastrado na turma.';
+    }
+    final anterior = resultados.where((r) => r.alunoId == aluno.id).firstOrNull;
+    if (anterior != null) {
+      return 'A prova de ${aluno.nome} já foi corrigida '
+          '(nota ${anterior.notaCalculada.toStringAsFixed(1)}).';
+    }
+
+    if (!mounted) return null;
+    setState(() {
+      _selectedAssessment = prova;
+      _alunos = alunos;
+      _resultadosAlunos = {for (final r in resultados) r.alunoId: r};
+      _selectedStudent = aluno;
+    });
+    return null;
+  }
+
+  /// Sem foto (folha antiga, câmera indisponível): o professor informa as
+  /// alternativas na tela de revisão.
+  Future<void> _digitarRespostas() async {
+    final alternativas = _alternativasPorQuestao;
+    final resultado = OmrProcessingResult(
+      isSuccessful: true,
+      overallConfidence: 1,
+      needsManualReview: true,
+      reviewReason:
+          'Informe a alternativa marcada pelo aluno em cada questão.',
+      questions: [
+        for (var q = 0; q < alternativas.length; q++)
+          QuestionReading(
+            questao: q + 1,
+            isBlank: true,
+            bubbles: [
+              for (var op = 0; op < alternativas[q]; op++)
+                BubbleReading(
+                  questao: q + 1,
+                  alternativa: AnswerSheetLayout.letters[op],
+                  fillRatio: 0,
+                  isMarked: false,
+                ),
+            ],
+          ),
+      ],
+    );
+    setState(() => _capturedImage = null);
+    await _concluirLeitura(resultado);
+  }
+
+  Future<void> _concluirLeitura(OmrProcessingResult omrResult) async {
+    var respostas = omrResult.formattedAnswers;
     if (omrResult.needsManualReview) {
       final revisadas = await Navigator.push<List<String?>>(
         context,
@@ -958,15 +1219,16 @@ class _CorrectionStartScreenState extends State<CorrectionStartScreen> {
           ),
         ),
       );
-      if (revisadas == null || !mounted) {
+      if (!mounted) return;
+      if (revisadas == null) {
         setState(() => _reading = false);
         return;
       }
-      respostasFinais = revisadas;
+      respostas = revisadas;
     }
 
     setState(() {
-      _respostasLidas = respostasFinais;
+      _respostasLidas = respostas;
       _reading = false;
       _readSuccess = true;
     });

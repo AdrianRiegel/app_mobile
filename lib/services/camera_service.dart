@@ -109,6 +109,10 @@ class DefaultCameraService implements CameraService {
     return Platform.isAndroid || Platform.isIOS;
   }
 
+  /// No celular abre a câmera nativa; no navegador, a câmera ou o seletor de
+  /// arquivos do sistema. Só no desktop e nos testes usa uma imagem fixa.
+  bool get _usesPicker => kIsWeb || _isMobile;
+
   @override
   Future<CameraPermissionStatus> checkPermission() async {
     return _status;
@@ -151,7 +155,7 @@ class DefaultCameraService implements CameraService {
       throw const CameraException('Permissão de acesso à câmera não concedida.');
     }
 
-    if (_isMockMode || !_isMobile) {
+    if (_isMockMode || !_usesPicker) {
       return CapturedImage(
         path: 'camera_capture_${DateTime.now().millisecondsSinceEpoch}.jpg',
         name: 'folha_resposta.jpg',
@@ -192,7 +196,7 @@ class DefaultCameraService implements CameraService {
 
   @override
   Future<CapturedImage?> pickImageFromGallery() async {
-    if (_isMockMode || !_isMobile) {
+    if (_isMockMode || !_usesPicker) {
       return CapturedImage(
         path: 'gallery_image_${DateTime.now().millisecondsSinceEpoch}.jpg',
         name: 'folha_resposta_galeria.jpg',
